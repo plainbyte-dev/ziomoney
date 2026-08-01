@@ -1,0 +1,158 @@
+"use client";
+
+import { useState } from "react";
+import { Check } from "lucide-react";
+import SelectField from "./SelectField";
+import DateField from "./DateField";
+import ReportResults from "./ReportResults";
+import {
+  countryOptions,
+  beneficiaryCountryOptions,
+  payoutPartnerOptions,
+  tnxDateOptions,
+  reportDefaults,
+} from "@/data/staticData";
+
+type PartnerWiseOption = "send" | "payout";
+
+export default function CorrespondenceReportCard() {
+  const [partnerWise, setPartnerWise] = useState<PartnerWiseOption>("send");
+  const [exportToExcel, setExportToExcel] = useState(true);
+  const [reportVisible, setReportVisible] = useState(false);
+
+  return (
+    <div className="rounded-2xl border border-border bg-panel p-6 shadow-card sm:p-8">
+      <h1 className="text-2xl font-bold text-heading">Correspondence Report</h1>
+      <p className="mt-1 max-w-2xl text-sm text-muted">
+        Money-transfer correspondence between sending and payout partners, tracked
+        from customer collection through to head-office settlement.
+      </p>
+
+      <div className="mt-6 rounded-2xl border border-border bg-white p-6">
+        <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+          <SelectField
+            label="Sending Country"
+            options={countryOptions}
+            defaultValue={reportDefaults.sendingCountry}
+          />
+          <SelectField
+            label="Beneficiary Country"
+            options={beneficiaryCountryOptions}
+            defaultValue={reportDefaults.beneficiaryCountry}
+          />
+          <SelectField
+            label="Payout Partner"
+            options={payoutPartnerOptions}
+            defaultValue={reportDefaults.payoutPartner}
+          />
+          <SelectField
+            label="Beneficiary Country"
+            options={beneficiaryCountryOptions}
+            defaultValue={reportDefaults.beneficiaryCountry2}
+          />
+
+          <SelectField
+            label="Confirm/TNX"
+            options={tnxDateOptions}
+            defaultValue={reportDefaults.confirmTnx}
+            required
+          />
+          <DateField label="From" defaultValue={reportDefaults.fromDate} />
+          <DateField label="To" defaultValue={reportDefaults.toDate} />
+        </div>
+
+        <div className="mt-6 flex flex-col gap-4 border-t border-border pt-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-6">
+            <RadioOption
+              label="Send Partner Wise"
+              checked={partnerWise === "send"}
+              onSelect={() => setPartnerWise("send")}
+            />
+            <RadioOption
+              label="Payout Partner Wise"
+              checked={partnerWise === "payout"}
+              onSelect={() => setPartnerWise("payout")}
+            />
+          </div>
+
+          <CheckboxOption
+            label="Export To Excel"
+            checked={exportToExcel}
+            onToggle={() => setExportToExcel((v) => !v)}
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <button
+          onClick={() => setReportVisible(true)}
+          className="rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark"
+        >
+          View Full Report
+        </button>
+        <button
+          onClick={() => setReportVisible(false)}
+          className="rounded-full border border-border bg-white px-8 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
+        >
+          Reset
+        </button>
+      </div>
+
+      {reportVisible && <ReportResults />}
+    </div>
+  );
+}
+
+function RadioOption({
+  label,
+  checked,
+  onSelect,
+}: {
+  label: string;
+  checked: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="flex items-center gap-2 text-sm text-heading/80"
+    >
+      <span
+        className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+          checked ? "border-brand-green" : "border-border"
+        }`}
+      >
+        {checked && <span className="h-2 w-2 rounded-full bg-brand-green" />}
+      </span>
+      {label}
+    </button>
+  );
+}
+
+function CheckboxOption({
+  label,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex items-center gap-2 text-sm text-heading/80"
+    >
+      <span
+        className={`flex h-4 w-4 items-center justify-center rounded ${
+          checked ? "bg-brand-green" : "border border-border bg-white"
+        }`}
+      >
+        {checked && <Check size={12} className="text-white" strokeWidth={3} />}
+      </span>
+      {label}
+    </button>
+  );
+}
