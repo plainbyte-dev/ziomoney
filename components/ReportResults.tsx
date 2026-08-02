@@ -30,7 +30,7 @@ export default function ReportResults() {
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-border bg-panel p-6 shadow-card sm:p-8">
+    <div>
       <ReportToolbar
         activeView={activeView}
         onViewChange={setActiveView}

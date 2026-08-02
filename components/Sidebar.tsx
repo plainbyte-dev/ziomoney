@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronRight, LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Logo from "./Logo";
+import LogoutConfirmModal from "./LogoutConfirmModal";
 import { useTabs } from "@/contexts/TabsContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { tabRegistry } from "@/data/tabRegistry";
 import {
   mainNavItems,
@@ -79,7 +81,7 @@ function NavRow({
         disabled={!enabled}
         className={
           active
-            ? "flex w-full items-center justify-between rounded-xl bg-brand-green px-4 py-2.5 text-left text-sm font-semibold text-white shadow-card"
+            ? "flex w-full items-center justify-between rounded-xl bg-brand-green px-4 py-2.5 text-left text-sm font-semibold text-white shadow-card transition-all"
             : "flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm text-heading/80 transition-colors hover:bg-surface disabled:cursor-default disabled:text-muted/60 disabled:hover:bg-transparent"
         }
       >
@@ -129,7 +131,7 @@ function Flyout({
       onMouseEnter={onCancelClose}
       onMouseLeave={onScheduleClose}
       style={{ top: maxTop, left: position.left, width: FLYOUT_WIDTH }}
-      className="fixed z-50 rounded-xl border border-border bg-white p-2 shadow-card"
+      className="fixed z-50 rounded-xl border border-border bg-white p-2 shadow-popover"
     >
       <p className="px-3 pb-2 pt-1 text-[11px] font-semibold tracking-wider text-muted">
         {(item.submenuTitle ?? item.label).toUpperCase()}
@@ -154,8 +156,11 @@ function Flyout({
 
 export default function Sidebar() {
   const { openTab } = useTabs();
+  const { user, logout } = useAuth();
+  const router = useRouter();
   const [openLabel, setOpenLabel] = useState<string | null>(null);
   const [position, setPosition] = useState<FlyoutPosition | null>(null);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function cancelClose() {
@@ -185,6 +190,12 @@ export default function Sidebar() {
     });
   }
 
+  function confirmLogout() {
+    setLogoutConfirmOpen(false);
+    logout();
+    router.push("/login");
+  }
+
   useEffect(() => {
     return () => {
       if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -209,11 +220,11 @@ export default function Sidebar() {
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-panel">
-      <div className="flex items-center gap-2 px-6 py-6">
+      <div className="flex items-center gap-2 border-b border-border px-6 py-6">
         <Logo size="md" />
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-4 pb-4">
+      <nav className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
         <p className="px-2 pb-2 text-[11px] font-semibold tracking-wider text-muted">
           MAIN NAVIGATION
         </p>
@@ -238,20 +249,31 @@ export default function Sidebar() {
 
       <div className="m-4 flex items-center gap-3 rounded-xl bg-brand-green-light px-3 py-3">
         <Image
-          src={footerUser.avatarUrl}
-          alt={footerUser.name}
+          src={user?.avatarUrl ?? footerUser.avatarUrl}
+          alt={user?.name ?? footerUser.name}
           width={36}
           height={36}
-          className="rounded-full object-cover"
+          className="rounded-full object-cover ring-2 ring-white"
         />
         <div className="flex-1">
-          <p className="text-sm font-semibold text-heading">{footerUser.name}</p>
-          <p className="text-xs text-brand-green-dark">{footerUser.role}</p>
+          <p className="text-sm font-semibold text-heading">{user?.name ?? footerUser.name}</p>
+          <p className="text-xs text-brand-green-dark">{user?.role ?? footerUser.role}</p>
         </div>
-        <Link href="/login" aria-label="Log out" className="text-brand-green-dark">
+        <button
+          type="button"
+          onClick={() => setLogoutConfirmOpen(true)}
+          aria-label="Log out"
+          className="rounded-lg p-1.5 text-brand-green-dark hover:bg-white/70"
+        >
           <LogOut size={16} />
-        </Link>
+        </button>
       </div>
+
+      <LogoutConfirmModal
+        open={logoutConfirmOpen}
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={confirmLogout}
+      />
     </aside>
   );
 }

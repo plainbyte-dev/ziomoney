@@ -100,33 +100,39 @@ export default function LedgerListPanel() {
   const deleteCount = deleteRequest?.mode === "bulk" ? selectedIds.size : 1;
 
   return (
-    <div className="rounded-2xl border border-border bg-panel p-6 shadow-card sm:p-8">
-      <LedgerListHeader
-        selectionMode={selectionMode}
-        selectedCount={selectedIds.size}
-        onStartSelection={startSelection}
-        onCancelSelection={cancelSelection}
-        onRequestBulkDelete={requestBulkDelete}
-      />
+    <div className="overflow-hidden rounded-2xl border border-border shadow-card">
+      <div className="bg-brand-blue px-6 py-4">
+        <h1 className="text-lg font-bold text-white">Ledger List</h1>
+      </div>
 
-      <div className="mt-6">
-        <LedgerTable
-          entries={pageEntries}
+      <div className="bg-panel p-6 sm:p-8">
+        <LedgerListHeader
           selectionMode={selectionMode}
-          selectedIds={selectedIds}
-          onToggleSelect={toggleSelect}
-          onToggleSelectAll={toggleSelectAllOnPage}
-          onView={setViewingEntry}
-          onDeleteSingle={requestSingleDelete}
+          selectedCount={selectedIds.size}
+          onStartSelection={startSelection}
+          onCancelSelection={cancelSelection}
+          onRequestBulkDelete={requestBulkDelete}
         />
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalResults={entries.length}
-          pageSize={PAGE_SIZE}
-          onPageChange={setCurrentPage}
-        />
+        <div className="mt-4">
+          <LedgerTable
+            entries={pageEntries}
+            selectionMode={selectionMode}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onToggleSelectAll={toggleSelectAllOnPage}
+            onView={setViewingEntry}
+            onDeleteSingle={requestSingleDelete}
+          />
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalResults={entries.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       </div>
 
       <ConfirmDeleteModal

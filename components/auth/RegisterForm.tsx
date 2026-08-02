@@ -1,21 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthField from "./AuthField";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function RegisterForm() {
   const router = useRouter();
+  const { user, hydrated, registerAndLogin } = useAuth();
   const [agreed, setAgreed] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (hydrated && user) {
+      router.replace("/");
+    }
+  }, [hydrated, user, router]);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
     const form = event.currentTarget;
+    const name = (form.elements.namedItem("name") as HTMLInputElement).value;
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
     const confirmPassword = (
       form.elements.namedItem("confirmPassword") as HTMLInputElement
@@ -34,6 +44,7 @@ export default function RegisterForm() {
     setCreating(true);
     // Static demo: no real auth backend — simulate account creation, then enter the app.
     setTimeout(() => {
+      registerAndLogin(name, email);
       router.push("/");
     }, 500);
   }
@@ -46,10 +57,17 @@ export default function RegisterForm() {
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-        <AuthField label="Full Name" placeholder="John Doe" autoComplete="name" required />
+        <AuthField
+          label="Full Name"
+          name="name"
+          placeholder="John Doe"
+          autoComplete="name"
+          required
+        />
         <AuthField
           label="Work Email"
           type="email"
+          name="email"
           placeholder="you@ziomoney.com"
           autoComplete="email"
           required

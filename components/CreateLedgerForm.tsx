@@ -24,12 +24,14 @@ export default function CreateLedgerForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-panel p-6 shadow-card sm:p-8">
-      <h1 className="text-2xl font-bold text-heading">Create New Ledger</h1>
+    <div className="overflow-hidden rounded-2xl border border-border shadow-card">
+      <div className="bg-brand-blue px-6 py-4">
+        <h1 className="text-lg font-bold text-white">Create New Ledger</h1>
+      </div>
 
       <form
         onSubmit={handleSave}
-        className="mt-6 rounded-2xl border border-border bg-white p-6"
+        className="rounded-2xl bg-panel p-6 sm:p-8"
       >
         <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
           <TextField label="Ledger Name" placeholder="e.g. TEST PRIVATE LIMITED" required />

@@ -21,9 +21,7 @@ export default function LedgerListHeader({
   const { openTab } = useTabs();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h1 className="text-2xl font-bold text-heading">Ledger List</h1>
-
+    <div className="flex flex-wrap items-center justify-end gap-3">
       <div className="flex items-center gap-4">
         {selectionMode && (
           <>

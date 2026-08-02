@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { BreadcrumbItem } from "./staticData";
 import CorrespondenceReportCard from "@/components/CorrespondenceReportCard";
+import CorrespondenceReportResultsPanel from "@/components/CorrespondenceReportResultsPanel";
 import LedgerListPanel from "@/components/LedgerListPanel";
 import CreateLedgerForm from "@/components/CreateLedgerForm";
 import DefineCreditLimitPanel from "@/components/DefineCreditLimitPanel";
@@ -30,6 +31,15 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     ],
     component: CorrespondenceReportCard,
     closable: false,
+  },
+  "correspondence-report-results": {
+    title: "Report Results",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Correspondence Report", href: "#" },
+      { label: "Report Results", href: "#", active: true },
+    ],
+    component: CorrespondenceReportResultsPanel,
   },
   "ledger-list": {
     title: "Ledger List",

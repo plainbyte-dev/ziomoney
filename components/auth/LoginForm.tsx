@@ -1,22 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthField from "./AuthField";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginForm() {
   const router = useRouter();
+  const { user, hydrated, login } = useAuth();
   const [rememberMe, setRememberMe] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: React.FormEvent) {
+  useEffect(() => {
+    if (hydrated && user) {
+      router.replace("/");
+    }
+  }, [hydrated, user, router]);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError(null);
+
+    const form = event.currentTarget;
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+
     setSigningIn(true);
-    // Static demo: no real auth backend — simulate sign-in, then enter the app.
+    // Static demo: no real auth backend — check against the mock user list.
     setTimeout(() => {
-      router.push("/");
-    }, 500);
+      const success = login(email, password);
+      if (success) {
+        router.push("/");
+      } else {
+        setSigningIn(false);
+        setError("Invalid email or password.");
+      }
+    }, 400);
   }
 
   return (
@@ -30,6 +51,7 @@ export default function LoginForm() {
         <AuthField
           label="Email"
           type="email"
+          name="email"
           placeholder="you@ziomoney.com"
           autoComplete="email"
           required
@@ -37,10 +59,15 @@ export default function LoginForm() {
         <AuthField
           label="Password"
           type="password"
+          name="password"
           placeholder="Enter your password"
           autoComplete="current-password"
           required
         />
+
+        {error && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>
+        )}
 
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 text-heading/70">
