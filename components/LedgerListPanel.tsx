@@ -72,18 +72,27 @@ export default function LedgerListPanel() {
   function confirmDelete() {
     if (!deleteRequest) return;
 
+    let nextEntries: LedgerEntry[] = entries;
+
     if (deleteRequest.mode === "single") {
-      setEntries((prev) => prev.filter((entry) => entry.id !== deleteRequest.id));
+      nextEntries = entries.filter((entry) => entry.id !== deleteRequest.id);
       setSelectedIds((prev) => {
         const next = new Set(prev);
         next.delete(deleteRequest.id);
         return next;
       });
     } else {
-      setEntries((prev) => prev.filter((entry) => !selectedIds.has(entry.id)));
+      nextEntries = entries.filter((entry) => !selectedIds.has(entry.id));
       setSelectedIds(new Set());
       setSelectionMode(false);
     }
+
+    setEntries(nextEntries);
+
+    // Clamp currentPage in case the page we were on no longer exists
+    // (e.g. deleting the last/only entries on the final page).
+    const nextTotalPages = Math.max(1, Math.ceil(nextEntries.length / PAGE_SIZE));
+    setCurrentPage((page) => Math.min(page, nextTotalPages));
 
     setDeleteRequest(null);
   }

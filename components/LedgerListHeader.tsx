@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { Plus } from "lucide-react";
+import { useTabs } from "@/contexts/TabsContext";
 
 interface LedgerListHeaderProps {
   selectionMode: boolean;
@@ -18,6 +18,8 @@ export default function LedgerListHeader({
   onCancelSelection,
   onRequestBulkDelete,
 }: LedgerListHeaderProps) {
+  const { openTab } = useTabs();
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h1 className="text-2xl font-bold text-heading">Ledger List</h1>
@@ -38,13 +40,15 @@ export default function LedgerListHeader({
         )}
 
         {!selectionMode && (
-          <Link
-            href="/ledger/create"
+          <button
+            onClick={() =>
+              openTab({ key: "ledger-create", title: "Create New Ledger" })
+            }
             className="flex items-center gap-1.5 rounded-full border border-border bg-white px-5 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
           >
             <Plus size={16} />
             Create Ledger
-          </Link>
+          </button>
         )}
 
         <button

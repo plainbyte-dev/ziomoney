@@ -1,14 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
 import RadioPill from "./RadioPill";
 import { ledgerCountryOptions, ledgerCurrencyOptions } from "@/data/ledgerData";
+import { useTabs } from "@/contexts/TabsContext";
 
 export default function CreateLedgerForm() {
-  const router = useRouter();
+  const { openTab } = useTabs();
   const [currency, setCurrency] = useState<(typeof ledgerCurrencyOptions)[number]>(
     "NPR"
   );
@@ -19,7 +19,7 @@ export default function CreateLedgerForm() {
     setSaving(true);
     // Static demo: pretend to save, then return to the ledger list.
     setTimeout(() => {
-      router.push("/ledger");
+      openTab({ key: "ledger-list", title: "Ledger List" });
     }, 400);
   }
 

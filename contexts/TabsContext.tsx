@@ -1,0 +1,99 @@
+"use client";
+
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { loadState, saveState } from "@/lib/persist";
+
+export interface TabDef {
+  key: string;
+  title: string;
+  closable?: boolean;
+}
+
+interface TabsContextValue {
+  openTabs: TabDef[];
+  activeKey: string;
+  openTab: (tab: TabDef) => void;
+  closeTab: (key: string) => void;
+  setActiveKey: (key: string) => void;
+}
+
+const HOME_TAB: TabDef = {
+  key: "correspondence-report",
+  title: "Correspondence Report",
+  closable: false,
+};
+
+const STORAGE_KEY = "zio-tabs-state";
+
+const TabsContext = createContext<TabsContextValue | null>(null);
+
+export function TabsProvider({ children }: { children: React.ReactNode }) {
+  const [openTabs, setOpenTabs] = useState<TabDef[]>([HOME_TAB]);
+  const [activeKey, setActiveKeyState] = useState<string>(HOME_TAB.key);
+
+  // Restore from localStorage after mount (avoids SSR/client hydration mismatch).
+  useEffect(() => {
+    const saved = loadState<{ openTabs: TabDef[]; activeKey: string }>(STORAGE_KEY);
+    if (saved && saved.openTabs.length > 0) {
+      setOpenTabs(saved.openTabs);
+      setActiveKeyState(saved.activeKey);
+    }
+  }, []);
+
+  // Skip the very first save (still holds the pre-restore default state) so it
+  // can't race the restore effect above and clobber what's in localStorage.
+  const skipNextSave = useRef(true);
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+    } else {
+      saveState(STORAGE_KEY, { openTabs, activeKey });
+    }
+    return () => {
+      skipNextSave.current = true;
+    };
+  }, [openTabs, activeKey]);
+
+  const openTab = useCallback((tab: TabDef) => {
+    setOpenTabs((prev) =>
+      prev.some((t) => t.key === tab.key) ? prev : [...prev, tab]
+    );
+    setActiveKeyState(tab.key);
+  }, []);
+
+  const closeTab = useCallback((key: string) => {
+    setOpenTabs((prev) => {
+      const index = prev.findIndex((t) => t.key === key);
+      if (index === -1) return prev;
+
+      const next = prev.filter((t) => t.key !== key);
+
+      setActiveKeyState((currentActive) => {
+        if (currentActive !== key) return currentActive;
+        const fallback = next[index - 1] ?? next[0];
+        return fallback ? fallback.key : HOME_TAB.key;
+      });
+
+      return next.length > 0 ? next : [HOME_TAB];
+    });
+  }, []);
+
+  const setActiveKey = useCallback((key: string) => {
+    setActiveKeyState(key);
+  }, []);
+
+  const value = useMemo(
+    () => ({ openTabs, activeKey, openTab, closeTab, setActiveKey }),
+    [openTabs, activeKey, openTab, closeTab, setActiveKey]
+  );
+
+  return <TabsContext.Provider value={value}>{children}</TabsContext.Provider>;
+}
+
+export function useTabs() {
+  const ctx = useContext(TabsContext);
+  if (!ctx) {
+    throw new Error("useTabs must be used within a TabsProvider");
+  }
+  return ctx;
+}

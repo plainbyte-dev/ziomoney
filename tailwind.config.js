@@ -27,7 +27,13 @@ module.exports = {
         card: "0 1px 3px rgba(16, 24, 40, 0.06), 0 1px 2px rgba(16, 24, 40, 0.04)",
       },
       fontFamily: {
-        sans: ["Inter", "Segoe UI", "Helvetica Neue", "Arial", "sans-serif"],
+        sans: [
+          "var(--font-sans)",
+          "Segoe UI",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
       },
     },
   },

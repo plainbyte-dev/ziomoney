@@ -1,29 +1,24 @@
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
-import Breadcrumbs from "./Breadcrumbs";
-import type { BreadcrumbItem } from "@/data/staticData";
+import TabbedWorkspace from "./TabbedWorkspace";
+import { TabsProvider } from "@/contexts/TabsContext";
+import { VouchersProvider } from "@/contexts/VouchersContext";
+import { PartnersProvider } from "@/contexts/PartnersContext";
 
-export default function AppShell({
-  breadcrumbItems,
-  children,
-}: {
-  breadcrumbItems: BreadcrumbItem[];
-  children: React.ReactNode;
-}) {
+export default function AppShell() {
   return (
-    <div className="flex h-screen bg-surface">
-      <Sidebar />
-
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Topbar />
-
-        <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-10">
-          <div className="mb-4">
-            <Breadcrumbs items={breadcrumbItems} />
+    <TabsProvider>
+      <VouchersProvider>
+        <PartnersProvider>
+          <div className="flex h-screen bg-surface">
+            <Sidebar />
+            <div className="flex flex-1 flex-col overflow-hidden">
+              <Topbar />
+              <TabbedWorkspace />
+            </div>
           </div>
-          {children}
-        </main>
-      </div>
-    </div>
+        </PartnersProvider>
+      </VouchersProvider>
+    </TabsProvider>
   );
 }

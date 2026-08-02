@@ -1,9 +1,22 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
+import "./global.css";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Zio Money | Correspondence Report",
   description: "Admin panel for tracking money-transfer correspondence.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#F5F7FA",
 };
 
 export default function RootLayout({
@@ -12,8 +25,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="font-sans text-heading antialiased">{children}</body>
+    <html lang="en" className={`${inter.variable} h-full`}>
+      <body className="h-full overflow-hidden bg-surface font-sans text-heading antialiased">
+        {children}
+      </body>
     </html>
   );
 }
