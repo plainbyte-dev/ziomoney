@@ -10,9 +10,7 @@ import { useTabs } from "@/contexts/TabsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { tabRegistry } from "@/data/tabRegistry";
 import {
-  mainNavItems,
-  secondaryNavItems,
-  tertiaryNavItems,
+  navGroups,
   footerUser,
   type NavItem,
   type NavSubItem,
@@ -202,7 +200,7 @@ export default function Sidebar() {
     };
   }, []);
 
-  const allItems = [...mainNavItems, ...secondaryNavItems, ...tertiaryNavItems];
+  const allItems = navGroups.flatMap((group) => group.items);
   const openItem = allItems.find((item) => item.label === openLabel);
 
   function renderItems(items: NavItem[]) {
@@ -225,16 +223,14 @@ export default function Sidebar() {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
-        <p className="px-2 pb-2 text-[11px] font-semibold tracking-wider text-muted">
-          MAIN NAVIGATION
-        </p>
-        <div className="flex flex-col gap-1">{renderItems(mainNavItems)}</div>
-
-        <div className="my-4 flex flex-col gap-1">{renderItems(secondaryNavItems)}</div>
-
-        <div className="flex flex-col gap-1 border-t border-border pt-4">
-          {renderItems(tertiaryNavItems)}
-        </div>
+        {navGroups.map((group, index) => (
+          <div key={group.heading} className={index === 0 ? "" : "mt-4 border-t border-border pt-4"}>
+            <p className="px-2 pb-2 text-[11px] font-semibold tracking-wider text-muted">
+              {group.heading.toUpperCase()}
+            </p>
+            <div className="flex flex-col gap-1">{renderItems(group.items)}</div>
+          </div>
+        ))}
       </nav>
 
       {openItem && position && (

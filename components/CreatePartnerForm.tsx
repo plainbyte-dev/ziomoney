@@ -7,6 +7,7 @@ import DateField from "./DateField";
 import Checkbox from "./Checkbox";
 import { useTabs } from "@/contexts/TabsContext";
 import { usePartners } from "@/contexts/PartnersContext";
+import { insertRemittancePartner } from "@/lib/remittanceApi";
 import {
   partnerCountrySelectOptions,
   partnerTypeOptions,
@@ -16,6 +17,8 @@ import {
   partnerSettlementOptions,
   localTimeOptions,
   partnerLocalCurrencyOptions,
+  remitterTypeOptions,
+  settlementCurrencyOptions,
   type PartnerEntry,
 } from "@/data/partnerData";
 
@@ -26,7 +29,19 @@ export default function CreatePartnerForm() {
   const [companyName, setCompanyName] = useState("");
   const [country, setCountry] = useState(partnerCountrySelectOptions[0]);
   const [partnerType, setPartnerType] = useState(partnerTypeOptions[0]);
+  const [address, setAddress] = useState("");
+  const [email, setEmail] = useState("");
   const [blocked, setBlocked] = useState(false);
+
+  // Remittance API fields (insertRemittancePartner payload)
+  const [userName, setUserName] = useState("");
+  const [partnerCode, setPartnerCode] = useState("");
+  const [description, setDescription] = useState("");
+  const [remitterType, setRemitterType] = useState(remitterTypeOptions[0]);
+  const [settlementCurrency, setSettlementCurrency] = useState(settlementCurrencyOptions[0]);
+  const [acceptPartnerPin, setAcceptPartnerPin] = useState(false);
+  const [apiUser, setApiUser] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const [coverFundLimit, setCoverFundLimit] = useState(false);
   const [makerChecker, setMakerChecker] = useState(false);
@@ -42,25 +57,43 @@ export default function CreatePartnerForm() {
 
   const [saving, setSaving] = useState(false);
 
-  function handleSave(event: React.FormEvent) {
+  async function handleSave(event: React.FormEvent) {
     event.preventDefault();
+    setSaveError(null);
     setSaving(true);
 
+    const response = await insertRemittancePartner({
+      userName: userName || companyName,
+      partnerCode,
+      description,
+      partnerCountry: country,
+      partnerAddress: address,
+      remitterType,
+      settlementCurrency,
+      acceptPartnerPin,
+      apiUser,
+      email,
+    });
+
+    if (!response.success || !response.data) {
+      setSaving(false);
+      setSaveError(response.message || "Could not create the partner. Please try again.");
+      return;
+    }
+
     const entry: PartnerEntry = {
-      id: `${11000000 + entries.length + 1}`,
-      partnerName: companyName || "New Partner",
-      partnerId: "",
+      id: String(response.data.id ?? 11000000 + entries.length + 1),
+      partnerName: companyName || response.data.userName,
+      partnerId: partnerCode,
       country: country.toUpperCase(),
       partnerType: partnerType.replace(" Agent", ""),
-      creditLimit: null,
+      creditLimit: response.data.balance ?? null,
       hasBank: false,
       blocked,
     };
 
-    setTimeout(() => {
-      addEntry(entry);
-      openTab({ key: "partner-info", title: "Partner Info" });
-    }, 400);
+    addEntry(entry);
+    openTab({ key: "partner-info", title: "Partner Info" });
   }
 
   return (
@@ -86,25 +119,89 @@ export default function CreatePartnerForm() {
             label="Company Name:"
             required
             placeholder="e.g. TRANS CASH INTERNATIONAL"
+            value={companyName}
+            onChange={setCompanyName}
           />
           <TextField label="Partner ID:" />
-          <SelectField label="Partner Type:" options={partnerTypeOptions} defaultValue={partnerTypeOptions[0]} />
+          <SelectField
+            label="Partner Type:"
+            options={partnerTypeOptions}
+            defaultValue={partnerTypeOptions[0]}
+            value={partnerType}
+            onChange={setPartnerType}
+          />
           <TextField label="Business License:" />
-          <TextField label="Address:" required />
+          <TextField label="Address:" required value={address} onChange={setAddress} />
           <DateField label="Date of Agreement:" defaultValue="" />
           <TextField label="City:" required />
-          <SelectField label="Country:" options={partnerCountrySelectOptions} defaultValue={partnerCountrySelectOptions[0]} />
+          <SelectField
+            label="Country:"
+            options={partnerCountrySelectOptions}
+            defaultValue={partnerCountrySelectOptions[0]}
+            value={country}
+            onChange={setCountry}
+          />
           <TextField label="Phone1:" required />
           <TextField label="Phone2:" />
           <TextField label="Fax No:" />
           <TextField label="Ext Partner ID:" />
-          <TextField label="Email" />
+          <TextField label="Email" value={email} onChange={setEmail} />
           <div className="flex items-end pb-2.5">
             <Checkbox
               checked={blocked}
               onToggle={() => setBlocked((v) => !v)}
               label="Block this partner:"
               className="flex-row-reverse justify-end gap-2 text-heading/70"
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-x-6 gap-y-5 border-t border-border pt-5 sm:grid-cols-2">
+          <p className="sm:col-span-2 text-sm font-semibold text-heading/70">
+            Remittance API Details
+          </p>
+          <TextField
+            label="User Name:"
+            required
+            placeholder="Defaults to Company Name"
+            value={userName}
+            onChange={setUserName}
+          />
+          <TextField
+            label="Partner Code:"
+            required
+            value={partnerCode}
+            onChange={setPartnerCode}
+          />
+          <TextField
+            label="Description:"
+            value={description}
+            onChange={setDescription}
+          />
+          <SelectField
+            label="Remitter Type:"
+            options={remitterTypeOptions}
+            defaultValue={remitterTypeOptions[0]}
+            value={remitterType}
+            onChange={setRemitterType}
+          />
+          <SelectField
+            label="Settlement Currency:"
+            options={settlementCurrencyOptions}
+            defaultValue={settlementCurrencyOptions[0]}
+            value={settlementCurrency}
+            onChange={setSettlementCurrency}
+          />
+          <div className="flex items-center gap-6 pb-2.5">
+            <Checkbox
+              checked={acceptPartnerPin}
+              onToggle={() => setAcceptPartnerPin((v) => !v)}
+              label="Accept Partner PIN"
+            />
+            <Checkbox
+              checked={apiUser}
+              onToggle={() => setApiUser((v) => !v)}
+              label="API User"
             />
           </div>
         </div>
@@ -286,6 +383,11 @@ export default function CreatePartnerForm() {
         </div>
 
         <div className="mt-6 border-t border-border pt-5">
+          {saveError && (
+            <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {saveError}
+            </p>
+          )}
           <button
             type="submit"
             disabled={saving}

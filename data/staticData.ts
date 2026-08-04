@@ -7,11 +7,18 @@ import {
   FileUp,
   BarChart3,
   ShieldCheck,
-  CreditCard,
   FileBarChart2,
   Lock,
   UserCog,
   Wrench,
+  Banknote,
+  UserPlus,
+  History,
+  Send,
+  KeyRound,
+  FolderUp,
+  Search,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -82,59 +89,191 @@ export interface NavItem {
   submenu?: NavSubItem[];
 }
 
-export const mainNavItems: NavItem[] = [
-  {
-    label: "Accounts Detail",
-    icon: LayoutList,
-    href: "#",
-    hasSubmenu: true,
-    submenuTitle: "Account Details",
-    submenu: [
-      { label: "Ledger", tabKey: "ledger-list" },
-      { label: "Voucher Entry", tabKey: "voucher-entry" },
-      { label: "Voucher Approval", tabKey: "voucher-approval" },
-      { label: "Statement of Account", tabKey: "statement-of-account" },
-      { label: "Correspondent Report", tabKey: "correspondence-report" },
-      { label: "All Summary Balance", tabKey: "all-summary-balance" },
-      { label: "Create new Ledger", tabKey: "ledger-create" },
-      { label: "Define Credit Limit", tabKey: "credit-limit" },
-    ],
-  },
-  {
-    label: "Partners",
-    icon: Users,
-    href: "#",
-    hasSubmenu: true,
-    submenuTitle: "Partners",
-    submenu: [
-      { label: "Partner Info", tabKey: "partner-info" },
-      { label: "Create New Partner", tabKey: "partner-create" },
-    ],
-  },
-  { label: "Exchange Rate", icon: ArrowLeftRight, href: "#" },
-  {
-    label: "Customer Detail",
-    icon: UserCircle,
-    href: "#",
-    hasSubmenu: true,
-    submenuTitle: "Customer Details",
-    submenu: [
-      { label: "Corporate Customer", tabKey: "corporate-customer" },
-      { label: "Customer Details", tabKey: "customer-details" },
-    ],
-  },
-];
+export interface NavGroup {
+  // Section heading shown in the sidebar above this group's items.
+  heading: string;
+  items: NavItem[];
+}
 
-export const secondaryNavItems: NavItem[] = [
-  { label: "SMS & Email", icon: Mail, href: "#" },
-  { label: "Export/Import", icon: FileUp, href: "#" },
-];
-
-export const tertiaryNavItems: NavItem[] = [
-  { label: "Risk Profiling", icon: BarChart3, href: "#" },
-  { label: "Payment", icon: CreditCard, href: "#" },
-  { label: "Reports", icon: FileBarChart2, href: "#", hasSubmenu: true, tabKey: "reports-index" },
-  { label: "Security", icon: Lock, href: "#" },
-  { label: "User Management", icon: UserCog, href: "#", hasSubmenu: true },
-  { label: "Utilities", icon: Wrench, href: "#" },
+// Each group corresponds to a distinct backend API domain (ledger/transaction
+// history, remittance partner, KYC, exchange rate, ...), so the sidebar's
+// structure stays legible against the API surface it drives.
+export const navGroups: NavGroup[] = [
+  {
+    heading: "Accounts",
+    items: [
+      {
+        label: "Accounts Detail",
+        icon: LayoutList,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Account Details",
+        submenu: [
+          { label: "Ledger", tabKey: "ledger-list" },
+          { label: "Voucher Entry", tabKey: "voucher-entry" },
+          { label: "Voucher Approval", tabKey: "voucher-approval" },
+          { label: "Statement of Account", tabKey: "statement-of-account" },
+          { label: "Correspondent Report", tabKey: "correspondence-report" },
+          { label: "All Summary Balance", tabKey: "all-summary-balance" },
+          { label: "Create new Ledger", tabKey: "ledger-create" },
+          { label: "Define Credit Limit", tabKey: "credit-limit" },
+        ],
+      },
+    ],
+  },
+  {
+    // "Partner info" in the API doc: Remittance Partner + Payout Partner
+    heading: "Partner Info",
+    items: [
+      {
+        label: "Partners",
+        icon: Users,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Partners",
+        submenu: [
+          { label: "Partner Info", tabKey: "partner-info" },
+          { label: "Create New Partner", tabKey: "partner-create" },
+        ],
+      },
+      {
+        label: "Payout Partner",
+        icon: Banknote,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Payout Partner",
+        submenu: [
+          { label: "Payout Configuration" },
+          { label: "Payout Banks" },
+          { label: "Payout Partner Types" },
+        ],
+      },
+    ],
+  },
+  {
+    // "Customer Details and Corporate" / "KYC (sender / beneficiary)"
+    heading: "Customer Details and Corporate",
+    items: [
+      {
+        label: "Customer Detail",
+        icon: UserCircle,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Customer Details",
+        submenu: [
+          { label: "Corporate Customer", tabKey: "corporate-customer" },
+          { label: "Customer Details", tabKey: "customer-details" },
+          { label: "KYC Approval Queue", tabKey: "kyc-approval-queue" },
+          { label: "Approved KYCs", tabKey: "kyc-approved-list" },
+        ],
+      },
+      {
+        label: "Beneficiaries",
+        icon: UserPlus,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Beneficiaries",
+        submenu: [{ label: "My Beneficiaries" }, { label: "Add Beneficiary" }],
+      },
+    ],
+  },
+  {
+    heading: "Compliance",
+    items: [
+      {
+        label: "Compliance Rule",
+        icon: ShieldCheck,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Compliance Rule",
+        submenu: [{ label: "Rule List" }, { label: "Rule Values" }],
+      },
+    ],
+  },
+  {
+    // "Exchange rate and service charge / commission" covers Service Charge,
+    // Margin Setup, Exchange Rate, Country/Currency, Partner Offer Rate and
+    // Partner Commission.
+    heading: "Exchange Rate & Commission",
+    items: [
+      {
+        label: "Exchange Rate & Commission",
+        icon: ArrowLeftRight,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Exchange Rate & Commission",
+        submenu: [
+          { label: "Exchange Rates", tabKey: "exchange-rates" },
+          { label: "Service Charges", tabKey: "service-charges" },
+          { label: "Margin Setup", tabKey: "margin-setup" },
+          { label: "Country / Currency", tabKey: "country-currency" },
+          { label: "Partner Offer Rates", tabKey: "partner-offer-rates" },
+          { label: "Partner Commission", tabKey: "partner-commission" },
+        ],
+      },
+    ],
+  },
+  {
+    heading: "Transaction History",
+    items: [
+      {
+        label: "Transaction Detail History",
+        icon: History,
+        href: "#",
+      },
+    ],
+  },
+  {
+    heading: "Payment",
+    items: [
+      {
+        label: "Remittances",
+        icon: Send,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Remittances",
+        submenu: [
+          { label: "My Transfers" },
+          { label: "Create Transfer" },
+          { label: "Unapproved Remittances" },
+          { label: "Confirmed Remittances" },
+          { label: "Compliance Hold Remittances" },
+        ],
+      },
+    ],
+  },
+  {
+    heading: "User Management and Security",
+    items: [
+      { label: "OTP", icon: KeyRound, href: "#" },
+      { label: "Security", icon: Lock, href: "#" },
+      { label: "User Management", icon: UserCog, href: "#", hasSubmenu: true },
+    ],
+  },
+  {
+    heading: "Export/Import",
+    items: [
+      { label: "Agent File Upload", icon: FolderUp, href: "#" },
+      { label: "Export/Import", icon: FileUp, href: "#" },
+    ],
+  },
+  {
+    heading: "Utility",
+    items: [
+      { label: "Transaction Query", icon: Search, href: "#" },
+      { label: "Healthcheck", icon: Activity, href: "#" },
+      { label: "Utilities", icon: Wrench, href: "#" },
+    ],
+  },
+  {
+    heading: "Communications",
+    items: [{ label: "SMS & Email", icon: Mail, href: "#" }],
+  },
+  {
+    heading: "Operations & Admin",
+    items: [
+      { label: "Risk Profiling", icon: BarChart3, href: "#" },
+      { label: "Reports", icon: FileBarChart2, href: "#", hasSubmenu: true, tabKey: "reports-index" },
+    ],
+  },
 ];

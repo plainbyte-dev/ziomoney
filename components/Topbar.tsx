@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Search, Bell, ChevronDown } from "lucide-react";
 import NotificationsPanel from "./NotificationsPanel";
+import DataModeToggle from "./DataModeToggle";
 import { loggedInUser } from "@/data/staticData";
 import { initialNotifications, type NotificationEntry } from "@/data/notificationsData";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +52,8 @@ export default function Topbar() {
       </div>
 
       <div className="flex items-center gap-5">
+        <DataModeToggle />
+
         <button className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-heading/80 hover:bg-surface">
           <span className="text-lg leading-none">🇺🇸</span>
           English

@@ -5,12 +5,12 @@ import { Search } from "lucide-react";
 import RadioPill from "./RadioPill";
 import Checkbox from "./Checkbox";
 import DateInput from "./DateInput";
+import { useKyc } from "@/contexts/KycContext";
 import {
   contactCountryOptions,
   genderOptions,
   nationalityOptions,
   addressEntryMethodOptions,
-  type Gender,
   type AddressEntryMethod,
 } from "@/data/customerDetailsData";
 
@@ -38,18 +38,27 @@ function FieldRow({
 }
 
 export default function PersonalContactDetailsForm() {
+  const { record, updateField, saving, saveError, saveSuccess, saveCustomer } = useKyc();
+
   const [secondLastName, setSecondLastName] = useState(false);
-  const [gender, setGender] = useState<Gender | null>(null);
   const [receiveOffers, setReceiveOffers] = useState(false);
   const [entryMethod, setEntryMethod] = useState<AddressEntryMethod>(
     addressEntryMethodOptions[0]
   );
-  const [saving, setSaving] = useState(false);
+  const [zip1, setZip1] = useState("");
+  const [zip2, setZip2] = useState("");
+
+  function handleZipChange(part: "zip1" | "zip2", value: string) {
+    const nextZip1 = part === "zip1" ? value : zip1;
+    const nextZip2 = part === "zip2" ? value : zip2;
+    if (part === "zip1") setZip1(value);
+    else setZip2(value);
+    updateField("zipCode", nextZip2 ? `${nextZip1}-${nextZip2}` : nextZip1);
+  }
 
   function handleSave(event: React.FormEvent) {
     event.preventDefault();
-    setSaving(true);
-    setTimeout(() => setSaving(false), 400);
+    saveCustomer();
   }
 
   return (
@@ -64,6 +73,15 @@ export default function PersonalContactDetailsForm() {
         </p>
 
         <div className="mx-auto mt-5 flex max-w-3xl flex-col gap-4">
+          <FieldRow label="User Name" required>
+            <input
+              value={record.userName}
+              onChange={(event) => updateField("userName", event.target.value)}
+              placeholder="Unique login/reference name"
+              className={`${inputClass} w-full`}
+            />
+          </FieldRow>
+
           <FieldRow
             label={
               <>
@@ -76,15 +94,27 @@ export default function PersonalContactDetailsForm() {
           >
             <div className="flex flex-1 flex-col gap-1">
               <span className="text-xs text-heading/50">First*</span>
-              <input className={`${inputClass} w-full`} />
+              <input
+                value={record.firstName}
+                onChange={(event) => updateField("firstName", event.target.value)}
+                className={`${inputClass} w-full`}
+              />
             </div>
             <div className="flex flex-1 flex-col gap-1">
               <span className="text-xs text-heading/50">Mid</span>
-              <input className={`${inputClass} w-full`} />
+              <input
+                value={record.middleName}
+                onChange={(event) => updateField("middleName", event.target.value)}
+                className={`${inputClass} w-full`}
+              />
             </div>
             <div className="flex flex-1 flex-col gap-1">
               <span className="text-xs text-heading/50">Last</span>
-              <input className={`${inputClass} w-full`} />
+              <input
+                value={record.lastName}
+                onChange={(event) => updateField("lastName", event.target.value)}
+                className={`${inputClass} w-full`}
+              />
             </div>
           </FieldRow>
 
@@ -124,14 +154,18 @@ export default function PersonalContactDetailsForm() {
               <RadioPill
                 key={option}
                 label={option}
-                checked={gender === option}
-                onSelect={() => setGender(option)}
+                checked={record.gender === option}
+                onSelect={() => updateField("gender", option)}
               />
             ))}
           </FieldRow>
 
           <FieldRow label="Nationality" required>
-            <select defaultValue="" className={`${inputClass} w-full`}>
+            <select
+              value={record.nationality}
+              onChange={(event) => updateField("nationality", event.target.value)}
+              className={`${inputClass} w-full`}
+            >
               <option value="">--SELECT--</option>
               {nationalityOptions.map((option) => (
                 <option key={option} value={option}>
@@ -143,12 +177,17 @@ export default function PersonalContactDetailsForm() {
 
           <FieldRow label="Date of Birth" required>
             <div className="w-40">
-              <DateInput />
+              <DateInput value={record.dob} onChange={(value) => updateField("dob", value)} />
             </div>
           </FieldRow>
 
           <FieldRow label="Email ID">
-            <input type="email" className={`${inputClass} w-full`} />
+            <input
+              type="email"
+              value={record.emailAddress}
+              onChange={(event) => updateField("emailAddress", event.target.value)}
+              className={`${inputClass} w-full`}
+            />
           </FieldRow>
 
           <FieldRow label="">
@@ -174,11 +213,20 @@ export default function PersonalContactDetailsForm() {
           </FieldRow>
 
           <FieldRow label="Telephone">
-            <input className={`${inputClass} w-full`} />
+            <input
+              value={record.telephoneNo}
+              onChange={(event) => updateField("telephoneNo", event.target.value)}
+              className={`${inputClass} w-full`}
+            />
           </FieldRow>
 
           <FieldRow label="Mobile No" required>
-            <input placeholder="Enter Mobile No" className={`${inputClass} w-full placeholder:italic`} />
+            <input
+              value={record.mobileNo}
+              onChange={(event) => updateField("mobileNo", event.target.value)}
+              placeholder="Enter Mobile No"
+              className={`${inputClass} w-full placeholder:italic`}
+            />
           </FieldRow>
         </div>
 
@@ -201,9 +249,17 @@ export default function PersonalContactDetailsForm() {
           </FieldRow>
 
           <FieldRow label="Zip Code" required>
-            <input className={`${inputClass} w-24`} />
+            <input
+              value={zip1}
+              onChange={(event) => handleZipChange("zip1", event.target.value)}
+              className={`${inputClass} w-24`}
+            />
             <span className="text-heading/50">-</span>
-            <input className={`${inputClass} w-24`} />
+            <input
+              value={zip2}
+              onChange={(event) => handleZipChange("zip2", event.target.value)}
+              className={`${inputClass} w-24`}
+            />
             <button
               type="button"
               className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-heading hover:bg-surface"
@@ -214,19 +270,35 @@ export default function PersonalContactDetailsForm() {
           </FieldRow>
 
           <FieldRow label="Prefecture">
-            <input className={`${inputClass} w-full`} />
+            <input
+              value={record.prefecture}
+              onChange={(event) => updateField("prefecture", event.target.value)}
+              className={`${inputClass} w-full`}
+            />
           </FieldRow>
 
           <FieldRow label="City">
-            <input className={`${inputClass} w-full`} />
+            <input
+              value={record.city}
+              onChange={(event) => updateField("city", event.target.value)}
+              className={`${inputClass} w-full`}
+            />
           </FieldRow>
 
           <FieldRow label="Town">
-            <input className={`${inputClass} w-full`} />
+            <input
+              value={record.town}
+              onChange={(event) => updateField("town", event.target.value)}
+              className={`${inputClass} w-full`}
+            />
           </FieldRow>
 
           <FieldRow label="Street Address - Japanese">
-            <input className={`${inputClass} w-full`} />
+            <input
+              value={record.streetAddress}
+              onChange={(event) => updateField("streetAddress", event.target.value)}
+              className={`${inputClass} w-full`}
+            />
           </FieldRow>
 
           <FieldRow label="Sender Address- Japanese">
@@ -235,6 +307,16 @@ export default function PersonalContactDetailsForm() {
         </div>
 
         <div className="mt-6 border-t border-border pt-5">
+          {saveError && (
+            <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {saveError}
+            </p>
+          )}
+          {saveSuccess && !saveError && (
+            <p className="mb-3 rounded-lg bg-brand-green-light px-3 py-2 text-sm text-brand-green-dark">
+              Customer details saved.
+            </p>
+          )}
           <button
             type="submit"
             disabled={saving}

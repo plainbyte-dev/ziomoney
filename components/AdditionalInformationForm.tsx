@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import SharedDateInput from "./DateInput";
+import { useKyc } from "@/contexts/KycContext";
 import {
   customerVisaTypeOptions,
   occupationOptions,
@@ -34,21 +34,26 @@ function FieldRow({
   );
 }
 
-function DateInput() {
+function DateInput({
+  value,
+  onChange,
+}: {
+  value?: string;
+  onChange?: (value: string) => void;
+}) {
   return (
     <div className="w-40">
-      <SharedDateInput />
+      <SharedDateInput value={value} onChange={onChange} />
     </div>
   );
 }
 
 export default function AdditionalInformationForm() {
-  const [saving, setSaving] = useState(false);
+  const { record, updateField, saving, saveError, saveSuccess, saveCustomer } = useKyc();
 
   function handleSave(event: React.FormEvent) {
     event.preventDefault();
-    setSaving(true);
-    setTimeout(() => setSaving(false), 400);
+    saveCustomer();
   }
 
   return (
@@ -94,7 +99,12 @@ export default function AdditionalInformationForm() {
                 </option>
               ))}
             </select>
-            <input placeholder="Enter ID Number" className={`${inputClass} flex-1 placeholder:italic`} />
+            <input
+              value={record.primaryIdNo}
+              onChange={(event) => updateField("primaryIdNo", event.target.value)}
+              placeholder="Enter ID Number"
+              className={`${inputClass} flex-1 placeholder:italic`}
+            />
           </FieldRow>
 
           <FieldRow label="ID1 Issue Country" required>
@@ -121,11 +131,17 @@ export default function AdditionalInformationForm() {
           </FieldRow>
 
           <FieldRow label="Issue Date">
-            <DateInput />
+            <DateInput
+              value={record.primaryIdIssueDate}
+              onChange={(value) => updateField("primaryIdIssueDate", value)}
+            />
           </FieldRow>
 
           <FieldRow label="Expire Date">
-            <DateInput />
+            <DateInput
+              value={record.primaryIdExpiryDate}
+              onChange={(value) => updateField("primaryIdExpiryDate", value)}
+            />
           </FieldRow>
 
           <FieldRow label={<span className="text-brand-blue">Secondary Customer ID</span>}>
@@ -137,7 +153,12 @@ export default function AdditionalInformationForm() {
                 </option>
               ))}
             </select>
-            <input placeholder="Enter ID Number 2" className={`${inputClass} flex-1 placeholder:italic`} />
+            <input
+              value={record.secondaryIdNo}
+              onChange={(event) => updateField("secondaryIdNo", event.target.value)}
+              placeholder="Enter ID Number 2"
+              className={`${inputClass} flex-1 placeholder:italic`}
+            />
           </FieldRow>
 
           <FieldRow label="ID2 Issue Country">
@@ -183,6 +204,16 @@ export default function AdditionalInformationForm() {
         </div>
 
         <div className="mt-6 border-t border-border pt-5">
+          {saveError && (
+            <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {saveError}
+            </p>
+          )}
+          {saveSuccess && !saveError && (
+            <p className="mb-3 rounded-lg bg-brand-green-light px-3 py-2 text-sm text-brand-green-dark">
+              Customer details saved.
+            </p>
+          )}
           <button
             type="submit"
             disabled={saving}

@@ -24,6 +24,11 @@ export const localTimeOptions = [
 
 export const partnerLocalCurrencyOptions = ["--SELECT--", "USD", "JPY", "AUD", "INR", "GBP", "NPR"];
 
+// Remittance API fields (insertRemittancePartner)
+export const remitterTypeOptions = ["Individual", "Corporate", "Agent", "Sub Agent"];
+
+export const settlementCurrencyOptions = ["USD", "JPY", "AUD", "INR", "GBP", "NPR"];
+
 export type PartnerEntry = {
   id: string;
   partnerName: string;

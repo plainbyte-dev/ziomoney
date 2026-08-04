@@ -10,12 +10,21 @@ import {
   type KycMode,
 } from "@/data/corporateCustomerData";
 
-export default function KycMethodPanel() {
+interface KycMethodPanelProps {
+  // Optional controlled mode for the Remarks field — omit to keep it local/decorative.
+  remarks?: string;
+  onRemarksChange?: (value: string) => void;
+}
+
+export default function KycMethodPanel({ remarks, onRemarksChange }: KycMethodPanelProps) {
   const [kycStatus, setKycStatus] = useState(kycStatusOptions[0]);
   const [kycMode, setKycMode] = useState<KycMode | null>(null);
   const [agent, setAgent] = useState("");
   const [branch, setBranch] = useState("");
+  const [localRemarks, setLocalRemarks] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const isRemarksControlled = remarks !== undefined;
 
   function handleSave() {
     setSaving(true);
@@ -67,6 +76,12 @@ export default function KycMethodPanel() {
             <label className="pt-2 text-sm font-semibold text-heading/70">Remarks</label>
             <textarea
               rows={3}
+              value={isRemarksControlled ? remarks : localRemarks}
+              onChange={(event) =>
+                isRemarksControlled
+                  ? onRemarksChange?.(event.target.value)
+                  : setLocalRemarks(event.target.value)
+              }
               className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>

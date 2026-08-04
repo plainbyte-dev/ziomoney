@@ -13,6 +13,14 @@ import PartnerInfoPanel from "@/components/PartnerInfoPanel";
 import CreatePartnerForm from "@/components/CreatePartnerForm";
 import CorporateCustomerPanel from "@/components/CorporateCustomerPanel";
 import CustomerDetailsPanel from "@/components/CustomerDetailsPanel";
+import KycApprovalQueuePanel from "@/components/KycApprovalQueuePanel";
+import ApprovedKycsPanel from "@/components/ApprovedKycsPanel";
+import ExchangeRatesPanel from "@/components/ExchangeRatesPanel";
+import ServiceChargesPanel from "@/components/ServiceChargesPanel";
+import MarginSetupPanel from "@/components/MarginSetupPanel";
+import CountryCurrencyPanel from "@/components/CountryCurrencyPanel";
+import PartnerOfferRatesPanel from "@/components/PartnerOfferRatesPanel";
+import PartnerCommissionPanel from "@/components/PartnerCommissionPanel";
 
 export interface TabRegistryEntry {
   title: string;
@@ -130,6 +138,24 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     ],
     component: CustomerDetailsPanel,
   },
+  "kyc-approval-queue": {
+    title: "KYC Approval Queue",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Customer Detail", href: "#" },
+      { label: "KYC Approval Queue", href: "#", active: true },
+    ],
+    component: KycApprovalQueuePanel,
+  },
+  "kyc-approved-list": {
+    title: "Approved KYCs",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Customer Detail", href: "#" },
+      { label: "Approved KYCs", href: "#", active: true },
+    ],
+    component: ApprovedKycsPanel,
+  },
   "credit-limit": {
     title: "Define Credit Limit",
     breadcrumb: [
@@ -138,5 +164,59 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
       { label: "Define Credit Limit", href: "#", active: true },
     ],
     component: DefineCreditLimitPanel,
+  },
+  "exchange-rates": {
+    title: "Exchange Rates",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Exchange Rates", href: "#", active: true },
+    ],
+    component: ExchangeRatesPanel,
+  },
+  "service-charges": {
+    title: "Service Charges",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Service Charges", href: "#", active: true },
+    ],
+    component: ServiceChargesPanel,
+  },
+  "margin-setup": {
+    title: "Margin Setup",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Margin Setup", href: "#", active: true },
+    ],
+    component: MarginSetupPanel,
+  },
+  "country-currency": {
+    title: "Country / Currency",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Country / Currency", href: "#", active: true },
+    ],
+    component: CountryCurrencyPanel,
+  },
+  "partner-offer-rates": {
+    title: "Partner Offer Rates",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Partner Offer Rates", href: "#", active: true },
+    ],
+    component: PartnerOfferRatesPanel,
+  },
+  "partner-commission": {
+    title: "Partner Commission",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Partner Commission", href: "#", active: true },
+    ],
+    component: PartnerCommissionPanel,
   },
 };

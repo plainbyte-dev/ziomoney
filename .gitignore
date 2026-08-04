@@ -1,2 +1,6 @@
 .next
 node_modules
+
+# env files (can contain sensitive data)
+.env*.local
+.env
