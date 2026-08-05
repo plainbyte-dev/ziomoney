@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { loadState, saveState } from "@/lib/persist";
+import { useNotifications } from "./NotificationsContext";
 import { partnerEntries as initialEntries, type PartnerEntry } from "@/data/partnerData";
 
 interface PartnersContextValue {
@@ -15,6 +16,7 @@ const STORAGE_KEY = "zio-partners-state";
 const PartnersContext = createContext<PartnersContextValue | null>(null);
 
 export function PartnersProvider({ children }: { children: React.ReactNode }) {
+  const { notify } = useNotifications();
   const [entries, setEntries] = useState<PartnerEntry[]>(initialEntries);
 
   useEffect(() => {
@@ -28,21 +30,29 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (skipNextSave.current) {
       skipNextSave.current = false;
-    } else {
-      saveState(STORAGE_KEY, entries);
+      return;
     }
-    return () => {
-      skipNextSave.current = true;
-    };
+    saveState(STORAGE_KEY, entries);
   }, [entries]);
 
-  const addEntry = useCallback((entry: PartnerEntry) => {
-    setEntries((prev) => [entry, ...prev]);
-  }, []);
+  const addEntry = useCallback(
+    (entry: PartnerEntry) => {
+      setEntries((prev) => [entry, ...prev]);
+      notify({ title: "Partner created", message: `${entry.partnerName} was registered.` });
+    },
+    [notify]
+  );
 
-  const removeEntry = useCallback((id: string) => {
-    setEntries((prev) => prev.filter((entry) => entry.id !== id));
-  }, []);
+  const removeEntry = useCallback(
+    (id: string) => {
+      setEntries((prev) => {
+        const removed = prev.find((entry) => entry.id === id);
+        if (removed) notify({ title: "Partner removed", message: `${removed.partnerName} was removed.` });
+        return prev.filter((entry) => entry.id !== id);
+      });
+    },
+    [notify]
+  );
 
   const value = useMemo(
     () => ({ entries, addEntry, removeEntry }),

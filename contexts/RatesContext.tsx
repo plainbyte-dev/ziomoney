@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useDataMode } from "./DataModeContext";
+import { useNotifications } from "./NotificationsContext";
+import { loadState, saveState } from "@/lib/persist";
 import {
   getAllCountries,
   updateExchangeRate,
@@ -77,11 +79,23 @@ interface RatesContextValue {
 
 const RatesContext = createContext<RatesContextValue | null>(null);
 
+const STORAGE_KEY = "zio-rates-state";
+
+interface PersistedRatesState {
+  exchangeRates: ExchangeRateRecord[];
+  serviceCharges: ServiceChargeRecord[];
+  countryCurrencies: CountryCurrencyRecord[];
+  commissions: CommissionRecord[];
+  partnerOfferRates: PartnerOfferRateRecord[];
+  margins: MarginRecord[];
+}
+
 let localIdCounter = 5000;
 let localOfferRateSeq = 100;
 
 export function RatesProvider({ children }: { children: React.ReactNode }) {
   const { isLive } = useDataMode();
+  const { notify } = useNotifications();
 
   const [exchangeRates, setExchangeRates] = useState<ExchangeRateRecord[]>(exchangeRateRecords);
   const [exchangeRatesLoading, setExchangeRatesLoading] = useState(false);
@@ -100,11 +114,40 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
 
   const [margins, setMargins] = useState<MarginRecord[]>(marginRecords);
 
-  const refreshExchangeRates = useCallback(async () => {
-    if (!isLive) {
-      setExchangeRates(exchangeRateRecords);
+  // Restore any admin-made changes from a previous session so a page refresh
+  // doesn't silently drop them back to the seed data.
+  useEffect(() => {
+    const saved = loadState<PersistedRatesState>(STORAGE_KEY);
+    if (!saved) return;
+    setExchangeRates(saved.exchangeRates);
+    setServiceCharges(saved.serviceCharges);
+    setCountryCurrencies(saved.countryCurrencies);
+    setCommissions(saved.commissions);
+    setPartnerOfferRates(saved.partnerOfferRates);
+    setMargins(saved.margins);
+  }, []);
+
+  const skipNextSave = useRef(true);
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
       return;
     }
+    saveState<PersistedRatesState>(STORAGE_KEY, {
+      exchangeRates,
+      serviceCharges,
+      countryCurrencies,
+      commissions,
+      partnerOfferRates,
+      margins,
+    });
+  }, [exchangeRates, serviceCharges, countryCurrencies, commissions, partnerOfferRates, margins]);
+
+  const refreshExchangeRates = useCallback(async () => {
+    // In static/demo mode there's no backend to refresh from — state already
+    // reflects local admin actions, restored from localStorage on load.
+    if (!isLive) return;
+
     setExchangeRatesLoading(true);
     setExchangeRatesError(null);
     const response = await getAllCountries();
@@ -150,6 +193,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
             ? prev.map((r) => (r.symbol === payload.symbol ? record : r))
             : [record, ...prev];
         });
+        notify({ title: "Exchange rate updated", message: `${payload.symbol} rate was saved.` });
         return true;
       }
       const response = await updateExchangeRate(payload);
@@ -158,16 +202,15 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       await refreshExchangeRates();
+      notify({ title: "Exchange rate updated", message: `${payload.symbol} rate was saved.` });
       return true;
     },
-    [isLive, refreshExchangeRates]
+    [isLive, notify, refreshExchangeRates]
   );
 
   const refreshServiceCharges = useCallback(async () => {
-    if (!isLive) {
-      setServiceCharges(serviceChargeRecords);
-      return;
-    }
+    if (!isLive) return;
+
     setServiceChargesLoading(true);
     setServiceChargesError(null);
     const response = await getAllServiceCharges();
@@ -194,6 +237,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
           const exists = prev.some((r) => r.id === id);
           return exists ? prev.map((r) => (r.id === id ? record : r)) : [record, ...prev];
         });
+        notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
         return true;
       }
       const response = await saveServiceCharge(payload);
@@ -202,9 +246,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       await refreshServiceCharges();
+      notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
       return true;
     },
-    [isLive, refreshServiceCharges]
+    [isLive, notify, refreshServiceCharges]
   );
 
   const saveCountryCurrency = useCallback(
@@ -218,6 +263,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
             ? prev.map((r) => (r.isoAlpha2 === payload.isoAlpha2 ? record : r))
             : [record, ...prev];
         });
+        notify({ title: "Country/currency saved", message: `${payload.countryName} (${payload.currencyCode}) was updated.` });
         return true;
       }
       const response = await upsertCountryCurrency(payload);
@@ -228,9 +274,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
           ? prev.map((r) => (r.id === response.data!.id ? response.data! : r))
           : [response.data!, ...prev];
       });
+      notify({ title: "Country/currency saved", message: `${payload.countryName} (${payload.currencyCode}) was updated.` });
       return true;
     },
-    [isLive]
+    [isLive, notify]
   );
 
   const saveCommission = useCallback(
@@ -256,6 +303,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
           };
           return existing ? prev.map((r) => (r.id === record.id ? record : r)) : [record, ...prev];
         });
+        notify({ title: "Partner commission saved", message: `${payload.userName} → ${payload.destinationCountry} commission was updated.` });
         return true;
       }
       const response = await upsertPartnerCommission(payload);
@@ -266,9 +314,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         sendCurrency: payload.sendCurrency,
       });
       if (lookup.success) setCommissions(lookup.data ?? []);
+      notify({ title: "Partner commission saved", message: `${payload.userName} → ${payload.destinationCountry} commission was updated.` });
       return true;
     },
-    [isLive]
+    [isLive, notify]
   );
 
   const saveMargin = useCallback(
@@ -285,6 +334,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
           const exists = prev.some((r) => r.id === id);
           return exists ? prev.map((r) => (r.id === id ? record : r)) : [record, ...prev];
         });
+        notify({ title: "Margin setup saved", message: `Margin for ${payload.targetPartner} was updated.` });
         return true;
       }
       const response = await addOrUpdateMargin(payload);
@@ -295,16 +345,15 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
           ? prev.map((r) => (r.id === response.data!.id ? response.data! : r))
           : [response.data!, ...prev];
       });
+      notify({ title: "Margin setup saved", message: `Margin for ${payload.targetPartner} was updated.` });
       return true;
     },
-    [isLive]
+    [isLive, notify]
   );
 
   const refreshPartnerOfferRates = useCallback(async () => {
-    if (!isLive) {
-      setPartnerOfferRates(partnerOfferRateRecords);
-      return;
-    }
+    if (!isLive) return;
+
     setPartnerOfferRatesLoading(true);
     const response = await getAllPendingPartnerOfferRates();
     setPartnerOfferRatesLoading(false);
@@ -338,6 +387,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
           },
           ...prev,
         ]);
+        notify({ title: "Offer rate submitted", message: `${payload.remittancePartner} quote is pending approval.` });
         return true;
       }
       const response = await insertPartnerOfferRate(payload);
@@ -346,9 +396,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       await refreshPartnerOfferRates();
+      notify({ title: "Offer rate submitted", message: `${payload.remittancePartner} quote is pending approval.` });
       return true;
     },
-    [isLive, refreshPartnerOfferRates]
+    [isLive, notify, refreshPartnerOfferRates]
   );
 
   const resolveOfferRate = useCallback(
@@ -370,6 +421,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       if (!isLive) {
         await new Promise((resolve) => setTimeout(resolve, 300));
         resolveOfferRate(payload.uniqueId, payload.checkerUser, "CONFIRMED");
+        notify({ title: "Offer rate confirmed", message: `${payload.uniqueId} was approved.` });
         return true;
       }
       const response = await confirmPartnerOfferRate(payload);
@@ -378,9 +430,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       await refreshPartnerOfferRates();
+      notify({ title: "Offer rate confirmed", message: `${payload.uniqueId} was approved.` });
       return true;
     },
-    [isLive, refreshPartnerOfferRates, resolveOfferRate]
+    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate]
   );
 
   const cancelOfferRate = useCallback(
@@ -389,6 +442,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       if (!isLive) {
         await new Promise((resolve) => setTimeout(resolve, 300));
         resolveOfferRate(payload.uniqueId, payload.checkerUser, "CANCELLED");
+        notify({ title: "Offer rate cancelled", message: `${payload.uniqueId} was cancelled.` });
         return true;
       }
       const response = await cancelPartnerOfferRate(payload);
@@ -397,9 +451,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       await refreshPartnerOfferRates();
+      notify({ title: "Offer rate cancelled", message: `${payload.uniqueId} was cancelled.` });
       return true;
     },
-    [isLive, refreshPartnerOfferRates, resolveOfferRate]
+    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate]
   );
 
   const value = useMemo(

@@ -42,14 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (skipNextSave.current) {
       skipNextSave.current = false;
-    } else if (user) {
+      return;
+    }
+    if (user) {
       saveState(STORAGE_KEY, user);
     } else {
       saveState(STORAGE_KEY, null);
     }
-    return () => {
-      skipNextSave.current = true;
-    };
   }, [user]);
 
   const login = useCallback((email: string, password: string) => {

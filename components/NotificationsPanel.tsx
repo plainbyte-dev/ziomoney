@@ -2,6 +2,7 @@
 
 import { BellOff, Check } from "lucide-react";
 import type { NotificationEntry } from "@/data/notificationsData";
+import { formatRelativeTime } from "@/lib/time";
 
 interface NotificationsPanelProps {
   notifications: NotificationEntry[];
@@ -56,7 +57,7 @@ export default function NotificationsPanel({
             <div className="flex-1">
               <p className="text-sm font-semibold text-heading">{notification.title}</p>
               <p className="mt-0.5 text-xs text-heading/70">{notification.message}</p>
-              <p className="mt-1 text-[11px] text-muted">{notification.time}</p>
+              <p className="mt-1 text-[11px] text-muted">{formatRelativeTime(notification.createdAt)}</p>
             </div>
           </button>
         ))}

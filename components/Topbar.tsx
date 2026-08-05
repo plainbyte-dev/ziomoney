@@ -6,16 +6,14 @@ import { Search, Bell, ChevronDown } from "lucide-react";
 import NotificationsPanel from "./NotificationsPanel";
 import DataModeToggle from "./DataModeToggle";
 import { loggedInUser } from "@/data/staticData";
-import { initialNotifications, type NotificationEntry } from "@/data/notificationsData";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/contexts/NotificationsContext";
 
 export default function Topbar() {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<NotificationEntry[]>(initialNotifications);
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -29,16 +27,6 @@ export default function Topbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  function markRead(id: string) {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
-  }
-
-  function markAllRead() {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  }
 
   return (
     <header className="flex h-16 items-center justify-between border-b border-border bg-panel px-6 shadow-[0_1px_0_rgba(16,24,40,0.02)]">

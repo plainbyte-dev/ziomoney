@@ -28,12 +28,9 @@ export function DataModeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (skipNextSave.current) {
       skipNextSave.current = false;
-    } else {
-      saveState(STORAGE_KEY, mode);
+      return;
     }
-    return () => {
-      skipNextSave.current = true;
-    };
+    saveState(STORAGE_KEY, mode);
   }, [mode]);
 
   const setMode = useCallback((next: DataMode) => setModeState(next), []);

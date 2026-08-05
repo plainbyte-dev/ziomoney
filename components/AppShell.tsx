@@ -11,6 +11,7 @@ import { PartnersProvider } from "@/contexts/PartnersContext";
 import { DataModeProvider } from "@/contexts/DataModeContext";
 import { KycProvider } from "@/contexts/KycContext";
 import { RatesProvider } from "@/contexts/RatesContext";
+import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function AppShell() {
@@ -30,21 +31,23 @@ export default function AppShell() {
   return (
     <TabsProvider>
       <DataModeProvider>
-        <VouchersProvider>
-          <PartnersProvider>
-            <KycProvider>
-              <RatesProvider>
-                <div className="flex h-screen bg-surface">
-                  <Sidebar />
-                  <div className="flex flex-1 flex-col overflow-hidden">
-                    <Topbar />
-                    <TabbedWorkspace />
+        <NotificationsProvider>
+          <VouchersProvider>
+            <PartnersProvider>
+              <KycProvider>
+                <RatesProvider>
+                  <div className="flex h-screen bg-surface">
+                    <Sidebar />
+                    <div className="flex flex-1 flex-col overflow-hidden">
+                      <Topbar />
+                      <TabbedWorkspace />
+                    </div>
                   </div>
-                </div>
-              </RatesProvider>
-            </KycProvider>
-          </PartnersProvider>
-        </VouchersProvider>
+                </RatesProvider>
+              </KycProvider>
+            </PartnersProvider>
+          </VouchersProvider>
+        </NotificationsProvider>
       </DataModeProvider>
     </TabsProvider>
   );

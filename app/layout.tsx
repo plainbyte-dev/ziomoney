@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Zio Money | Correspondence Report",
+  title: "Zio Money ",
   description: "Admin panel for tracking money-transfer correspondence.",
 };
 

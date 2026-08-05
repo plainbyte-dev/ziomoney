@@ -17,19 +17,13 @@ interface TabsContextValue {
   setActiveKey: (key: string) => void;
 }
 
-const HOME_TAB: TabDef = {
-  key: "correspondence-report",
-  title: "Correspondence Report",
-  closable: false,
-};
-
-const STORAGE_KEY = "zio-tabs-state";
+const STORAGE_KEY = "zio-tabs-state-v2";
 
 const TabsContext = createContext<TabsContextValue | null>(null);
 
 export function TabsProvider({ children }: { children: React.ReactNode }) {
-  const [openTabs, setOpenTabs] = useState<TabDef[]>([HOME_TAB]);
-  const [activeKey, setActiveKeyState] = useState<string>(HOME_TAB.key);
+  const [openTabs, setOpenTabs] = useState<TabDef[]>([]);
+  const [activeKey, setActiveKeyState] = useState<string>("");
 
   // Restore from localStorage after mount (avoids SSR/client hydration mismatch).
   useEffect(() => {
@@ -46,12 +40,9 @@ export function TabsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (skipNextSave.current) {
       skipNextSave.current = false;
-    } else {
-      saveState(STORAGE_KEY, { openTabs, activeKey });
+      return;
     }
-    return () => {
-      skipNextSave.current = true;
-    };
+    saveState(STORAGE_KEY, { openTabs, activeKey });
   }, [openTabs, activeKey]);
 
   const openTab = useCallback((tab: TabDef) => {
@@ -71,10 +62,10 @@ export function TabsProvider({ children }: { children: React.ReactNode }) {
       setActiveKeyState((currentActive) => {
         if (currentActive !== key) return currentActive;
         const fallback = next[index - 1] ?? next[0];
-        return fallback ? fallback.key : HOME_TAB.key;
+        return fallback ? fallback.key : "";
       });
 
-      return next.length > 0 ? next : [HOME_TAB];
+      return next;
     });
   }, []);
 

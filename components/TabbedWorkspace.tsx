@@ -9,18 +9,22 @@ export default function TabbedWorkspace() {
   const { activeKey } = useTabs();
   const entry = tabRegistry[activeKey];
 
-  if (!entry) return null;
-
-  const ActivePanel = entry.component;
-
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <TabBar />
       <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-10">
-        <div className="mb-4">
-          <Breadcrumbs items={entry.breadcrumb} />
-        </div>
-        <ActivePanel />
+        {entry ? (
+          <>
+            <div className="mb-4">
+              <Breadcrumbs items={entry.breadcrumb} />
+            </div>
+            <entry.component />
+          </>
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center text-center text-muted">
+            <p className="text-sm">Select an item from the sidebar to get started.</p>
+          </div>
+        )}
       </main>
     </div>
   );

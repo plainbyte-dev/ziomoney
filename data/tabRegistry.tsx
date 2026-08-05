@@ -5,7 +5,6 @@ import CorrespondenceReportResultsPanel from "@/components/CorrespondenceReportR
 import LedgerListPanel from "@/components/LedgerListPanel";
 import CreateLedgerForm from "@/components/CreateLedgerForm";
 import DefineCreditLimitPanel from "@/components/DefineCreditLimitPanel";
-import ReportsIndexPanel from "@/components/ReportsIndexPanel";
 import StatementOfAccountPanel from "@/components/StatementOfAccountPanel";
 import VoucherEntryPanel from "@/components/VoucherEntryPanel";
 import VoucherApprovalPanel from "@/components/VoucherApprovalPanel";
@@ -21,6 +20,34 @@ import MarginSetupPanel from "@/components/MarginSetupPanel";
 import CountryCurrencyPanel from "@/components/CountryCurrencyPanel";
 import PartnerOfferRatesPanel from "@/components/PartnerOfferRatesPanel";
 import PartnerCommissionPanel from "@/components/PartnerCommissionPanel";
+import TransactionQueryPanel from "@/components/TransactionQueryPanel";
+import BeneficiariesPanel from "@/components/BeneficiariesPanel";
+import DailyReportPanel from "@/components/DailyReportPanel";
+import SummaryReportPanel from "@/components/SummaryReportPanel";
+import AuditTranLogPanel from "@/components/AuditTranLogPanel";
+import DaysExceededTxnPanel from "@/components/DaysExceededTxnPanel";
+import HighRiskCountriesPanel from "@/components/HighRiskCountriesPanel";
+import HighRiskManagementPanel from "@/components/HighRiskManagementPanel";
+import PaymentModeRiskPanel from "@/components/PaymentModeRiskPanel";
+import SourceOfIncomeRiskPanel from "@/components/SourceOfIncomeRiskPanel";
+import ReasonForRemittanceRiskPanel from "@/components/ReasonForRemittanceRiskPanel";
+import SenderOccupationRiskPanel from "@/components/SenderOccupationRiskPanel";
+import RelationRiskPanel from "@/components/RelationRiskPanel";
+import CustomerVisaTypeRiskPanel from "@/components/CustomerVisaTypeRiskPanel";
+import ComplianceRangeRiskPanel from "@/components/ComplianceRangeRiskPanel";
+import AgeGroupRiskPanel from "@/components/AgeGroupRiskPanel";
+import HighRiskBranchesPanel from "@/components/HighRiskBranchesPanel";
+import TransactionFrequencyPanel from "@/components/TransactionFrequencyPanel";
+import TransactionSendPanel from "@/components/TransactionSendPanel";
+import UnconfirmedListPanel from "@/components/UnconfirmedListPanel";
+import UnpaidTransactionsPanel from "@/components/UnpaidTransactionsPanel";
+import PendingTransactionPanel from "@/components/PendingTransactionPanel";
+import AuditUserRightsPartnerPanel from "@/components/AuditUserRightsPartnerPanel";
+import CreateHeadOfficeUserPanel from "@/components/CreateHeadOfficeUserPanel";
+import CreatePartnerUserPanel from "@/components/CreatePartnerUserPanel";
+import HeadOfficeUserStatusPanel from "@/components/HeadOfficeUserStatusPanel";
+import ManageRolesPanel from "@/components/ManageRolesPanel";
+import ChangePasswordPanel from "@/components/ChangePasswordPanel";
 
 export interface TabRegistryEntry {
   title: string;
@@ -93,14 +120,6 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
       { label: "Statement of Account", href: "#", active: true },
     ],
     component: StatementOfAccountPanel,
-  },
-  "reports-index": {
-    title: "Reports",
-    breadcrumb: [
-      { label: "Home", href: "#" },
-      { label: "Reports", href: "#", active: true },
-    ],
-    component: ReportsIndexPanel,
   },
   "partner-info": {
     title: "Partner Info",
@@ -218,5 +237,299 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
       { label: "Partner Commission", href: "#", active: true },
     ],
     component: PartnerCommissionPanel,
+  },
+  beneficiaries: {
+    title: "Beneficiaries",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Customer Detail", href: "#" },
+      { label: "Beneficiaries", href: "#", active: true },
+    ],
+    component: BeneficiariesPanel,
+  },
+  "transaction-query": {
+    title: "Transaction Query",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Utility", href: "#" },
+      { label: "Transaction Query", href: "#", active: true },
+    ],
+    component: TransactionQueryPanel,
+  },
+  "daily-report": {
+    title: "Daily Report",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Accounts Detail", href: "#" },
+      { label: "Daily Report", href: "#", active: true },
+    ],
+    component: DailyReportPanel,
+  },
+  "summary-report": {
+    title: "Summary Report",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Accounts Detail", href: "#" },
+      { label: "Summary Report", href: "#", active: true },
+    ],
+    component: SummaryReportPanel,
+  },
+  "audit-tran-log": {
+    title: "Audit Tran Log",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Security", href: "#" },
+      { label: "Audit Tran Log", href: "#", active: true },
+    ],
+    component: AuditTranLogPanel,
+  },
+  "days-exceeded-txn-requests": {
+    title: "Days Exceeded TXN Requests",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Security", href: "#" },
+      { label: "Days Exceeded TXN Requests", href: "#", active: true },
+    ],
+    component: DaysExceededTxnPanel,
+  },
+  "high-risk-countries": {
+    title: "High Risk Countries",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Countries", href: "#", active: true },
+    ],
+    component: HighRiskCountriesPanel,
+  },
+  "high-risk-management": {
+    title: "High Risk Management",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#", active: true },
+    ],
+    component: HighRiskManagementPanel,
+  },
+  "payment-mode-risk": {
+    title: "Payment Mode",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Payment Mode", href: "#", active: true },
+    ],
+    closable: true,
+    component: PaymentModeRiskPanel,
+  },
+  "source-of-income-risk": {
+    title: "Source Of Income",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Source Of Income", href: "#", active: true },
+    ],
+    closable: true,
+    component: SourceOfIncomeRiskPanel,
+  },
+  "reason-for-remittance-risk": {
+    title: "Reason for Remittance",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Reason for Remittance", href: "#", active: true },
+    ],
+    closable: true,
+    component: ReasonForRemittanceRiskPanel,
+  },
+  "sender-occupation-risk": {
+    title: "Sender Occupation",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Sender Occupation", href: "#", active: true },
+    ],
+    closable: true,
+    component: SenderOccupationRiskPanel,
+  },
+  "relation-risk": {
+    title: "Relation",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Relation", href: "#", active: true },
+    ],
+    closable: true,
+    component: RelationRiskPanel,
+  },
+  "customer-visa-type-risk": {
+    title: "Customer Visa Type",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Customer Visa Type", href: "#", active: true },
+    ],
+    closable: true,
+    component: CustomerVisaTypeRiskPanel,
+  },
+  "compliance-range-risk": {
+    title: "Compliance Range",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Compliance Range", href: "#", active: true },
+    ],
+    closable: true,
+    component: ComplianceRangeRiskPanel,
+  },
+  "age-group-risk": {
+    title: "Risk Category - Age Group",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Risk Category - Age Group", href: "#", active: true },
+    ],
+    closable: true,
+    component: AgeGroupRiskPanel,
+  },
+  "high-risk-branches": {
+    title: "High Risk Branches",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "High Risk Branches", href: "#", active: true },
+    ],
+    closable: true,
+    component: HighRiskBranchesPanel,
+  },
+  "transaction-frequency": {
+    title: "Transaction Frequency",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Risk Profiling", href: "#" },
+      { label: "High Risk Management", href: "#" },
+      { label: "Transaction Frequency", href: "#", active: true },
+    ],
+    closable: true,
+    component: TransactionFrequencyPanel,
+  },
+  "transaction-send": {
+    title: "Transaction Send",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Remittances", href: "#" },
+      { label: "Send Transaction", href: "#", active: true },
+    ],
+    closable: true,
+    component: TransactionSendPanel,
+  },
+  "unconfirmed-list": {
+    title: "Un-Confirmed List",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Remittances", href: "#" },
+      { label: "Un-Confirmed List", href: "#", active: true },
+    ],
+    closable: true,
+    component: UnconfirmedListPanel,
+  },
+  "unpaid-transactions": {
+    title: "Unpaid Transactions",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Remittances", href: "#" },
+      { label: "Unpaid Transactions", href: "#", active: true },
+    ],
+    closable: true,
+    component: UnpaidTransactionsPanel,
+  },
+  "pending-transaction": {
+    title: "Pending Transaction",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Remittances", href: "#" },
+      { label: "Pending Transaction", href: "#", active: true },
+    ],
+    closable: true,
+    component: PendingTransactionPanel,
+  },
+  "audit-user-rights-partner": {
+    title: "Audit User Rights - Partner",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "User Management and Security", href: "#" },
+      { label: "Audit User Rights - Partner", href: "#", active: true },
+    ],
+    closable: true,
+    component: AuditUserRightsPartnerPanel,
+  },
+  "create-head-office-user": {
+    title: "Create Head Office User",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "User Management and Security", href: "#" },
+      { label: "Create Head Office User", href: "#", active: true },
+    ],
+    closable: true,
+    component: CreateHeadOfficeUserPanel,
+  },
+  "create-partner-user": {
+    title: "Create Partner User",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "User Management and Security", href: "#" },
+      { label: "Create Partner User", href: "#", active: true },
+    ],
+    closable: true,
+    component: CreatePartnerUserPanel,
+  },
+  "head-office-user-status": {
+    title: "Head Office User Status",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "User Management and Security", href: "#" },
+      { label: "Head Office User Status", href: "#", active: true },
+    ],
+    closable: true,
+    component: HeadOfficeUserStatusPanel,
+  },
+  "manage-roles": {
+    title: "Manage Roles",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "User Management and Security", href: "#" },
+      { label: "Manage Roles", href: "#", active: true },
+    ],
+    closable: true,
+    component: ManageRolesPanel,
+  },
+  "change-password": {
+    title: "Change Password",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "User Management and Security", href: "#" },
+      { label: "Change Password", href: "#", active: true },
+    ],
+    closable: true,
+    component: ChangePasswordPanel,
   },
 };

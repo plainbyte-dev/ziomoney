@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useDataMode } from "./DataModeContext";
+import { useNotifications } from "./NotificationsContext";
+import { loadState, saveState } from "@/lib/persist";
 import {
   updateCustomer,
   approveKyc,
@@ -51,10 +53,19 @@ interface KycContextValue {
 
 const KycContext = createContext<KycContextValue | null>(null);
 
+const STORAGE_KEY = "zio-kyc-state";
+
+interface PersistedKycState {
+  pendingList: KycRecord[];
+  complianceHoldList: KycRecord[];
+  approvedList: KycRecord[];
+}
+
 let localIdCounter = 2000;
 
 export function KycProvider({ children }: { children: React.ReactNode }) {
   const { isLive } = useDataMode();
+  const { notify } = useNotifications();
 
   const [record, setRecord] = useState<CustomerRecord>(emptyCustomerRecord());
   const [saving, setSaving] = useState(false);
@@ -70,6 +81,26 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
 
   const [approving, setApproving] = useState(false);
   const [approveError, setApproveError] = useState<string | null>(null);
+
+  // Restore any admin-made changes (submissions/approvals) from a previous
+  // session so a page refresh doesn't silently drop them back to the seed data.
+  useEffect(() => {
+    const saved = loadState<PersistedKycState>(STORAGE_KEY);
+    if (saved) {
+      setPendingList(saved.pendingList);
+      setComplianceHoldList(saved.complianceHoldList);
+      setApprovedList(saved.approvedList);
+    }
+  }, []);
+
+  const skipNextSave = useRef(true);
+  useEffect(() => {
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    saveState<PersistedKycState>(STORAGE_KEY, { pendingList, complianceHoldList, approvedList });
+  }, [pendingList, complianceHoldList, approvedList]);
 
   const updateField = useCallback(
     <K extends keyof CustomerRecord>(field: K, value: CustomerRecord[K]) => {
@@ -105,6 +136,10 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
       ]);
       setSaving(false);
       setSaveSuccess(true);
+      notify({
+        title: "KYC submitted",
+        message: `${payload.fullName || payload.userName} was added to the approval queue.`,
+      });
       return;
     }
 
@@ -115,15 +150,17 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     setSaveSuccess(true);
-  }, [isLive, record]);
+    notify({
+      title: "KYC submitted",
+      message: `${payload.fullName || payload.userName} was submitted for review.`,
+    });
+  }, [isLive, notify, record]);
 
   const refreshLists = useCallback(async () => {
-    if (!isLive) {
-      setPendingList(pendingKycRecords);
-      setComplianceHoldList(complianceHoldKycRecords);
-      setApprovedList(approvedKycRecords);
-      return;
-    }
+    // In static/demo mode there's no backend to refresh from — the lists
+    // already reflect whatever the admin has done locally, restored from
+    // localStorage on load, so refreshing is a no-op rather than a reset.
+    if (!isLive) return;
 
     setListsLoading(true);
     setListsError(null);
@@ -165,6 +202,7 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
         await new Promise((resolve) => setTimeout(resolve, 400));
         moveToApproved(target, fields);
         setApproving(false);
+        notify({ title: "KYC approved", message: `${target.fullName || target.userName} is now verified.` });
         return true;
       }
 
@@ -175,9 +213,10 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       moveToApproved(target, fields);
+      notify({ title: "KYC approved", message: `${target.fullName || target.userName} is now verified.` });
       return true;
     },
-    [isLive, moveToApproved]
+    [isLive, moveToApproved, notify]
   );
 
   const complianceApprove = useCallback(
@@ -189,6 +228,10 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
         await new Promise((resolve) => setTimeout(resolve, 400));
         moveToApproved(target, fields);
         setApproving(false);
+        notify({
+          title: "KYC approved (compliance)",
+          message: `${target.fullName || target.userName} cleared compliance review.`,
+        });
         return true;
       }
 
@@ -199,9 +242,13 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       moveToApproved(target, fields);
+      notify({
+        title: "KYC approved (compliance)",
+        message: `${target.fullName || target.userName} cleared compliance review.`,
+      });
       return true;
     },
-    [isLive, moveToApproved]
+    [isLive, moveToApproved, notify]
   );
 
   const value = useMemo(

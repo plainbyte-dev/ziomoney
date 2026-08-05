@@ -105,6 +105,104 @@ function NavRow({
   );
 }
 
+// Clamp a flyout's top position so it stays on-screen when the anchoring row
+// is near the bottom of the viewport.
+function clampTop(top: number) {
+  return typeof window !== "undefined" ? Math.min(top, window.innerHeight - 24) : top;
+}
+
+function SubMenuRow({
+  subItem,
+  isOpen,
+  onOpenNested,
+  onScheduleClose,
+  onNavigate,
+}: {
+  subItem: NavSubItem;
+  isOpen: boolean;
+  onOpenNested: (label: string, position: FlyoutPosition) => void;
+  onScheduleClose: () => void;
+  onNavigate: (tabKey: string, label: string) => void;
+}) {
+  const hasNested = Boolean(subItem.submenu?.length);
+  const rowRef = useRef<HTMLDivElement | null>(null);
+
+  function openWithPosition() {
+    const rect = rowRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    onOpenNested(subItem.label, { top: rect.top, left: rect.right + 8 });
+  }
+
+  function handleClick() {
+    if (hasNested) {
+      isOpen ? onScheduleClose() : openWithPosition();
+      return;
+    }
+    if (subItem.tabKey) onNavigate(subItem.tabKey, subItem.label);
+  }
+
+  return (
+    <div
+      ref={rowRef}
+      onMouseEnter={() => hasNested && openWithPosition()}
+      onMouseLeave={() => hasNested && onScheduleClose()}
+    >
+      <button
+        onClick={handleClick}
+        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-surface ${
+          isOpen ? "bg-surface text-heading" : "text-heading/80"
+        }`}
+      >
+        {subItem.label}
+        {hasNested && <ChevronRight size={14} className="text-muted" />}
+      </button>
+    </div>
+  );
+}
+
+function NestedFlyout({
+  item,
+  position,
+  onNavigate,
+  onCancelClose,
+  onScheduleClose,
+  onCloseAll,
+}: {
+  item: NavSubItem;
+  position: FlyoutPosition;
+  onNavigate: (tabKey: string, label: string) => void;
+  onCancelClose: () => void;
+  onScheduleClose: () => void;
+  onCloseAll: () => void;
+}) {
+  return (
+    <div
+      onMouseEnter={onCancelClose}
+      onMouseLeave={onScheduleClose}
+      style={{ top: clampTop(position.top), left: position.left, width: FLYOUT_WIDTH }}
+      className="fixed z-50 rounded-xl border border-border bg-white p-2 shadow-popover"
+    >
+      <p className="px-3 pb-2 pt-1 text-[11px] font-semibold tracking-wider text-muted">
+        {(item.submenuTitle ?? item.label).toUpperCase()}
+      </p>
+      <div className="flex flex-col gap-0.5">
+        {item.submenu!.map((sub) => (
+          <button
+            key={sub.label}
+            onClick={() => {
+              if (sub.tabKey) onNavigate(sub.tabKey, sub.label);
+              onCloseAll();
+            }}
+            className="w-full rounded-lg px-3 py-2 text-left text-sm text-heading/80 transition-colors hover:bg-surface"
+          >
+            {sub.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Flyout({
   item,
   position,
@@ -118,36 +216,92 @@ function Flyout({
   onCancelClose: () => void;
   onScheduleClose: () => void;
 }) {
-  // Keep the flyout on-screen if the row is near the bottom of the viewport.
-  const maxTop =
-    typeof window !== "undefined"
-      ? Math.min(position.top, window.innerHeight - 24)
-      : position.top;
+  const [openSubLabel, setOpenSubLabel] = useState<string | null>(null);
+  const [subPosition, setSubPosition] = useState<FlyoutPosition | null>(null);
+  const subCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function cancelSubClose() {
+    if (subCloseTimer.current) {
+      clearTimeout(subCloseTimer.current);
+      subCloseTimer.current = null;
+    }
+  }
+
+  function scheduleSubClose() {
+    cancelSubClose();
+    subCloseTimer.current = setTimeout(() => setOpenSubLabel(null), CLOSE_DELAY_MS);
+  }
+
+  function openSub(label: string, pos: FlyoutPosition) {
+    // Hovering into a nested row means the pointer is still "inside" this
+    // flyout's interaction area, even once it crosses the gap to the nested
+    // panel — cancel this flyout's own close timer too, or it'll vanish out
+    // from under the nested panel.
+    onCancelClose();
+    cancelSubClose();
+    setOpenSubLabel(label);
+    setSubPosition(pos);
+  }
+
+  function closeAll() {
+    setOpenSubLabel(null);
+    onScheduleClose();
+  }
+
+  useEffect(() => {
+    return () => {
+      if (subCloseTimer.current) clearTimeout(subCloseTimer.current);
+    };
+  }, []);
+
+  const openSubItem = item.submenu?.find((sub) => sub.label === openSubLabel);
 
   return (
     <div
       onMouseEnter={onCancelClose}
       onMouseLeave={onScheduleClose}
-      style={{ top: maxTop, left: position.left, width: FLYOUT_WIDTH }}
+      style={{ top: clampTop(position.top), left: position.left, width: FLYOUT_WIDTH }}
       className="fixed z-50 rounded-xl border border-border bg-white p-2 shadow-popover"
     >
       <p className="px-3 pb-2 pt-1 text-[11px] font-semibold tracking-wider text-muted">
         {(item.submenuTitle ?? item.label).toUpperCase()}
       </p>
-      <div className="flex flex-col gap-0.5">
+      <div
+        className={`flex flex-col gap-0.5 ${
+          item.submenu!.length > 6 ? "max-h-56 overflow-y-auto pr-1" : ""
+        }`}
+      >
         {item.submenu!.map((subItem: NavSubItem) => (
-          <button
+          <SubMenuRow
             key={subItem.label}
-            onClick={() => {
-              if (subItem.tabKey) onNavigate(subItem.tabKey, subItem.label);
-              onScheduleClose();
+            subItem={subItem}
+            isOpen={openSubLabel === subItem.label}
+            onOpenNested={openSub}
+            onScheduleClose={scheduleSubClose}
+            onNavigate={(tabKey, label) => {
+              onNavigate(tabKey, label);
+              closeAll();
             }}
-            className="w-full rounded-lg px-3 py-2 text-left text-sm text-heading/80 transition-colors hover:bg-surface"
-          >
-            {subItem.label}
-          </button>
+          />
         ))}
       </div>
+
+      {openSubItem && subPosition && (
+        <NestedFlyout
+          item={openSubItem}
+          position={subPosition}
+          onNavigate={onNavigate}
+          onCancelClose={() => {
+            onCancelClose();
+            cancelSubClose();
+          }}
+          onScheduleClose={() => {
+            onScheduleClose();
+            scheduleSubClose();
+          }}
+          onCloseAll={closeAll}
+        />
+      )}
     </div>
   );
 }

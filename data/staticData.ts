@@ -3,22 +3,12 @@ import {
   Users,
   ArrowLeftRight,
   UserCircle,
-  Mail,
-  FileUp,
-  BarChart3,
   ShieldCheck,
   FileBarChart2,
   Lock,
   UserCog,
-  Wrench,
-  Banknote,
-  UserPlus,
-  History,
   Send,
-  KeyRound,
-  FolderUp,
   Search,
-  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -76,6 +66,10 @@ export interface NavSubItem {
   label: string;
   tabKey?: string;
   href?: string;
+  // Heading shown at the top of the nested flyout panel. Falls back to `label`.
+  submenuTitle?: string;
+  // One level of nesting — e.g. Compliance > Risk Profiling > High Risk Countries.
+  submenu?: NavSubItem[];
 }
 
 export interface NavItem {
@@ -113,10 +107,10 @@ export const navGroups: NavGroup[] = [
           { label: "Voucher Entry", tabKey: "voucher-entry" },
           { label: "Voucher Approval", tabKey: "voucher-approval" },
           { label: "Statement of Account", tabKey: "statement-of-account" },
-          { label: "Correspondent Report", tabKey: "correspondence-report" },
+          { label: "Daily Report", tabKey: "daily-report" },
+          { label: "Summary Report", tabKey: "summary-report" },
           { label: "All Summary Balance", tabKey: "all-summary-balance" },
           { label: "Create new Ledger", tabKey: "ledger-create" },
-          { label: "Define Credit Limit", tabKey: "credit-limit" },
         ],
       },
     ],
@@ -136,18 +130,6 @@ export const navGroups: NavGroup[] = [
           { label: "Create New Partner", tabKey: "partner-create" },
         ],
       },
-      {
-        label: "Payout Partner",
-        icon: Banknote,
-        href: "#",
-        hasSubmenu: true,
-        submenuTitle: "Payout Partner",
-        submenu: [
-          { label: "Payout Configuration" },
-          { label: "Payout Banks" },
-          { label: "Payout Partner Types" },
-        ],
-      },
     ],
   },
   {
@@ -165,15 +147,9 @@ export const navGroups: NavGroup[] = [
           { label: "Customer Details", tabKey: "customer-details" },
           { label: "KYC Approval Queue", tabKey: "kyc-approval-queue" },
           { label: "Approved KYCs", tabKey: "kyc-approved-list" },
+          { label: "My Beneficiaries", tabKey: "beneficiaries" },
+          { label: "Add Beneficiary", tabKey: "beneficiaries" },
         ],
-      },
-      {
-        label: "Beneficiaries",
-        icon: UserPlus,
-        href: "#",
-        hasSubmenu: true,
-        submenuTitle: "Beneficiaries",
-        submenu: [{ label: "My Beneficiaries" }, { label: "Add Beneficiary" }],
       },
     ],
   },
@@ -181,12 +157,32 @@ export const navGroups: NavGroup[] = [
     heading: "Compliance",
     items: [
       {
-        label: "Compliance Rule",
+        label: "Compliance",
         icon: ShieldCheck,
         href: "#",
         hasSubmenu: true,
-        submenuTitle: "Compliance Rule",
-        submenu: [{ label: "Rule List" }, { label: "Rule Values" }],
+        submenuTitle: "Compliance",
+        submenu: [
+          { label: "Block List Entry" },
+          { label: "Compliance Rules Setup" },
+          { label: "Import OFAC" },
+          { label: "OFAC/Block List Search" },
+          { label: "Pep Database" },
+          { label: "Receiving Transaction Rules" },
+          { label: "Suspicious - Income Mismatched" },
+          { label: "Suspicious Customer" },
+          { label: "Suspicious Hold List" },
+          { label: "Suspicious Report" },
+          { label: "TXN Analysis" },
+          {
+            label: "Risk Profiling",
+            submenuTitle: "Risk Profiling",
+            submenu: [
+              { label: "High Risk Countries", tabKey: "high-risk-countries" },
+              { label: "High Risk Management", tabKey: "high-risk-management" },
+            ],
+          },
+        ],
       },
     ],
   },
@@ -214,16 +210,6 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    heading: "Transaction History",
-    items: [
-      {
-        label: "Transaction Detail History",
-        icon: History,
-        href: "#",
-      },
-    ],
-  },
-  {
     heading: "Payment",
     items: [
       {
@@ -233,11 +219,10 @@ export const navGroups: NavGroup[] = [
         hasSubmenu: true,
         submenuTitle: "Remittances",
         submenu: [
-          { label: "My Transfers" },
-          { label: "Create Transfer" },
-          { label: "Unapproved Remittances" },
-          { label: "Confirmed Remittances" },
-          { label: "Compliance Hold Remittances" },
+          { label: "Send Transaction", tabKey: "transaction-send" },
+          { label: "Un-Confirmed List", tabKey: "unconfirmed-list" },
+          { label: "Unpaid Transactions", tabKey: "unpaid-transactions" },
+          { label: "Pending Transaction", tabKey: "pending-transaction" },
         ],
       },
     ],
@@ -245,35 +230,54 @@ export const navGroups: NavGroup[] = [
   {
     heading: "User Management and Security",
     items: [
-      { label: "OTP", icon: KeyRound, href: "#" },
-      { label: "Security", icon: Lock, href: "#" },
-      { label: "User Management", icon: UserCog, href: "#", hasSubmenu: true },
-    ],
-  },
-  {
-    heading: "Export/Import",
-    items: [
-      { label: "Agent File Upload", icon: FolderUp, href: "#" },
-      { label: "Export/Import", icon: FileUp, href: "#" },
+      {
+        label: "Security",
+        icon: Lock,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Security",
+        submenu: [
+          { label: "Audit Tran Log", tabKey: "audit-tran-log" },
+          { label: "Days Exceeded TXN Requests", tabKey: "days-exceeded-txn-requests" },
+        ],
+      },
+      {
+        label: "User Management",
+        icon: UserCog,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "User Management",
+        submenu: [
+          { label: "Audit User Rights - Partner", tabKey: "audit-user-rights-partner" },
+          { label: "Create Head Office User", tabKey: "create-head-office-user" },
+          { label: "Create Partner User", tabKey: "create-partner-user" },
+          { label: "Head Office User Status", tabKey: "head-office-user-status" },
+          { label: "Manage Roles", tabKey: "manage-roles" },
+          { label: "Change Password", tabKey: "change-password" },
+        ],
+      },
     ],
   },
   {
     heading: "Utility",
     items: [
-      { label: "Transaction Query", icon: Search, href: "#" },
-      { label: "Healthcheck", icon: Activity, href: "#" },
-      { label: "Utilities", icon: Wrench, href: "#" },
+      { label: "Transaction Query", icon: Search, href: "#", tabKey: "transaction-query" },
     ],
-  },
-  {
-    heading: "Communications",
-    items: [{ label: "SMS & Email", icon: Mail, href: "#" }],
   },
   {
     heading: "Operations & Admin",
     items: [
-      { label: "Risk Profiling", icon: BarChart3, href: "#" },
-      { label: "Reports", icon: FileBarChart2, href: "#", hasSubmenu: true, tabKey: "reports-index" },
+      {
+        label: "Reports",
+        icon: FileBarChart2,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Reports",
+        submenu: [
+          { label: "Daily Report", tabKey: "daily-report" },
+          { label: "Summary Report", tabKey: "summary-report" },
+        ],
+      },
     ],
   },
 ];
