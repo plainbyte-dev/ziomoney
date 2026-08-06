@@ -8,7 +8,6 @@ import TabbedWorkspace from "./TabbedWorkspace";
 import { TabsProvider } from "@/contexts/TabsContext";
 import { VouchersProvider } from "@/contexts/VouchersContext";
 import { PartnersProvider } from "@/contexts/PartnersContext";
-import { DataModeProvider } from "@/contexts/DataModeContext";
 import { KycProvider } from "@/contexts/KycContext";
 import { RatesProvider } from "@/contexts/RatesContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
@@ -30,25 +29,23 @@ export default function AppShell() {
 
   return (
     <TabsProvider>
-      <DataModeProvider>
-        <NotificationsProvider>
-          <VouchersProvider>
-            <PartnersProvider>
-              <KycProvider>
-                <RatesProvider>
-                  <div className="flex h-screen bg-surface">
-                    <Sidebar />
-                    <div className="flex flex-1 flex-col overflow-hidden">
-                      <Topbar />
-                      <TabbedWorkspace />
-                    </div>
+      <NotificationsProvider>
+        <VouchersProvider>
+          <PartnersProvider>
+            <KycProvider>
+              <RatesProvider>
+                <div className="flex h-screen bg-surface">
+                  <Sidebar />
+                  <div className="flex flex-1 flex-col overflow-hidden">
+                    <Topbar />
+                    <TabbedWorkspace />
                   </div>
-                </RatesProvider>
-              </KycProvider>
-            </PartnersProvider>
-          </VouchersProvider>
-        </NotificationsProvider>
-      </DataModeProvider>
+                </div>
+              </RatesProvider>
+            </KycProvider>
+          </PartnersProvider>
+        </VouchersProvider>
+      </NotificationsProvider>
     </TabsProvider>
   );
 }

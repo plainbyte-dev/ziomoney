@@ -14,6 +14,7 @@ import {
 } from "@/lib/kycApi";
 import {
   emptyCustomerRecord,
+  mapKycApiRecord,
   pendingKycRecords,
   complianceHoldKycRecords,
   approvedKycRecords,
@@ -179,9 +180,9 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setPendingList(pending.data ?? []);
-    setComplianceHoldList(hold.data ?? []);
-    setApprovedList(approved.data ?? []);
+    setPendingList((pending.data ?? []).map(mapKycApiRecord));
+    setComplianceHoldList((hold.data ?? []).map(mapKycApiRecord));
+    setApprovedList((approved.data ?? []).map(mapKycApiRecord));
   }, [isLive]);
 
   const moveToApproved = useCallback((target: KycRecord, fields: KycApprovalFields) => {
@@ -191,6 +192,14 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
       { ...target, ...fields, status: "VERIFIED" },
       ...prev,
     ]);
+  }, []);
+
+  // Live path: the API returns the authoritative record (its own id, status,
+  // kycUniqueCode, ...) rather than us guessing it by merging locally.
+  const moveToApprovedRecord = useCallback((previousId: string, record: KycRecord) => {
+    setPendingList((prev) => prev.filter((r) => r.id !== previousId));
+    setComplianceHoldList((prev) => prev.filter((r) => r.id !== previousId));
+    setApprovedList((prev) => [record, ...prev]);
   }, []);
 
   const approve = useCallback(
@@ -208,15 +217,15 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
 
       const response = await approveKyc(buildApprovePayload(target, fields));
       setApproving(false);
-      if (!response.success) {
+      if (!response.success || !response.data) {
         setApproveError(response.message || "Could not approve this KYC.");
         return false;
       }
-      moveToApproved(target, fields);
+      moveToApprovedRecord(target.id, mapKycApiRecord(response.data));
       notify({ title: "KYC approved", message: `${target.fullName || target.userName} is now verified.` });
       return true;
     },
-    [isLive, moveToApproved, notify]
+    [isLive, moveToApproved, moveToApprovedRecord, notify]
   );
 
   const complianceApprove = useCallback(
@@ -237,18 +246,18 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
 
       const response = await complianceApproveKyc(buildApprovePayload(target, fields));
       setApproving(false);
-      if (!response.success) {
+      if (!response.success || !response.data) {
         setApproveError(response.message || "Could not complete compliance approval.");
         return false;
       }
-      moveToApproved(target, fields);
+      moveToApprovedRecord(target.id, mapKycApiRecord(response.data));
       notify({
         title: "KYC approved (compliance)",
         message: `${target.fullName || target.userName} cleared compliance review.`,
       });
       return true;
     },
-    [isLive, moveToApproved, notify]
+    [isLive, moveToApproved, moveToApprovedRecord, notify]
   );
 
   const value = useMemo(

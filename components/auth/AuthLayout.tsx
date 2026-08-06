@@ -1,4 +1,5 @@
 import SettlementFlowGraphic from "./SettlementFlowGraphic";
+import DataModeToggle from "../DataModeToggle";
 
 export default function AuthLayout({
   children,
@@ -34,7 +35,11 @@ export default function AuthLayout({
         </p>
       </div>
 
-      <div className="flex w-full flex-1 flex-col items-center justify-center px-6 py-12 lg:w-[58%]">
+      <div className="relative flex w-full flex-1 flex-col items-center justify-center px-6 py-12 lg:w-[58%]">
+        <div className="absolute right-6 top-6">
+          <DataModeToggle />
+        </div>
+
         <div className="mb-8 flex items-center gap-2 lg:hidden">
           <span className="text-xl font-extrabold tracking-tight text-brand-blue">
             Zio

@@ -16,6 +16,7 @@ export interface Beneficiary {
 
 // POST /api/remittance/beneficiaries
 export interface AddBeneficiaryPayload {
+  customerId: string;
   fullName: string;
   accountNumber: string;
   bankName: string;

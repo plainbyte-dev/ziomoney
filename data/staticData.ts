@@ -89,12 +89,12 @@ export interface NavGroup {
   items: NavItem[];
 }
 
-// Each group corresponds to a distinct backend API domain (ledger/transaction
-// history, remittance partner, KYC, exchange rate, ...), so the sidebar's
-// structure stays legible against the API surface it drives.
+// Related API domains are folded into a handful of headings so the full nav
+// fits in the sidebar's vertical space without scrolling; each top-level row
+// still opens its own flyout for the domain's individual screens.
 export const navGroups: NavGroup[] = [
   {
-    heading: "Accounts",
+    heading: "Accounts & Rates",
     items: [
       {
         label: "Accounts Detail",
@@ -113,13 +113,30 @@ export const navGroups: NavGroup[] = [
           { label: "Create new Ledger", tabKey: "ledger-create" },
         ],
       },
+      {
+        // Covers Service Charge, Margin Setup, Exchange Rate,
+        // Country/Currency, Partner Offer Rate and Partner Commission.
+        label: "Exchange Rate & Commission",
+        icon: ArrowLeftRight,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Exchange Rate & Commission",
+        submenu: [
+          { label: "Exchange Rates", tabKey: "exchange-rates" },
+          { label: "Service Charges", tabKey: "service-charges" },
+          { label: "Margin Setup", tabKey: "margin-setup" },
+          { label: "Country / Currency", tabKey: "country-currency" },
+          { label: "Partner Offer Rates", tabKey: "partner-offer-rates" },
+          { label: "Partner Commission", tabKey: "partner-commission" },
+        ],
+      },
     ],
   },
   {
-    // "Partner info" in the API doc: Remittance Partner + Payout Partner
-    heading: "Partner Info",
+    heading: "Partners & Customers",
     items: [
       {
+        // "Partner info" in the API doc: Remittance Partner + Payout Partner
         label: "Partners",
         icon: Users,
         href: "#",
@@ -130,13 +147,8 @@ export const navGroups: NavGroup[] = [
           { label: "Create New Partner", tabKey: "partner-create" },
         ],
       },
-    ],
-  },
-  {
-    // "Customer Details and Corporate" / "KYC (sender / beneficiary)"
-    heading: "Customer Details and Corporate",
-    items: [
       {
+        // "Customer Details and Corporate" / "KYC (sender / beneficiary)"
         label: "Customer Detail",
         icon: UserCircle,
         href: "#",
@@ -147,7 +159,6 @@ export const navGroups: NavGroup[] = [
           { label: "Customer Details", tabKey: "customer-details" },
           { label: "KYC Approval Queue", tabKey: "kyc-approval-queue" },
           { label: "Approved KYCs", tabKey: "kyc-approved-list" },
-          { label: "My Beneficiaries", tabKey: "beneficiaries" },
           { label: "Add Beneficiary", tabKey: "beneficiaries" },
         ],
       },
@@ -187,30 +198,7 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    // "Exchange rate and service charge / commission" covers Service Charge,
-    // Margin Setup, Exchange Rate, Country/Currency, Partner Offer Rate and
-    // Partner Commission.
-    heading: "Exchange Rate & Commission",
-    items: [
-      {
-        label: "Exchange Rate & Commission",
-        icon: ArrowLeftRight,
-        href: "#",
-        hasSubmenu: true,
-        submenuTitle: "Exchange Rate & Commission",
-        submenu: [
-          { label: "Exchange Rates", tabKey: "exchange-rates" },
-          { label: "Service Charges", tabKey: "service-charges" },
-          { label: "Margin Setup", tabKey: "margin-setup" },
-          { label: "Country / Currency", tabKey: "country-currency" },
-          { label: "Partner Offer Rates", tabKey: "partner-offer-rates" },
-          { label: "Partner Commission", tabKey: "partner-commission" },
-        ],
-      },
-    ],
-  },
-  {
-    heading: "Payment",
+    heading: "Payments",
     items: [
       {
         label: "Remittances",
@@ -225,10 +213,11 @@ export const navGroups: NavGroup[] = [
           { label: "Pending Transaction", tabKey: "pending-transaction" },
         ],
       },
+      { label: "Transaction Query", icon: Search, href: "#", tabKey: "transaction-query" },
     ],
   },
   {
-    heading: "User Management and Security",
+    heading: "Admin & Security",
     items: [
       {
         label: "Security",
@@ -256,17 +245,6 @@ export const navGroups: NavGroup[] = [
           { label: "Change Password", tabKey: "change-password" },
         ],
       },
-    ],
-  },
-  {
-    heading: "Utility",
-    items: [
-      { label: "Transaction Query", icon: Search, href: "#", tabKey: "transaction-query" },
-    ],
-  },
-  {
-    heading: "Operations & Admin",
-    items: [
       {
         label: "Reports",
         icon: FileBarChart2,
@@ -276,6 +254,8 @@ export const navGroups: NavGroup[] = [
         submenu: [
           { label: "Daily Report", tabKey: "daily-report" },
           { label: "Summary Report", tabKey: "summary-report" },
+          { label: "Report Writer", tabKey: "report-writer" },
+          { label: "Report List", tabKey: "report-list" },
         ],
       },
     ],

@@ -15,6 +15,7 @@ import { beneficiaryCountryOptions } from "@/data/staticData";
 import { addBeneficiary, deleteBeneficiary, listBeneficiaries } from "@/lib/beneficiaryApi";
 
 const emptyForm: AddBeneficiaryPayload = {
+  customerId: "",
   fullName: "",
   accountNumber: "",
   bankName: "",
@@ -77,10 +78,11 @@ export default function BeneficiariesPanel() {
     if (!isLive) {
       await new Promise((resolve) => setTimeout(resolve, 300));
       const now = new Date().toISOString();
+      const { customerId, ...beneficiaryFields } = form;
       const record: Beneficiary = {
         id: ++demoIdCounter,
-        username: "demo.user",
-        ...form,
+        username: customerId,
+        ...beneficiaryFields,
         createdAt: now,
         updatedAt: now,
       };
@@ -131,6 +133,7 @@ export default function BeneficiariesPanel() {
 
         <form onSubmit={handleAdd} className="bg-panel p-6 sm:p-8">
           <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-3">
+            <TextField label="Customer ID:" required value={form.customerId} onChange={(v) => updateField("customerId", v)} />
             <TextField label="Full Name:" required value={form.fullName} onChange={(v) => updateField("fullName", v)} />
             <TextField label="Account Number:" required value={form.accountNumber} onChange={(v) => updateField("accountNumber", v)} />
             <TextField label="Bank Name:" required value={form.bankName} onChange={(v) => updateField("bankName", v)} />
@@ -172,7 +175,7 @@ export default function BeneficiariesPanel() {
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
         <div className="flex items-center gap-2 bg-brand-blue px-6 py-4">
           <UserPlus size={18} className="text-white" />
-          <h2 className="text-lg font-bold text-white">My Beneficiaries</h2>
+          <h2 className="text-lg font-bold text-white">Beneficiaries</h2>
         </div>
 
         <div className="bg-panel p-6 sm:p-8">
@@ -185,6 +188,7 @@ export default function BeneficiariesPanel() {
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-brand-green-light/50 text-xs font-semibold uppercase tracking-wide text-heading/70">
+                    <th className="px-4 py-3">Customer ID</th>
                     <th className="px-4 py-3">Full Name</th>
                     <th className="px-4 py-3">Bank</th>
                     <th className="px-4 py-3">Account Number</th>
@@ -197,7 +201,7 @@ export default function BeneficiariesPanel() {
                 <tbody>
                   {loading && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted">
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
                         Loading beneficiaries...
                       </td>
                     </tr>
@@ -206,6 +210,7 @@ export default function BeneficiariesPanel() {
                   {!loading &&
                     beneficiaries.map((b) => (
                       <tr key={b.id} className="border-b border-border bg-white last:border-b-0">
+                        <td className="px-4 py-3 text-heading/80">{b.username}</td>
                         <td className="px-4 py-3 font-medium text-heading">{b.fullName}</td>
                         <td className="px-4 py-3 text-heading/80">
                           {b.bankName}
@@ -234,7 +239,7 @@ export default function BeneficiariesPanel() {
 
                   {!loading && beneficiaries.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted">
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
                         No beneficiaries yet.
                       </td>
                     </tr>

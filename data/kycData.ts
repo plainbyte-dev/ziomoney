@@ -1,4 +1,4 @@
-export type KycStatus = "NOT_VERIFIED" | "COMPLIANCE_HOLD" | "VERIFIED";
+export type KycStatus = "NOT_VERIFIED" | "COMPLIANCE_HOLD" | "VERIFIED" | "REJECTED";
 
 // Fields accepted by POST /updateCustomer
 export interface CustomerRecord {
@@ -67,10 +67,86 @@ export type ApproveKycPayload = Omit<CustomerRecord, "remarks"> & KycApprovalFie
 export interface KycRecord extends CustomerRecord {
   id: string;
   status: KycStatus;
+  kycUniqueCode?: string;
+  referCode?: string;
   registrantAgent?: string;
   registrantBranch?: string;
   kycMode?: string;
   submittedDate: string;
+}
+
+// Raw shape returned by POST /updateCustomer, /InsertApprovedKYC,
+// /InsertApprovedCompilenceKYC and the three getAll*Kycs list endpoints.
+// Notably different from CustomerRecord: `email` not `emailAddress`, no
+// `primaryIdIssueDate`/`secondaryIdNo` (request-only fields), plus
+// server-assigned id/status/audit fields.
+export interface KycApiRecord {
+  id: number;
+  userName: string;
+  kycStatus: KycStatus;
+  kycMode: string;
+  kycUniqueCode: string;
+  referCode: string;
+  fullName: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  gender: string;
+  dob: string;
+  nationality: string;
+  email: string;
+  mobileNo: string;
+  telephoneNo: string;
+  zipCode: string;
+  prefecture: string;
+  city: string;
+  town: string;
+  streetAddress: string;
+  primaryIdNo: string;
+  primaryIdExpiryDate: string;
+  registrantAgent: string;
+  registrantBranch: string;
+  remarks: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Adapts the API's response shape onto the UI-facing KycRecord. The API
+// never echoes back primaryIdIssueDate/secondaryIdNo, so those come back
+// empty on records loaded from the live API (they're only ever populated on
+// records authored locally in demo mode).
+export function mapKycApiRecord(api: KycApiRecord): KycRecord {
+  return {
+    id: String(api.id),
+    userName: api.userName,
+    fullName: api.fullName,
+    firstName: api.firstName,
+    middleName: api.middleName,
+    lastName: api.lastName,
+    gender: api.gender,
+    dob: api.dob,
+    nationality: api.nationality,
+    emailAddress: api.email,
+    mobileNo: api.mobileNo,
+    telephoneNo: api.telephoneNo,
+    zipCode: api.zipCode,
+    prefecture: api.prefecture,
+    city: api.city,
+    town: api.town,
+    streetAddress: api.streetAddress,
+    primaryIdNo: api.primaryIdNo,
+    primaryIdIssueDate: "",
+    primaryIdExpiryDate: api.primaryIdExpiryDate,
+    secondaryIdNo: "",
+    remarks: api.remarks,
+    status: api.kycStatus,
+    kycUniqueCode: api.kycUniqueCode,
+    referCode: api.referCode,
+    registrantAgent: api.registrantAgent,
+    registrantBranch: api.registrantBranch,
+    kycMode: api.kycMode,
+    submittedDate: api.createdAt ? api.createdAt.slice(0, 10) : "",
+  };
 }
 
 export const pendingKycRecords: KycRecord[] = [

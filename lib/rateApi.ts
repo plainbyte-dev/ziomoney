@@ -64,6 +64,10 @@ export function updateExchangeRate(payload: ExchangeRateUpsertPayload) {
   return callRateAction<ExchangeRateRecord>("update-rate", { method: "POST", body: payload });
 }
 
+export function updateExchangeRateFromCsv(payload: ExchangeRateUpsertPayload) {
+  return callRateAction<ExchangeRateRecord>("update-csv-rate", { method: "POST", body: payload });
+}
+
 // Service Charge
 export function getServiceCharge() {
   return callRateAction<ServiceChargeRecord>("get-service-charge", { method: "GET" });

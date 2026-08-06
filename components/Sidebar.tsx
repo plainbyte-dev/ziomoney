@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ChevronRight, LogOut } from "lucide-react";
+import { ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Logo from "./Logo";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 import { useTabs } from "@/contexts/TabsContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { tabRegistry } from "@/data/tabRegistry";
+import { loadState, saveState } from "@/lib/persist";
 import {
   navGroups,
   footerUser,
@@ -18,18 +19,21 @@ import {
 
 const CLOSE_DELAY_MS = 150;
 const FLYOUT_WIDTH = 256; // px, matches w-64
+const COLLAPSED_STORAGE_KEY = "zio-sidebar-collapsed";
 
 type FlyoutPosition = { top: number; left: number };
 
 function NavRow({
   item,
   isOpen,
+  collapsed,
   onOpen,
   onScheduleClose,
   onCancelClose,
 }: {
   item: NavItem;
   isOpen: boolean;
+  collapsed: boolean;
   onOpen: (label: string, position: FlyoutPosition) => void;
   onScheduleClose: () => void;
   onCancelClose: () => void;
@@ -53,7 +57,9 @@ function NavRow({
   function openWithPosition() {
     const rect = rowRef.current?.getBoundingClientRect();
     if (!rect) return;
-    onOpen(item.label, { top: rect.top, left: rect.right + 8 });
+    // Collapsed rows are narrower — anchor flush to the icon rail's edge
+    // instead of the (unused) label's would-be right edge.
+    onOpen(item.label, { top: rect.top, left: rect.right + (collapsed ? 4 : 8) });
   }
 
   function handleClick() {
@@ -65,6 +71,35 @@ function NavRow({
     }
     if (!item.tabKey) return;
     handleNavigate(item.tabKey, item.label);
+  }
+
+  if (collapsed) {
+    return (
+      <div
+        ref={rowRef}
+        className="relative"
+        onMouseEnter={() => hasSubmenu && openWithPosition()}
+        onMouseLeave={() => hasSubmenu && onScheduleClose()}
+      >
+        <button
+          onClick={handleClick}
+          disabled={!enabled}
+          title={item.label}
+          aria-label={item.label}
+          className={
+            active
+              ? "flex w-full items-center justify-center rounded-xl bg-brand-green py-2.5 text-white shadow-card transition-all"
+              : "flex w-full items-center justify-center rounded-xl py-2.5 text-heading/80 transition-colors hover:bg-surface disabled:cursor-default disabled:text-muted/60 disabled:hover:bg-transparent"
+          }
+        >
+          <Icon
+            size={18}
+            strokeWidth={2}
+            className={active ? undefined : enabled ? "text-muted" : "text-muted/50"}
+          />
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -79,8 +114,8 @@ function NavRow({
         disabled={!enabled}
         className={
           active
-            ? "flex w-full items-center justify-between rounded-xl bg-brand-green px-4 py-2.5 text-left text-sm font-semibold text-white shadow-card transition-all"
-            : "flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm text-heading/80 transition-colors hover:bg-surface disabled:cursor-default disabled:text-muted/60 disabled:hover:bg-transparent"
+            ? "flex w-full items-center justify-between rounded-xl bg-brand-green px-4 py-2 text-left text-sm font-semibold text-white shadow-card transition-all"
+            : "flex w-full items-center justify-between rounded-xl px-4 py-2 text-left text-sm text-heading/80 transition-colors hover:bg-surface disabled:cursor-default disabled:text-muted/60 disabled:hover:bg-transparent"
         }
       >
         <span className="flex items-center gap-3">
@@ -313,7 +348,23 @@ export default function Sidebar() {
   const [openLabel, setOpenLabel] = useState<string | null>(null);
   const [position, setPosition] = useState<FlyoutPosition | null>(null);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restore the user's last collapse choice; skip the very first save so it
+  // can't race this restore and clobber what's in localStorage.
+  const skipNextCollapsedSave = useRef(true);
+  useEffect(() => {
+    const saved = loadState<boolean>(COLLAPSED_STORAGE_KEY);
+    if (saved !== null) setCollapsed(saved);
+  }, []);
+  useEffect(() => {
+    if (skipNextCollapsedSave.current) {
+      skipNextCollapsedSave.current = false;
+      return;
+    }
+    saveState<boolean>(COLLAPSED_STORAGE_KEY, collapsed);
+  }, [collapsed]);
 
   function cancelClose() {
     if (closeTimer.current) {
@@ -363,6 +414,7 @@ export default function Sidebar() {
         key={item.label}
         item={item}
         isOpen={openLabel === item.label}
+        collapsed={collapsed}
         onOpen={open}
         onScheduleClose={scheduleClose}
         onCancelClose={cancelClose}
@@ -371,18 +423,39 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-panel">
-      <div className="flex items-center gap-2 border-b border-border px-6 py-6">
-        <Logo size="md" />
+    <aside
+      className={`relative flex h-full shrink-0 flex-col border-r border-border bg-panel transition-[width] duration-150 ${
+        collapsed ? "w-[68px]" : "w-64"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setCollapsed((prev) => !prev)}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white text-muted shadow-card hover:text-heading"
+      >
+        {collapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
+      </button>
+
+      <div className={`flex items-center border-b border-border py-4 ${collapsed ? "justify-center px-2" : "gap-2 px-6"}`}>
+        {collapsed ? (
+          <span className="text-xl font-extrabold italic tracking-tight bg-gradient-to-r from-[#1E5AA8] to-[#8CC63F] bg-clip-text text-transparent">
+            Z
+          </span>
+        ) : (
+          <Logo size="md" />
+        )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-4 pb-4 pt-4">
+      <nav className={`flex-1 pb-3 pt-3 ${collapsed ? "px-2.5" : "px-4"}`}>
         {navGroups.map((group, index) => (
-          <div key={group.heading} className={index === 0 ? "" : "mt-4 border-t border-border pt-4"}>
-            <p className="px-2 pb-2 text-[11px] font-semibold tracking-wider text-muted">
-              {group.heading.toUpperCase()}
-            </p>
-            <div className="flex flex-col gap-1">{renderItems(group.items)}</div>
+          <div key={group.heading} className={index === 0 ? "" : "mt-2 border-t border-border pt-2"}>
+            {!collapsed && (
+              <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-muted">
+                {group.heading.toUpperCase()}
+              </p>
+            )}
+            <div className="flex flex-col gap-0.5">{renderItems(group.items)}</div>
           </div>
         ))}
       </nav>
@@ -397,18 +470,25 @@ export default function Sidebar() {
         />
       )}
 
-      <div className="m-4 flex items-center gap-3 rounded-xl bg-brand-green-light px-3 py-3">
+      <div
+        className={`m-3 flex items-center rounded-xl bg-brand-green-light py-2.5 ${
+          collapsed ? "flex-col gap-2 px-2" : "gap-3 px-3"
+        }`}
+      >
         <Image
           src={user?.avatarUrl ?? footerUser.avatarUrl}
           alt={user?.name ?? footerUser.name}
           width={36}
           height={36}
           className="rounded-full object-cover ring-2 ring-white"
+          title={collapsed ? (user?.name ?? footerUser.name) : undefined}
         />
-        <div className="flex-1">
-          <p className="text-sm font-semibold text-heading">{user?.name ?? footerUser.name}</p>
-          <p className="text-xs text-brand-green-dark">{user?.role ?? footerUser.role}</p>
-        </div>
+        {!collapsed && (
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-heading">{user?.name ?? footerUser.name}</p>
+            <p className="text-xs text-brand-green-dark">{user?.role ?? footerUser.role}</p>
+          </div>
+        )}
         <button
           type="button"
           onClick={() => setLogoutConfirmOpen(true)}

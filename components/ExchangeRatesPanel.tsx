@@ -1,21 +1,69 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { RefreshCw, Search, Upload } from "lucide-react";
 import { useRates } from "@/contexts/RatesContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import Checkbox from "./Checkbox";
 import { emptyExchangeRatePayload, type ExchangeRateUpsertPayload } from "@/data/exchangeRateData";
 
+// Parses the small admin CSV import format: a header row followed by rows in
+// the same column order as ExchangeRateUpsertPayload. No quoted-field
+// support — this is a simple internal import, not a general CSV parser.
+function parseExchangeRateCsv(text: string): ExchangeRateUpsertPayload[] {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  if (lines.length < 2) return [];
+
+  const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  const rows: ExchangeRateUpsertPayload[] = [];
+
+  for (const line of lines.slice(1)) {
+    const cells = line.split(",").map((c) => c.trim());
+    const get = (key: string) => cells[header.indexOf(key)] ?? "";
+
+    const symbol = get("symbol");
+    if (!symbol) continue;
+
+    rows.push({
+      symbol,
+      countryName: get("countryname"),
+      currencyName: get("currencyname"),
+      unit: Number(get("unit")) || 0,
+      buying: Number(get("buying")) || 0,
+      selling: Number(get("selling")) || 0,
+      flag: get("flag"),
+      countryIsoCode: get("countryisocode"),
+      priority: Number(get("priority")) || 0,
+      active: get("active").toLowerCase() !== "false",
+    });
+  }
+
+  return rows;
+}
+
 export default function ExchangeRatesPanel() {
   const { isLive } = useDataMode();
-  const { exchangeRates, exchangeRatesLoading, exchangeRatesError, refreshExchangeRates, saveExchangeRate } =
-    useRates();
+  const {
+    exchangeRates,
+    exchangeRatesLoading,
+    exchangeRatesError,
+    refreshExchangeRates,
+    saveExchangeRate,
+    lookupExchangeRate,
+    importExchangeRatesFromCsv,
+  } = useRates();
 
   const [form, setForm] = useState<ExchangeRateUpsertPayload>(emptyExchangeRatePayload());
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const [lookupSymbol, setLookupSymbol] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     refreshExchangeRates();
@@ -39,6 +87,48 @@ export default function ExchangeRatesPanel() {
     setForm(emptyExchangeRatePayload());
   }
 
+  async function handleLookup() {
+    if (!lookupSymbol.trim()) return;
+    setLookupError(null);
+    setLookupLoading(true);
+    const result = await lookupExchangeRate(lookupSymbol);
+    setLookupLoading(false);
+    if (!result) {
+      setLookupError(`No active rate found for "${lookupSymbol.trim().toUpperCase()}".`);
+      return;
+    }
+    setForm({
+      symbol: result.symbol,
+      countryName: result.countryName,
+      currencyName: result.currency,
+      unit: result.unit,
+      buying: result.buying,
+      selling: result.selling,
+      flag: result.flag,
+      countryIsoCode: result.currencyAcro,
+      priority: form.priority,
+      active: true,
+    });
+  }
+
+  async function handleCsvFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    const text = await file.text();
+    const rows = parseExchangeRateCsv(text);
+    if (rows.length === 0) {
+      setSaveError("No valid rows found in that CSV file.");
+      return;
+    }
+
+    setSaveError(null);
+    setImporting(true);
+    await importExchangeRatesFromCsv(rows);
+    setImporting(false);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
@@ -49,14 +139,31 @@ export default function ExchangeRatesPanel() {
               {isLive ? "Live remittance API" : "Static demo data"} — active rates ordered by display priority.
             </p>
           </div>
-          <button
-            onClick={refreshExchangeRates}
-            disabled={exchangeRatesLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
-          >
-            <RefreshCw size={13} className={exchangeRatesLoading ? "animate-spin" : undefined} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              ref={fileInputRef}
+              onChange={handleCsvFileChange}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
+            >
+              <Upload size={13} />
+              {importing ? "Importing..." : "Import CSV"}
+            </button>
+            <button
+              onClick={refreshExchangeRates}
+              disabled={exchangeRatesLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
+            >
+              <RefreshCw size={13} className={exchangeRatesLoading ? "animate-spin" : undefined} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         <div className="bg-panel p-6 sm:p-8">
@@ -112,6 +219,26 @@ export default function ExchangeRatesPanel() {
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
         <div className="bg-brand-blue px-6 py-4">
           <h2 className="text-base font-bold text-white">Add / Update Rate</h2>
+        </div>
+        <div className="flex flex-wrap items-end gap-3 border-b border-border bg-panel px-6 pt-6 sm:px-8">
+          <div className="w-full max-w-xs">
+            <TextField
+              label="Look up existing rate by symbol:"
+              placeholder="e.g. INR"
+              value={lookupSymbol}
+              onChange={setLookupSymbol}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleLookup}
+            disabled={lookupLoading || !lookupSymbol.trim()}
+            className="mb-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2.5 text-sm font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
+          >
+            <Search size={14} />
+            {lookupLoading ? "Looking up..." : "Look up"}
+          </button>
+          {lookupError && <p className="mb-1.5 text-sm text-red-600">{lookupError}</p>}
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
           <TextField label="Symbol:" required value={form.symbol} onChange={(v) => updateField("symbol", v)} />

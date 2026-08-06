@@ -6,7 +6,9 @@ import { useNotifications } from "./NotificationsContext";
 import { loadState, saveState } from "@/lib/persist";
 import {
   getAllCountries,
+  getCountryWiseExRate,
   updateExchangeRate,
+  updateExchangeRateFromCsv,
   getAllServiceCharges,
   saveServiceCharge,
   upsertCountryCurrency,
@@ -20,6 +22,7 @@ import {
 } from "@/lib/rateApi";
 import {
   exchangeRateRecords,
+  type ExchangeRateItem,
   type ExchangeRateRecord,
   type ExchangeRateUpsertPayload,
 } from "@/data/exchangeRateData";
@@ -52,6 +55,8 @@ interface RatesContextValue {
   exchangeRatesError: string | null;
   refreshExchangeRates: () => Promise<void>;
   saveExchangeRate: (payload: ExchangeRateUpsertPayload) => Promise<boolean>;
+  lookupExchangeRate: (symbol: string) => Promise<ExchangeRateItem | null>;
+  importExchangeRatesFromCsv: (rows: ExchangeRateUpsertPayload[]) => Promise<{ imported: number; failed: number }>;
 
   serviceCharges: ServiceChargeRecord[];
   serviceChargesLoading: boolean;
@@ -204,6 +209,75 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       await refreshExchangeRates();
       notify({ title: "Exchange rate updated", message: `${payload.symbol} rate was saved.` });
       return true;
+    },
+    [isLive, notify, refreshExchangeRates]
+  );
+
+  const lookupExchangeRate = useCallback(
+    async (symbol: string) => {
+      const normalized = symbol.trim().toUpperCase();
+      if (!normalized) return null;
+
+      if (!isLive) {
+        const match = exchangeRates.find((r) => r.symbol.toUpperCase() === normalized);
+        if (!match) return null;
+        return {
+          symbol: match.symbol,
+          currency: match.currencyName,
+          currencyAcro: match.countryIsoCode,
+          countryName: match.countryName,
+          unit: match.unit,
+          buying: match.buying,
+          selling: match.selling,
+          flag: match.flag,
+        };
+      }
+
+      const response = await getCountryWiseExRate(normalized);
+      return response.success ? response.data : null;
+    },
+    [isLive, exchangeRates]
+  );
+
+  const importExchangeRatesFromCsv = useCallback(
+    async (rows: ExchangeRateUpsertPayload[]) => {
+      let imported = 0;
+      let failed = 0;
+
+      if (!isLive) {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        setExchangeRates((prev) => {
+          let next = prev;
+          for (const payload of rows) {
+            const existing = next.find((r) => r.symbol === payload.symbol);
+            const record: ExchangeRateRecord = {
+              ...payload,
+              id: existing?.id ?? ++localIdCounter,
+              createdDate: existing?.createdDate ?? new Date().toISOString().slice(0, 10),
+              updatedDate: new Date().toISOString().slice(0, 10),
+            };
+            next = existing
+              ? next.map((r) => (r.symbol === payload.symbol ? record : r))
+              : [record, ...next];
+          }
+          return next;
+        });
+        imported = rows.length;
+        notify({ title: "Exchange rates imported", message: `${imported} row(s) imported from CSV.` });
+        return { imported, failed };
+      }
+
+      for (const payload of rows) {
+        const response = await updateExchangeRateFromCsv(payload);
+        if (response.success) imported += 1;
+        else failed += 1;
+      }
+      await refreshExchangeRates();
+      notify({
+        title: "Exchange rates imported",
+        message: `${imported} row(s) imported${failed ? `, ${failed} failed` : ""}.`,
+      });
+      return { imported, failed };
     },
     [isLive, notify, refreshExchangeRates]
   );
@@ -464,6 +538,8 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       exchangeRatesError,
       refreshExchangeRates,
       saveExchangeRate,
+      lookupExchangeRate,
+      importExchangeRatesFromCsv,
       serviceCharges,
       serviceChargesLoading,
       serviceChargesError,
@@ -489,6 +565,8 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       exchangeRatesError,
       refreshExchangeRates,
       saveExchangeRate,
+      lookupExchangeRate,
+      importExchangeRatesFromCsv,
       serviceCharges,
       serviceChargesLoading,
       serviceChargesError,

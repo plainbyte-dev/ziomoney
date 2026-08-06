@@ -1,4 +1,4 @@
-import type { ApproveKycPayload, CustomerRecord, KycRecord } from "@/data/kycData";
+import type { ApproveKycPayload, CustomerRecord, KycApiRecord } from "@/data/kycData";
 
 export interface KycApiResponse<T> {
   success: boolean;
@@ -42,25 +42,25 @@ async function callKycAction<T>(
 }
 
 export function updateCustomer(payload: CustomerRecord) {
-  return callKycAction<CustomerRecord>("update-customer", { method: "POST", body: payload });
+  return callKycAction<KycApiRecord>("update-customer", { method: "POST", body: payload });
 }
 
 export function approveKyc(payload: ApproveKycPayload) {
-  return callKycAction<KycRecord>("approve", { method: "POST", body: payload });
+  return callKycAction<KycApiRecord>("approve", { method: "POST", body: payload });
 }
 
 export function complianceApproveKyc(payload: ApproveKycPayload) {
-  return callKycAction<KycRecord>("compliance-approve", { method: "POST", body: payload });
+  return callKycAction<KycApiRecord>("compliance-approve", { method: "POST", body: payload });
 }
 
 export function getApprovedKycs() {
-  return callKycAction<KycRecord[]>("approved", { method: "GET" });
+  return callKycAction<KycApiRecord[]>("approved", { method: "GET" });
 }
 
 export function getPendingKycs() {
-  return callKycAction<KycRecord[]>("pending", { method: "GET" });
+  return callKycAction<KycApiRecord[]>("pending", { method: "GET" });
 }
 
 export function getComplianceHoldKycs() {
-  return callKycAction<KycRecord[]>("compliance-hold", { method: "GET" });
+  return callKycAction<KycApiRecord[]>("compliance-hold", { method: "GET" });
 }

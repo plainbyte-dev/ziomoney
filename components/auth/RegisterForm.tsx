@@ -66,7 +66,6 @@ export default function RegisterForm() {
         />
         <AuthField
           label="Work Email"
-          type="email"
           name="email"
           placeholder="you@ziomoney.com"
           autoComplete="email"

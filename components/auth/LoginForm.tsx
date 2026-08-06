@@ -19,7 +19,7 @@ export default function LoginForm() {
     }
   }, [hydrated, user, router]);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
@@ -28,16 +28,13 @@ export default function LoginForm() {
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
 
     setSigningIn(true);
-    // Static demo: no real auth backend — check against the mock user list.
-    setTimeout(() => {
-      const success = login(email, password);
-      if (success) {
-        router.push("/");
-      } else {
-        setSigningIn(false);
-        setError("Invalid email or password.");
-      }
-    }, 400);
+    const success = await login(email, password);
+    if (success) {
+      router.push("/");
+    } else {
+      setSigningIn(false);
+      setError("Invalid email or password.");
+    }
   }
 
   return (
@@ -50,7 +47,6 @@ export default function LoginForm() {
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <AuthField
           label="Email"
-          type="email"
           name="email"
           placeholder="you@ziomoney.com"
           autoComplete="email"
