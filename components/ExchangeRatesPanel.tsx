@@ -6,6 +6,7 @@ import { useRates } from "@/contexts/RatesContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import Checkbox from "./Checkbox";
+import Spinner from "./Spinner";
 import { emptyExchangeRatePayload, type ExchangeRateUpsertPayload } from "@/data/exchangeRateData";
 
 // Parses the small admin CSV import format: a header row followed by rows in
@@ -132,10 +133,10 @@ export default function ExchangeRatesPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="flex items-center justify-between bg-brand-blue px-6 py-4">
+        <div className="border-b border-border flex items-center justify-between px-6 py-4">
           <div>
-            <h1 className="text-lg font-bold text-white">Exchange Rates</h1>
-            <p className="mt-0.5 text-sm text-white/80">
+            <h1 className="text-lg font-bold text-heading">Exchange Rates</h1>
+            <p className="mt-0.5 text-sm text-muted">
               {isLive ? "Live remittance API" : "Static demo data"} — active rates ordered by display priority.
             </p>
           </div>
@@ -150,15 +151,15 @@ export default function ExchangeRatesPanel() {
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
             >
-              <Upload size={13} />
+              {importing ? <Spinner className="h-3.5 w-3.5" /> : <Upload size={13} />}
               {importing ? "Importing..." : "Import CSV"}
             </button>
             <button
               onClick={refreshExchangeRates}
               disabled={exchangeRatesLoading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
             >
               <RefreshCw size={13} className={exchangeRatesLoading ? "animate-spin" : undefined} />
               Refresh
@@ -188,7 +189,7 @@ export default function ExchangeRatesPanel() {
                 </thead>
                 <tbody>
                   {exchangeRates.map((rate) => (
-                    <tr key={rate.id} className="border-b border-border bg-white last:border-b-0">
+                    <tr key={rate.id} className="border-b border-border bg-panel last:border-b-0">
                       <td className="px-4 py-3 font-medium text-heading">
                         {rate.flag} {rate.symbol}
                       </td>
@@ -217,8 +218,8 @@ export default function ExchangeRatesPanel() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h2 className="text-base font-bold text-white">Add / Update Rate</h2>
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-base font-bold text-heading">Add / Update Rate</h2>
         </div>
         <div className="flex flex-wrap items-end gap-3 border-b border-border bg-panel px-6 pt-6 sm:px-8">
           <div className="w-full max-w-xs">
@@ -233,9 +234,9 @@ export default function ExchangeRatesPanel() {
             type="button"
             onClick={handleLookup}
             disabled={lookupLoading || !lookupSymbol.trim()}
-            className="mb-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2.5 text-sm font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
+            className="mb-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2.5 text-sm font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
           >
-            <Search size={14} />
+            {lookupLoading ? <Spinner className="h-3.5 w-3.5" /> : <Search size={14} />}
             {lookupLoading ? "Looking up..." : "Look up"}
           </button>
           {lookupError && <p className="mb-1.5 text-sm text-red-600">{lookupError}</p>}
@@ -293,6 +294,7 @@ export default function ExchangeRatesPanel() {
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
             >
+              {saving && <Spinner className="h-4 w-4" />}
               {saving ? "Saving..." : "Save Rate"}
             </button>
           </div>

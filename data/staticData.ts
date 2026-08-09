@@ -242,7 +242,6 @@ export const navGroups: NavGroup[] = [
           { label: "Create Partner User", tabKey: "create-partner-user" },
           { label: "Head Office User Status", tabKey: "head-office-user-status" },
           { label: "Manage Roles", tabKey: "manage-roles" },
-          { label: "Change Password", tabKey: "change-password" },
         ],
       },
       {

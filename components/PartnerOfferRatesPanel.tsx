@@ -7,6 +7,7 @@ import { useDataMode } from "@/contexts/DataModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import Spinner from "./Spinner";
 import {
   emptyPartnerOfferRateInsertPayload,
   quoteTypeValues,
@@ -71,10 +72,10 @@ export default function PartnerOfferRatesPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="flex items-center justify-between bg-brand-blue px-6 py-4">
+        <div className="border-b border-border flex items-center justify-between px-6 py-4">
           <div>
-            <h1 className="text-lg font-bold text-white">Partner Offer Rates</h1>
-            <p className="mt-0.5 text-sm text-white/80">
+            <h1 className="text-lg font-bold text-heading">Partner Offer Rates</h1>
+            <p className="mt-0.5 text-sm text-muted">
               {isLive ? "Live remittance API" : "Static demo data"} — maker-checker workflow for partner-quoted
               rates.
             </p>
@@ -82,7 +83,7 @@ export default function PartnerOfferRatesPanel() {
           <button
             onClick={refreshPartnerOfferRates}
             disabled={partnerOfferRatesLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
           >
             <RefreshCw size={13} className={partnerOfferRatesLoading ? "animate-spin" : undefined} />
             Refresh
@@ -113,7 +114,7 @@ export default function PartnerOfferRatesPanel() {
                 </thead>
                 <tbody>
                   {partnerOfferRates.map((entry) => (
-                    <tr key={entry.id} className="border-b border-border bg-white last:border-b-0">
+                    <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
                       <td className="px-4 py-3 font-medium text-heading">{entry.uniqueId}</td>
                       <td className="px-4 py-3 text-heading/80">{entry.remittancePartner}</td>
                       <td className="px-4 py-3 text-heading/80">
@@ -147,7 +148,7 @@ export default function PartnerOfferRatesPanel() {
                             <button
                               onClick={() => handleCancel(entry.uniqueId)}
                               disabled={actioningId === entry.uniqueId}
-                              className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-heading hover:bg-surface disabled:opacity-60"
+                              className="rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-semibold text-heading hover:bg-surface disabled:opacity-60"
                             >
                               Cancel
                             </button>
@@ -174,8 +175,8 @@ export default function PartnerOfferRatesPanel() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h2 className="text-base font-bold text-white">Submit New Offer Rate</h2>
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-base font-bold text-heading">Submit New Offer Rate</h2>
         </div>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
           <TextField
@@ -237,6 +238,7 @@ export default function PartnerOfferRatesPanel() {
               disabled={submitting}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
             >
+              {submitting && <Spinner className="h-4 w-4" />}
               {submitting ? "Submitting..." : "Submit for Approval"}
             </button>
           </div>

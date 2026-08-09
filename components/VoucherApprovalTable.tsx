@@ -25,7 +25,7 @@ export default function VoucherApprovalTable({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="flex flex-wrap items-start justify-between gap-4 bg-white px-6 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-4 bg-panel px-6 py-4">
         <div className="flex flex-col gap-1 text-sm text-heading/80">
           <Logo size="md" />
           <p>{voucherCompany.registration}</p>
@@ -69,7 +69,7 @@ export default function VoucherApprovalTable({
                 key={entry.id}
                 onClick={() => onSelect(entry.id)}
                 className={`cursor-pointer border-b border-border last:border-b-0 ${
-                  selectedId === entry.id ? "bg-brand-green-light/40" : "bg-white"
+                  selectedId === entry.id ? "bg-brand-green-light/40" : "bg-panel"
                 }`}
               >
                 <td className="px-4 py-3 text-heading/80">{index + 1}</td>
@@ -130,7 +130,7 @@ export default function VoucherApprovalTable({
           type="button"
           onClick={() => selected && onRemove(selected.id)}
           disabled={!selected}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-5 py-2 text-sm font-medium text-heading hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-5 py-2 text-sm font-medium text-heading hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Trash2 size={15} />
           Remove

@@ -102,26 +102,45 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   const { isLive } = useDataMode();
   const { notify } = useNotifications();
 
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRateRecord[]>(exchangeRateRecords);
+  // Seed data is demo-only — a live session must never render it, not even
+  // for the instant before the first live fetch resolves.
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRateRecord[]>(() =>
+    isLive ? [] : exchangeRateRecords
+  );
   const [exchangeRatesLoading, setExchangeRatesLoading] = useState(false);
   const [exchangeRatesError, setExchangeRatesError] = useState<string | null>(null);
 
-  const [serviceCharges, setServiceCharges] = useState<ServiceChargeRecord[]>(serviceChargeRecords);
+  const [serviceCharges, setServiceCharges] = useState<ServiceChargeRecord[]>(() =>
+    isLive ? [] : serviceChargeRecords
+  );
   const [serviceChargesLoading, setServiceChargesLoading] = useState(false);
   const [serviceChargesError, setServiceChargesError] = useState<string | null>(null);
 
-  const [countryCurrencies, setCountryCurrencies] = useState<CountryCurrencyRecord[]>(countryCurrencyRecords);
-  const [commissions, setCommissions] = useState<CommissionRecord[]>(commissionRecords);
+  // These two have no "list all" endpoint on the backend at all — only
+  // upsert/filtered-lookup — so a live session can never populate them from
+  // a general fetch. They only ever fill in from a save/lookup response.
+  const [countryCurrencies, setCountryCurrencies] = useState<CountryCurrencyRecord[]>(() =>
+    isLive ? [] : countryCurrencyRecords
+  );
+  const [commissions, setCommissions] = useState<CommissionRecord[]>(() =>
+    isLive ? [] : commissionRecords
+  );
 
-  const [partnerOfferRates, setPartnerOfferRates] = useState<PartnerOfferRateRecord[]>(partnerOfferRateRecords);
+  const [partnerOfferRates, setPartnerOfferRates] = useState<PartnerOfferRateRecord[]>(() =>
+    isLive ? [] : partnerOfferRateRecords
+  );
   const [partnerOfferRatesLoading, setPartnerOfferRatesLoading] = useState(false);
   const [partnerOfferRateActionError, setPartnerOfferRateActionError] = useState<string | null>(null);
 
-  const [margins, setMargins] = useState<MarginRecord[]>(marginRecords);
+  // No "list all" endpoint for margins either — same as countryCurrencies/commissions above.
+  const [margins, setMargins] = useState<MarginRecord[]>(() => (isLive ? [] : marginRecords));
 
   // Restore any admin-made changes from a previous session so a page refresh
-  // doesn't silently drop them back to the seed data.
+  // doesn't silently drop them back to the seed data. Only meaningful in demo
+  // mode — a live session gets its records from the API, never from a
+  // locally persisted demo snapshot.
   useEffect(() => {
+    if (isLive) return;
     const saved = loadState<PersistedRatesState>(STORAGE_KEY);
     if (!saved) return;
     setExchangeRates(saved.exchangeRates);
@@ -130,7 +149,18 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
     setCommissions(saved.commissions);
     setPartnerOfferRates(saved.partnerOfferRates);
     setMargins(saved.margins);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // countryCurrencies/commissions/margins have no refresh-from-API mechanism
+  // (no list endpoint), so switching into live mode has to explicitly clear
+  // out whatever demo data was showing — nothing will otherwise overwrite it.
+  useEffect(() => {
+    if (!isLive) return;
+    setCountryCurrencies([]);
+    setCommissions([]);
+    setMargins([]);
+  }, [isLive]);
 
   const skipNextSave = useRef(true);
   useEffect(() => {
@@ -153,6 +183,9 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
     // reflects local admin actions, restored from localStorage on load.
     if (!isLive) return;
 
+    // Wipe any demo data left over from before switching into live mode —
+    // it must never linger on screen while Live API is active.
+    setExchangeRates([]);
     setExchangeRatesLoading(true);
     setExchangeRatesError(null);
     const response = await getAllCountries();
@@ -285,6 +318,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   const refreshServiceCharges = useCallback(async () => {
     if (!isLive) return;
 
+    setServiceCharges([]);
     setServiceChargesLoading(true);
     setServiceChargesError(null);
     const response = await getAllServiceCharges();
@@ -428,6 +462,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   const refreshPartnerOfferRates = useCallback(async () => {
     if (!isLive) return;
 
+    setPartnerOfferRates([]);
     setPartnerOfferRatesLoading(true);
     const response = await getAllPendingPartnerOfferRates();
     setPartnerOfferRatesLoading(false);

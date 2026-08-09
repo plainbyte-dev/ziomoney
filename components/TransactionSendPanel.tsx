@@ -282,8 +282,8 @@ export default function TransactionSendPanel() {
   if (step === "partner") {
     return (
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h1 className="text-lg font-bold text-white">Select Partner to Send Transaction</h1>
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Select Partner to Send Transaction</h1>
         </div>
 
         <div className="bg-panel p-6 sm:p-8">
@@ -318,8 +318,8 @@ export default function TransactionSendPanel() {
   if (step === "declaration") {
     return (
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h1 className="text-sm font-bold text-white sm:text-base">
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-sm font-bold text-heading sm:text-base">
             Trade Restrictions and Use of Funds Restrictions must be cleared prior to the client before the
             declaration.
           </h1>
@@ -366,8 +366,8 @@ export default function TransactionSendPanel() {
         </p>
 
         <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-          <div className="bg-brand-blue px-6 py-3">
-            <h2 className="text-sm font-bold uppercase text-white">Search Customer</h2>
+          <div className="border-b border-border px-6 py-3">
+            <h2 className="text-sm font-bold uppercase text-heading">Search Customer</h2>
           </div>
           <div className="flex flex-wrap items-center gap-3 bg-blue-50 p-4">
             <span className="text-xs font-semibold text-heading/70">
@@ -384,7 +384,7 @@ export default function TransactionSendPanel() {
               placeholder="Search customer / user ID"
               value={remitter.customerSearch}
               onChange={(event) => updateRemitter("customerSearch", event.target.value)}
-              className="min-w-[220px] flex-1 rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="min-w-[220px] flex-1 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
             <IconButton icon={Search} />
             <IconButton icon={ZoomIn} />
@@ -547,8 +547,8 @@ export default function TransactionSendPanel() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-          <div className="bg-brand-blue px-6 py-3">
-            <h2 className="text-sm font-bold uppercase text-white">Beneficiary Detail</h2>
+          <div className="border-b border-border px-6 py-3">
+            <h2 className="text-sm font-bold uppercase text-heading">Beneficiary Detail</h2>
           </div>
           <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-blue-50 p-6 sm:grid-cols-2">
             <FormRow label="Choose Receiver:">
@@ -618,8 +618,8 @@ export default function TransactionSendPanel() {
   if (step === "transaction") {
     return (
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-3">
-          <h2 className="text-sm font-bold uppercase text-white">Transaction Detail</h2>
+        <div className="border-b border-border px-6 py-3">
+          <h2 className="text-sm font-bold uppercase text-heading">Transaction Detail</h2>
         </div>
 
         <div className="space-y-4 bg-green-50 p-6">
@@ -727,7 +727,7 @@ export default function TransactionSendPanel() {
               value={memo}
               onChange={(event) => setMemo(event.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </FormRow>
 
@@ -735,14 +735,14 @@ export default function TransactionSendPanel() {
             <button
               onClick={handleCalculate}
               disabled={Number(transferAmountLC) <= 0}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-heading/80 hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-4 py-2 text-sm font-semibold text-heading/80 hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Calculator size={14} />
               Calculate
             </button>
             <button
               onClick={handleReset}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-4 py-2 text-sm font-semibold text-heading/80 hover:bg-border"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-4 py-2 text-sm font-semibold text-heading/80 hover:bg-border"
             >
               <X size={14} />
               Reset
@@ -763,8 +763,8 @@ export default function TransactionSendPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Send Transaction</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Send Transaction</h1>
       </div>
 
       <div className="bg-panel p-10 text-center">
@@ -795,7 +795,7 @@ function formatAmount(value: number) {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
+  "w-full rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
 
 function StepButton({
   onClick,
@@ -854,7 +854,7 @@ function Select({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className={`rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green ${
+      className={`rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green ${
         className ?? "w-full"
       }`}
     >
@@ -872,7 +872,7 @@ function IconButton({ icon: Icon, onClick }: { icon: typeof Search; onClick?: ()
   return (
     <button
       onClick={onClick}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-white text-heading/70 hover:bg-border"
+      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-panel text-heading/70 hover:bg-border"
     >
       <Icon size={14} />
     </button>

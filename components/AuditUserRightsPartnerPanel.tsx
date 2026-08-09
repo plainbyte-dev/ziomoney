@@ -15,8 +15,8 @@ export default function AuditUserRightsPartnerPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Audit User Rights - Partner</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Audit User Rights - Partner</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -93,9 +93,9 @@ export default function AuditUserRightsPartnerPanel() {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
+  "w-full rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
 const selectClass =
-  "w-full max-w-[220px] rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
+  "w-full max-w-[220px] rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
 const ellipsisButtonClass =
   "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-heading/70 hover:bg-border";
 

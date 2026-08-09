@@ -73,10 +73,13 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const [pendingList, setPendingList] = useState<KycRecord[]>(pendingKycRecords);
-  const [complianceHoldList, setComplianceHoldList] =
-    useState<KycRecord[]>(complianceHoldKycRecords);
-  const [approvedList, setApprovedList] = useState<KycRecord[]>(approvedKycRecords);
+  // Seed data is demo-only — a live session must never render it, not even
+  // for the instant before the first live fetch resolves.
+  const [pendingList, setPendingList] = useState<KycRecord[]>(() => (isLive ? [] : pendingKycRecords));
+  const [complianceHoldList, setComplianceHoldList] = useState<KycRecord[]>(() =>
+    isLive ? [] : complianceHoldKycRecords
+  );
+  const [approvedList, setApprovedList] = useState<KycRecord[]>(() => (isLive ? [] : approvedKycRecords));
   const [listsLoading, setListsLoading] = useState(false);
   const [listsError, setListsError] = useState<string | null>(null);
 
@@ -85,13 +88,17 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
 
   // Restore any admin-made changes (submissions/approvals) from a previous
   // session so a page refresh doesn't silently drop them back to the seed data.
+  // Only meaningful in demo mode — a live session gets its records from the
+  // API, never from a locally persisted demo snapshot.
   useEffect(() => {
+    if (isLive) return;
     const saved = loadState<PersistedKycState>(STORAGE_KEY);
     if (saved) {
       setPendingList(saved.pendingList);
       setComplianceHoldList(saved.complianceHoldList);
       setApprovedList(saved.approvedList);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const skipNextSave = useRef(true);
@@ -163,6 +170,12 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
     // localStorage on load, so refreshing is a no-op rather than a reset.
     if (!isLive) return;
 
+    // Wipe out whatever was there (e.g. demo-mode records, if this refresh
+    // was triggered by just switching into live mode) before fetching —
+    // demo data must never linger on screen while Live API is active.
+    setPendingList([]);
+    setComplianceHoldList([]);
+    setApprovedList([]);
     setListsLoading(true);
     setListsError(null);
 

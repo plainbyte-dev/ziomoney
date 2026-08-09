@@ -25,11 +25,8 @@ interface AuthState {
 interface AuthContextValue {
   user: SessionUser | null;
   hydrated: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  registerAndLogin: (name: string, email: string) => void;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  sendOtp: (recipient: string) => Promise<{ success: boolean; message: string }>;
-  verifyOtp: (recipient: string, otp: string) => Promise<boolean>;
 }
 
 const STORAGE_KEY = "zio-auth-state";
@@ -63,12 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, tokens]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (username: string, password: string) => {
       if (!isLive) {
         // Static demo: no real backend — check against the mock user list, with
         // a small artificial delay so the UX matches a real network round trip.
         await new Promise((resolve) => setTimeout(resolve, 400));
-        const match = findUserByCredentials(email, password);
+        const match = findUserByCredentials(username, password);
         if (!match) return false;
         const { password: _password, ...sessionUser } = match;
         setUser(sessionUser);
@@ -76,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
 
-      const loginResponse = await authApi.login(email, password);
+      const loginResponse = await authApi.login(username, password);
       if (!loginResponse.success || !loginResponse.data) return false;
 
       const nextTokens = loginResponse.data;
@@ -88,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: validation.username,
         name: validation.username,
         role: validation.roles[0] ?? "User",
-        email,
+        username: validation.username,
         avatarUrl:
           "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop&crop=faces",
       });
@@ -96,20 +93,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [isLive]
   );
-
-  // Static demo: no real backend to persist a new account against, so a
-  // freshly "registered" user is just dropped straight into a session.
-  const registerAndLogin = useCallback((name: string, email: string) => {
-    setUser({
-      id: `U-${Date.now()}`,
-      name: name || "New User",
-      role: "Admin",
-      email,
-      avatarUrl:
-        "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=80&h=80&fit=crop&crop=faces",
-    });
-    setTokens(null);
-  }, []);
 
   const logout = useCallback(async () => {
     // Clear local session immediately — the API call is best-effort and
@@ -122,19 +105,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [isLive, tokens]);
 
-  const sendOtp = useCallback(async (recipient: string) => {
-    const response = await authApi.sendOtp(recipient);
-    return { success: response.success, message: response.message };
-  }, []);
-
-  const verifyOtp = useCallback(async (recipient: string, otp: string) => {
-    const response = await authApi.verifyOtp(recipient, otp);
-    return Boolean(response.success && response.data);
-  }, []);
-
   const value = useMemo(
-    () => ({ user, hydrated, login, registerAndLogin, logout, sendOtp, verifyOtp }),
-    [user, hydrated, login, registerAndLogin, logout, sendOtp, verifyOtp]
+    () => ({ user, hydrated, login, logout }),
+    [user, hydrated, login, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

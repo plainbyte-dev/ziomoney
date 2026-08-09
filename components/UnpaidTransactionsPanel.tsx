@@ -41,16 +41,16 @@ export default function UnpaidTransactionsPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Unpaid Transactions</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Unpaid Transactions</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white p-4">
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-panel p-4">
           <select
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
-            className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="rounded-lg border border-border bg-panel px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           >
             {filterOptions.map((option) => (
               <option key={option} value={option}>
@@ -62,7 +62,7 @@ export default function UnpaidTransactionsPanel() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search PIN No. or Receiver"
-            className="min-w-[220px] flex-1 rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="min-w-[220px] flex-1 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
           <button
             onClick={handleSearch}
@@ -93,7 +93,7 @@ export default function UnpaidTransactionsPanel() {
                 </tr>
               ) : (
                 rows.map((row, index) => (
-                  <tr key={row.pinno} className={index % 2 === 0 ? "bg-white" : "bg-brand-green-light/30"}>
+                  <tr key={row.pinno} className={index % 2 === 0 ? "bg-panel" : "bg-brand-green-light/30"}>
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.sno}</td>
                     <td className="whitespace-nowrap px-3 py-2 font-medium text-brand-blue">{row.pinno}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.destCountry}</td>

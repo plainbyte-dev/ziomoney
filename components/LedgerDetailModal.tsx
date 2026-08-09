@@ -14,7 +14,7 @@ export default function LedgerDetailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-heading/40 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-card">
+      <div className="w-full max-w-md rounded-2xl bg-panel p-6 shadow-card">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-muted">REF {entry.id}</p>

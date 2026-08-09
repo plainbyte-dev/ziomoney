@@ -1,4 +1,5 @@
 import type { ApproveKycPayload, CustomerRecord, KycApiRecord } from "@/data/kycData";
+import { getAccessToken } from "./authToken";
 
 export interface KycApiResponse<T> {
   success: boolean;
@@ -13,9 +14,14 @@ async function callKycAction<T>(
   options: { method: "GET" | "POST"; body?: unknown }
 ): Promise<KycApiResponse<T>> {
   try {
+    const token = getAccessToken();
+    const headers: Record<string, string> = {};
+    if (options.method === "POST") headers["Content-Type"] = "application/json";
+    if (token) headers.Authorization = `Bearer ${token}`;
+
     const res = await fetch(`/api/kyc/${action}`, {
       method: options.method,
-      headers: options.method === "POST" ? { "Content-Type": "application/json" } : undefined,
+      headers,
       body: options.method === "POST" ? JSON.stringify(options.body ?? {}) : undefined,
     });
 

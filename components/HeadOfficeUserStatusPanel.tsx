@@ -30,8 +30,8 @@ export default function HeadOfficeUserStatusPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Head Office User Status</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Head Office User Status</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -53,7 +53,7 @@ export default function HeadOfficeUserStatusPanel() {
             </thead>
             <tbody>
               {rows.map((row, index) => (
-                <tr key={row.no} className={index % 2 === 0 ? "bg-white" : "bg-brand-green-light/30"}>
+                <tr key={row.no} className={index % 2 === 0 ? "bg-panel" : "bg-brand-green-light/30"}>
                   <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.no}</td>
                   <td className="whitespace-nowrap px-3 py-2 font-medium text-heading">{row.name}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.userId}</td>

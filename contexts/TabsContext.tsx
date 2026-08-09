@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { loadState, saveState } from "@/lib/persist";
+import { tabRegistry } from "@/data/tabRegistry";
 
 export interface TabDef {
   key: string;
@@ -18,6 +19,7 @@ interface TabsContextValue {
 }
 
 const STORAGE_KEY = "zio-tabs-state-v2";
+const MAX_OPEN_TABS = 8;
 
 const TabsContext = createContext<TabsContextValue | null>(null);
 
@@ -46,9 +48,21 @@ export function TabsProvider({ children }: { children: React.ReactNode }) {
   }, [openTabs, activeKey]);
 
   const openTab = useCallback((tab: TabDef) => {
-    setOpenTabs((prev) =>
-      prev.some((t) => t.key === tab.key) ? prev : [...prev, tab]
-    );
+    setOpenTabs((prev) => {
+      if (prev.some((t) => t.key === tab.key)) return prev;
+
+      if (prev.length < MAX_OPEN_TABS) return [...prev, tab];
+
+      const oldestClosableIndex = prev.findIndex(
+        (t) => tabRegistry[t.key]?.closable !== false
+      );
+      const withRoom =
+        oldestClosableIndex === -1
+          ? prev.slice(1)
+          : [...prev.slice(0, oldestClosableIndex), ...prev.slice(oldestClosableIndex + 1)];
+
+      return [...withRoom, tab];
+    });
     setActiveKeyState(tab.key);
   }, []);
 

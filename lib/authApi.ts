@@ -49,14 +49,6 @@ export function logout(accessToken: string) {
   return postJson<Record<string, never>>("/api/auth/logout", undefined, accessToken);
 }
 
-export function sendOtp(recipient: string) {
-  return postJson<Record<string, never>>("/api/auth/otp/send", { recipient });
-}
-
-export function verifyOtp(recipient: string, otp: string) {
-  return postJson<boolean>("/api/auth/otp/verify", { recipient, otp });
-}
-
 export interface ValidateResult {
   valid: boolean;
   username: string;

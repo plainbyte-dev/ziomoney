@@ -27,8 +27,8 @@ export default function RiskScoreTable({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">{title}</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">{title}</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -43,13 +43,13 @@ export default function RiskScoreTable({
             </thead>
             <tbody>
               {rows.map((row, index) => (
-                <tr key={row.label} className={index % 2 === 0 ? "bg-white" : "bg-brand-green-light/30"}>
+                <tr key={row.label} className={index % 2 === 0 ? "bg-panel" : "bg-brand-green-light/30"}>
                   <td className="px-4 py-2.5 font-medium text-brand-green-dark">{row.label}</td>
                   <td className="whitespace-nowrap px-4 py-2.5">
                     <select
                       value={row.score}
                       onChange={(event) => updateScore(index, Number(event.target.value))}
-                      className="w-16 appearance-none rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                      className="w-16 appearance-none rounded-lg border border-border bg-panel px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                     >
                       {riskScoreOptions.map((option) => (
                         <option key={option} value={option}>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRates } from "@/contexts/RatesContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
+import Spinner from "./Spinner";
 import { emptyCountryCurrencyPayload, type CountryCurrencyUpsertPayload } from "@/data/countryCurrencyData";
 
 export default function CountryCurrencyPanel() {
@@ -37,9 +38,9 @@ export default function CountryCurrencyPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h1 className="text-lg font-bold text-white">Country / Currency</h1>
-          <p className="mt-0.5 text-sm text-white/80">
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Country / Currency</h1>
+          <p className="mt-0.5 text-sm text-muted">
             {isLive ? "Live remittance API" : "Static demo data"} — ISO-3166 / ISO-4217 reference data.
           </p>
         </div>
@@ -59,7 +60,7 @@ export default function CountryCurrencyPanel() {
                 </thead>
                 <tbody>
                   {countryCurrencies.map((entry) => (
-                    <tr key={entry.id} className="border-b border-border bg-white last:border-b-0">
+                    <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
                       <td className="px-4 py-3 font-medium text-heading">{entry.countryName}</td>
                       <td className="px-4 py-3 text-heading/80">{entry.isoAlpha2}</td>
                       <td className="px-4 py-3 text-heading/80">{entry.isoAlpha3}</td>
@@ -71,7 +72,9 @@ export default function CountryCurrencyPanel() {
                   {countryCurrencies.length === 0 && (
                     <tr>
                       <td colSpan={5} className="px-4 py-10 text-center text-sm text-muted">
-                        No country/currency rows yet.
+                        {isLive
+                          ? "The remittance API has no \"list all\" endpoint for this data — rows appear here after you save one below."
+                          : "No country/currency rows yet."}
                       </td>
                     </tr>
                   )}
@@ -83,8 +86,8 @@ export default function CountryCurrencyPanel() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h2 className="text-base font-bold text-white">Upsert Country / Currency Row</h2>
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-base font-bold text-heading">Upsert Country / Currency Row</h2>
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
           <TextField
@@ -127,6 +130,7 @@ export default function CountryCurrencyPanel() {
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
             >
+              {saving && <Spinner className="h-4 w-4" />}
               {saving ? "Saving..." : "Save Row"}
             </button>
           </div>

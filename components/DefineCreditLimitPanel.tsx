@@ -57,8 +57,8 @@ export default function DefineCreditLimitPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Define Credit Limit</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Define Credit Limit</h1>
       </div>
 
       <CreditLimitBanner

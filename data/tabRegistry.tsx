@@ -47,7 +47,6 @@ import CreateHeadOfficeUserPanel from "@/components/CreateHeadOfficeUserPanel";
 import CreatePartnerUserPanel from "@/components/CreatePartnerUserPanel";
 import HeadOfficeUserStatusPanel from "@/components/HeadOfficeUserStatusPanel";
 import ManageRolesPanel from "@/components/ManageRolesPanel";
-import ChangePasswordPanel from "@/components/ChangePasswordPanel";
 import ReportWriterPanel from "@/components/ReportWriterPanel";
 import ReportListPanel from "@/components/ReportListPanel";
 
@@ -523,16 +522,6 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     ],
     closable: true,
     component: ManageRolesPanel,
-  },
-  "change-password": {
-    title: "Change Password",
-    breadcrumb: [
-      { label: "Home", href: "#" },
-      { label: "User Management and Security", href: "#" },
-      { label: "Change Password", href: "#", active: true },
-    ],
-    closable: true,
-    component: ChangePasswordPanel,
   },
   "report-writer": {
     title: "Report Writer",

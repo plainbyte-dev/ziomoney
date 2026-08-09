@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import RadioPill from "./RadioPill";
+import Spinner from "./Spinner";
 import { agentOptions, branchOptions, kycModeOptions, type KycMode } from "@/data/corporateCustomerData";
 import type { KycApprovalFields, KycRecord } from "@/data/kycData";
 
@@ -44,7 +45,7 @@ export default function KycApprovalModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-heading/40 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-card">
+      <div className="w-full max-w-md rounded-2xl bg-panel p-6 shadow-card">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-green-light text-brand-green-dark">
           <ShieldCheck size={20} />
         </div>
@@ -65,7 +66,7 @@ export default function KycApprovalModal({
               value={registrantAgent}
               onChange={(event) => setRegistrantAgent(event.target.value)}
               required
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               <option value="">--Select--</option>
               {agentOptions.map((option) => (
@@ -82,7 +83,7 @@ export default function KycApprovalModal({
               value={registrantBranch}
               onChange={(event) => setRegistrantBranch(event.target.value)}
               required
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               <option value="">--Select--</option>
               {branchOptions.map((option) => (
@@ -113,7 +114,7 @@ export default function KycApprovalModal({
               rows={2}
               value={remarks}
               onChange={(event) => setRemarks(event.target.value)}
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
 
@@ -125,15 +126,16 @@ export default function KycApprovalModal({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-full border border-border bg-white px-6 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
+              className="rounded-full border border-border bg-panel px-6 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-full bg-brand-green px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-dark disabled:opacity-70"
+              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-dark disabled:opacity-70"
             >
+              {submitting && <Spinner className="h-4 w-4" />}
               {submitting ? "Submitting..." : isCompliance ? "Compliance Approve" : "Approve"}
             </button>
           </div>

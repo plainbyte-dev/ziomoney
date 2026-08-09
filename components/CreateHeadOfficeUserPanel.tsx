@@ -37,8 +37,8 @@ export default function CreateHeadOfficeUserPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">New Head Office User</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">New Head Office User</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -61,7 +61,7 @@ export default function CreateHeadOfficeUserPanel() {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm text-heading/70">Lock if not login</label>
             <div className="flex items-center gap-2">
-              <input value={lockIfNotLogin} onChange={(event) => setLockIfNotLogin(event.target.value)} className="w-20 rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+              <input value={lockIfNotLogin} onChange={(event) => setLockIfNotLogin(event.target.value)} className="w-20 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
               <span className="text-sm text-heading/70">days, if not logged in</span>
             </div>
             <span className="text-xs italic text-red-500">0(Zero) or Blank means never Lock this user</span>
@@ -121,4 +121,4 @@ export default function CreateHeadOfficeUserPanel() {
 }
 
 const inputClass =
-  "w-full rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
+  "w-full rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";

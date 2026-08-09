@@ -30,7 +30,7 @@ export default function CreditLimitBanner({
           <select
             value={countryFilter}
             onChange={(event) => onCountryChange(event.target.value)}
-            className="appearance-none rounded-lg border border-border bg-white px-3 py-1.5 pr-8 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="appearance-none rounded-lg border border-border bg-panel px-3 py-1.5 pr-8 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           >
             <option value="ALL">ALL</option>
             {countryOptions.map((country) => (

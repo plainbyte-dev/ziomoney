@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import RadioPill from "./RadioPill";
+import Spinner from "./Spinner";
 import {
   kycStatusOptions,
   kycModeOptions,
@@ -33,8 +34,8 @@ export default function KycMethodPanel({ remarks, onRemarksChange }: KycMethodPa
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">KYC Method</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">KYC Method</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -48,7 +49,7 @@ export default function KycMethodPanel({ remarks, onRemarksChange }: KycMethodPa
             <select
               value={kycStatus}
               onChange={(event) => setKycStatus(event.target.value)}
-              className="w-full max-w-xs rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full max-w-xs rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               {kycStatusOptions.map((option) => (
                 <option key={option} value={option}>
@@ -82,7 +83,7 @@ export default function KycMethodPanel({ remarks, onRemarksChange }: KycMethodPa
                   ? onRemarksChange?.(event.target.value)
                   : setLocalRemarks(event.target.value)
               }
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
 
@@ -91,7 +92,7 @@ export default function KycMethodPanel({ remarks, onRemarksChange }: KycMethodPa
             <select
               value={agent}
               onChange={(event) => setAgent(event.target.value)}
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               <option value="">--Select--</option>
               {agentOptions.map((option) => (
@@ -107,7 +108,7 @@ export default function KycMethodPanel({ remarks, onRemarksChange }: KycMethodPa
             <select
               value={branch}
               onChange={(event) => setBranch(event.target.value)}
-              className="w-full max-w-xs rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full max-w-xs rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               <option value="">--Select--</option>
               {branchOptions.map((option) => (
@@ -127,6 +128,7 @@ export default function KycMethodPanel({ remarks, onRemarksChange }: KycMethodPa
           disabled={saving}
           className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
         >
+          {saving && <Spinner className="h-4 w-4" />}
           {saving ? "Saving..." : "Save"}
         </button>
       </div>

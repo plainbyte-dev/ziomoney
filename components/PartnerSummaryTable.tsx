@@ -69,7 +69,7 @@ export default function PartnerSummaryTable({
             {partnerSummaryRows.map((row, index) => (
               <tr
                 key={`${row.partnerName}-${index}`}
-                className={index % 2 === 0 ? "bg-white" : "bg-surface/50"}
+                className={index % 2 === 0 ? "bg-panel" : "bg-surface/50"}
               >
                 <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.generate}</td>
                 <td className="whitespace-nowrap px-3 py-2">

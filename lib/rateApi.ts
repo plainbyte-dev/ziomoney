@@ -9,6 +9,7 @@ import type {
   PartnerOfferRateRecord,
 } from "@/data/partnerOfferRateData";
 import type { MarginRecord, MarginUpsertPayload } from "@/data/marginSetupData";
+import { getAccessToken } from "./authToken";
 
 export interface RateApiResponse<T> {
   success: boolean;
@@ -23,9 +24,14 @@ async function callRateAction<T>(
   options: { method: "GET" | "POST"; body?: unknown }
 ): Promise<RateApiResponse<T>> {
   try {
+    const token = getAccessToken();
+    const headers: Record<string, string> = {};
+    if (options.method === "POST") headers["Content-Type"] = "application/json";
+    if (token) headers.Authorization = `Bearer ${token}`;
+
     const res = await fetch(`/api/rates/${action}`, {
       method: options.method,
-      headers: options.method === "POST" ? { "Content-Type": "application/json" } : undefined,
+      headers,
       body: options.method === "POST" ? JSON.stringify(options.body ?? {}) : undefined,
     });
 

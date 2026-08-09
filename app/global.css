@@ -2,6 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Tuned off the logo's gradient (components/Logo.tsx: #2E8B45→#8CC63F for
+     "Money", #1E5AA8→#4FA8E0 for "Zio") rather than using those stops
+     directly — brand-green needs >=4.5:1 contrast under white button text
+     (verified via WCAG relative luminance), which the logo's lighter/brighter
+     stops don't clear as a solid fill. */
+  --brand-green: 40 122 62;
+  --brand-green-dark: 31 92 48;
+  --brand-green-light: 227 243 230;
+  --brand-blue: 30 90 168;
+  --brand-blue-dark: 20 62 118;
+  --brand-blue-light: 219 232 247;
+
+  --color-surface: 241 243 240;
+  --color-panel: 255 255 255;
+  --color-border: 228 231 226;
+  --color-muted: 139 146 137;
+  --color-heading: 31 41 55;
+
+  --scrollbar-thumb: 203 210 220;
+  --scrollbar-thumb-hover: 170 178 191;
+}
+
+.dark {
+  /* Chosen for >=4.5:1 contrast under white button text, not just visibility
+     against the dark page — a color picked only for "reads as text on dark"
+     can still fail badly as a solid fill under white text (verified via WCAG
+     relative-luminance contrast, not just eyeballed). */
+  --brand-green: 42 128 64;
+  --brand-green-dark: 30 96 48;
+  /* brand-blue is used far more as body/link text (text-brand-blue, ~40
+     call sites) than as a solid button fill (one: Pagination's active page
+     pill, which uses bg-heading/text-panel in dark mode instead — see that
+     component). So this is tuned for legibility as text on the dark page,
+     not for white-text-on-fill contrast — lifted toward the logo's lighter
+     blue stop (#4FA8E0) rather than its darker one. */
+  --brand-blue: 79 168 224;
+  --brand-blue-dark: 40 90 150;
+  /* brand-*-light intentionally NOT overridden here: they're paired with
+     brand-*-dark as badge/pill text everywhere (bg-brand-green-light
+     text-brand-green-dark, etc.), and darkening them to "dark tint" values
+     nearly matched that dark text, making badges unreadable. Left at the
+     :root light values, these stay light pastel chips floating on the dark
+     page — a normal, well-contrasted dark-mode pattern. */
+
+  --color-surface: 20 22 18;
+  --color-panel: 28 31 26;
+  --color-border: 52 57 49;
+  --color-muted: 150 158 146;
+  --color-heading: 236 238 233;
+
+  --scrollbar-thumb: 66 72 63;
+  --scrollbar-thumb-hover: 90 97 85;
+}
+
 html,
 body {
   height: 100%;
@@ -15,7 +70,7 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #cbd2dc transparent;
+  scrollbar-color: rgb(var(--scrollbar-thumb)) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -28,17 +83,17 @@ body {
 }
 
 *::-webkit-scrollbar-thumb {
-  background-color: #cbd2dc;
+  background-color: rgb(var(--scrollbar-thumb));
   border-radius: 9999px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background-color: #aab2bf;
+  background-color: rgb(var(--scrollbar-thumb-hover));
 }
 
 ::selection {
-  background-color: #bfe3d2;
-  color: #0f8a4f;
+  background-color: rgb(var(--brand-green-light));
+  color: rgb(var(--brand-green-dark));
 }
 
 button,
@@ -56,6 +111,6 @@ textarea {
 }
 
 :focus-visible {
-  outline: 2px solid #1aa260;
+  outline: 2px solid rgb(var(--brand-green));
   outline-offset: 2px;
 }

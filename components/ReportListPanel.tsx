@@ -55,8 +55,8 @@ export default function ReportListPanel() {
         </div>
 
         <div>
-          <div className="bg-brand-blue px-6 py-3">
-            <h2 className="text-sm font-bold text-white">{selectedReport.name}</h2>
+          <div className="border-b border-border px-6 py-3">
+            <h2 className="text-sm font-bold text-heading">{selectedReport.name}</h2>
           </div>
           <div className="bg-panel p-6 sm:p-8">
             {selectedReport.params.length === 0 ? (
@@ -69,7 +69,7 @@ export default function ReportListPanel() {
                     <input
                       value={paramValues[param.label] ?? ""}
                       onChange={(event) => updateParam(param.label, event.target.value)}
-                      className="flex-1 rounded-lg border border-border bg-white px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                      className="flex-1 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                     />
                     {param.required && <span className="text-red-500">*</span>}
                   </div>

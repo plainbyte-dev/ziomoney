@@ -42,7 +42,7 @@ export default function LedgerListHeader({
             onClick={() =>
               openTab({ key: "ledger-create", title: "Create New Ledger" })
             }
-            className="flex items-center gap-1.5 rounded-full border border-border bg-white px-5 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
+            className="flex items-center gap-1.5 rounded-full border border-border bg-panel px-5 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
           >
             <Plus size={16} />
             Create Ledger

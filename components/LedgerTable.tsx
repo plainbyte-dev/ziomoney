@@ -5,6 +5,7 @@ import type { LedgerEntry } from "@/data/ledgerData";
 
 interface LedgerTableProps {
   entries: LedgerEntry[];
+  isLive: boolean;
   selectionMode: boolean;
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
@@ -15,6 +16,7 @@ interface LedgerTableProps {
 
 export default function LedgerTable({
   entries,
+  isLive,
   selectionMode,
   selectedIds,
   onToggleSelect,
@@ -56,7 +58,7 @@ export default function LedgerTable({
               <tr
                 key={entry.id}
                 className={`border-b border-border last:border-b-0 ${
-                  checked ? "bg-brand-green-light/40" : "bg-white"
+                  checked ? "bg-brand-green-light/40" : "bg-panel"
                 }`}
               >
                 {selectionMode && (
@@ -111,7 +113,9 @@ export default function LedgerTable({
                 colSpan={selectionMode ? 8 : 7}
                 className="px-4 py-10 text-center text-sm text-muted"
               >
-                No ledger entries to show.
+                {isLive
+                  ? "The remittance API has no ledger endpoints — this list is demo-only and stays empty in Live mode."
+                  : "No ledger entries to show."}
               </td>
             </tr>
           )}

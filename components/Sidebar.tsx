@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Logo from "./Logo";
 import LogoutConfirmModal from "./LogoutConfirmModal";
@@ -133,7 +133,7 @@ function NavRow({
           />
         )}
         {active && !hasSubmenu && (
-          <span className="h-1.5 w-1.5 rounded-full bg-white" />
+          <span className="h-1.5 w-1.5 rounded-full bg-panel" />
         )}
       </button>
     </div>
@@ -215,7 +215,7 @@ function NestedFlyout({
       onMouseEnter={onCancelClose}
       onMouseLeave={onScheduleClose}
       style={{ top: clampTop(position.top), left: position.left, width: FLYOUT_WIDTH }}
-      className="fixed z-50 rounded-xl border border-border bg-white p-2 shadow-popover"
+      className="fixed z-50 rounded-xl border border-border bg-panel p-2 shadow-popover"
     >
       <p className="px-3 pb-2 pt-1 text-[11px] font-semibold tracking-wider text-muted">
         {(item.submenuTitle ?? item.label).toUpperCase()}
@@ -296,7 +296,7 @@ function Flyout({
       onMouseEnter={onCancelClose}
       onMouseLeave={onScheduleClose}
       style={{ top: clampTop(position.top), left: position.left, width: FLYOUT_WIDTH }}
-      className="fixed z-50 rounded-xl border border-border bg-white p-2 shadow-popover"
+      className="fixed z-50 rounded-xl border border-border bg-panel p-2 shadow-popover"
     >
       <p className="px-3 pb-2 pt-1 text-[11px] font-semibold tracking-wider text-muted">
         {(item.submenuTitle ?? item.label).toUpperCase()}
@@ -341,8 +341,125 @@ function Flyout({
   );
 }
 
-export default function Sidebar() {
-  const { openTab } = useTabs();
+// Mobile drawer is too narrow to anchor a side flyout off of, so submenus
+// expand inline as an accordion instead — no hover, no fixed positioning.
+function MobileNavRow({
+  item,
+  onNavigate,
+}: {
+  item: NavItem;
+  onNavigate: (tabKey: string, label: string) => void;
+}) {
+  const { activeKey } = useTabs();
+  const Icon = item.icon;
+  const hasSubmenu = Boolean(item.submenu?.length);
+  const enabled = Boolean(item.tabKey) || hasSubmenu;
+  const active = enabled && item.tabKey === activeKey;
+  const [expanded, setExpanded] = useState(false);
+
+  function handleClick() {
+    if (hasSubmenu) {
+      setExpanded((v) => !v);
+      return;
+    }
+    if (!item.tabKey) return;
+    onNavigate(item.tabKey, item.label);
+  }
+
+  return (
+    <div>
+      <button
+        onClick={handleClick}
+        disabled={!enabled}
+        className={
+          active
+            ? "flex w-full items-center justify-between rounded-xl bg-brand-green px-4 py-2 text-left text-sm font-semibold text-white shadow-card transition-all"
+            : "flex w-full items-center justify-between rounded-xl px-4 py-2 text-left text-sm text-heading/80 transition-colors hover:bg-surface disabled:cursor-default disabled:text-muted/60 disabled:hover:bg-transparent"
+        }
+      >
+        <span className="flex items-center gap-3">
+          <Icon
+            size={18}
+            strokeWidth={2}
+            className={active ? undefined : enabled ? "text-muted" : "text-muted/50"}
+          />
+          {item.label}
+        </span>
+        {hasSubmenu && (
+          <ChevronRight
+            size={16}
+            className={`transition-transform ${expanded ? "rotate-90" : ""} ${active ? "text-white" : "text-muted"}`}
+          />
+        )}
+        {active && !hasSubmenu && <span className="h-1.5 w-1.5 rounded-full bg-panel" />}
+      </button>
+
+      {hasSubmenu && expanded && (
+        <div className="ml-4 mt-0.5 flex flex-col gap-0.5 border-l border-border pl-3">
+          {item.submenu!.map((subItem) => (
+            <MobileSubMenuRow key={subItem.label} subItem={subItem} onNavigate={onNavigate} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileSubMenuRow({
+  subItem,
+  onNavigate,
+}: {
+  subItem: NavSubItem;
+  onNavigate: (tabKey: string, label: string) => void;
+}) {
+  const hasNested = Boolean(subItem.submenu?.length);
+  const [expanded, setExpanded] = useState(false);
+
+  function handleClick() {
+    if (hasNested) {
+      setExpanded((v) => !v);
+      return;
+    }
+    if (subItem.tabKey) onNavigate(subItem.tabKey, subItem.label);
+  }
+
+  return (
+    <div>
+      <button
+        onClick={handleClick}
+        className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-heading/80 transition-colors hover:bg-surface"
+      >
+        {subItem.label}
+        {hasNested && (
+          <ChevronRight size={14} className={`text-muted transition-transform ${expanded ? "rotate-90" : ""}`} />
+        )}
+      </button>
+
+      {hasNested && expanded && (
+        <div className="ml-3 flex flex-col gap-0.5 border-l border-border pl-3">
+          {subItem.submenu!.map((nested) => (
+            <button
+              key={nested.label}
+              onClick={() => nested.tabKey && onNavigate(nested.tabKey, nested.label)}
+              className="w-full rounded-lg px-3 py-2 text-left text-sm text-heading/80 transition-colors hover:bg-surface"
+            >
+              {nested.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function Sidebar({
+  mobileOpen,
+  onCloseMobile,
+}: {
+  mobileOpen: boolean;
+  onCloseMobile: () => void;
+}) {
+  const { activeKey, openTab } = useTabs();
   const { user, logout } = useAuth();
   const router = useRouter();
   const [openLabel, setOpenLabel] = useState<string | null>(null);
@@ -405,6 +522,18 @@ export default function Sidebar() {
     };
   }, []);
 
+  // Auto-dismiss the mobile drawer whenever navigation lands on a new tab —
+  // covers both a direct NavRow click and picking an item from a flyout,
+  // without threading a close callback through every nav sub-component.
+  const skipFirstAutoClose = useRef(true);
+  useEffect(() => {
+    if (skipFirstAutoClose.current) {
+      skipFirstAutoClose.current = false;
+      return;
+    }
+    onCloseMobile();
+  }, [activeKey, onCloseMobile]);
+
   const allItems = navGroups.flatMap((group) => group.items);
   const openItem = allItems.find((item) => item.label === openLabel);
 
@@ -422,35 +551,12 @@ export default function Sidebar() {
     ));
   }
 
-  return (
-    <aside
-      className={`relative flex h-full shrink-0 flex-col border-r border-border bg-panel transition-[width] duration-150 ${
-        collapsed ? "w-[68px]" : "w-64"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={() => setCollapsed((prev) => !prev)}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-white text-muted shadow-card hover:text-heading"
-      >
-        {collapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
-      </button>
-
-      <div className={`flex items-center border-b border-border py-4 ${collapsed ? "justify-center px-2" : "gap-2 px-6"}`}>
-        {collapsed ? (
-          <span className="text-xl font-extrabold italic tracking-tight bg-gradient-to-r from-[#1E5AA8] to-[#8CC63F] bg-clip-text text-transparent">
-            Z
-          </span>
-        ) : (
-          <Logo size="md" />
-        )}
-      </div>
-
-      <nav className={`flex-1 pb-3 pt-3 ${collapsed ? "px-2.5" : "px-4"}`}>
+  function renderNav(collapsedFlag: boolean) {
+    return (
+      <nav className={`flex-1 pb-3 pt-3 ${collapsedFlag ? "px-2.5" : "px-4"}`}>
         {navGroups.map((group, index) => (
           <div key={group.heading} className={index === 0 ? "" : "mt-2 border-t border-border pt-2"}>
-            {!collapsed && (
+            {!collapsedFlag && (
               <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-muted">
                 {group.heading.toUpperCase()}
               </p>
@@ -459,20 +565,33 @@ export default function Sidebar() {
           </div>
         ))}
       </nav>
+    );
+  }
 
-      {openItem && position && (
-        <Flyout
-          item={openItem}
-          position={position}
-          onNavigate={handleFlyoutNavigate}
-          onCancelClose={cancelClose}
-          onScheduleClose={scheduleClose}
-        />
-      )}
+  function renderMobileNav() {
+    return (
+      <nav className="flex-1 overflow-y-auto px-4 pb-3 pt-3">
+        {navGroups.map((group, index) => (
+          <div key={group.heading} className={index === 0 ? "" : "mt-2 border-t border-border pt-2"}>
+            <p className="px-2 pb-1 text-[11px] font-semibold tracking-wider text-muted">
+              {group.heading.toUpperCase()}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => (
+                <MobileNavRow key={item.label} item={item} onNavigate={handleFlyoutNavigate} />
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+    );
+  }
 
+  function renderFooter(collapsedFlag: boolean) {
+    return (
       <div
         className={`m-3 flex items-center rounded-xl bg-brand-green-light py-2.5 ${
-          collapsed ? "flex-col gap-2 px-2" : "gap-3 px-3"
+          collapsedFlag ? "flex-col gap-2 px-2" : "gap-3 px-3"
         }`}
       >
         <Image
@@ -481,11 +600,11 @@ export default function Sidebar() {
           width={36}
           height={36}
           className="rounded-full object-cover ring-2 ring-white"
-          title={collapsed ? (user?.name ?? footerUser.name) : undefined}
+          title={collapsedFlag ? (user?.name ?? footerUser.name) : undefined}
         />
-        {!collapsed && (
+        {!collapsedFlag && (
           <div className="flex-1">
-            <p className="text-sm font-semibold text-heading">{user?.name ?? footerUser.name}</p>
+            <p className="text-sm font-semibold text-brand-green-dark">{user?.name ?? footerUser.name}</p>
             <p className="text-xs text-brand-green-dark">{user?.role ?? footerUser.role}</p>
           </div>
         )}
@@ -498,12 +617,86 @@ export default function Sidebar() {
           <LogOut size={16} />
         </button>
       </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Desktop rail — permanent, collapsible via the pin toggle. */}
+      <aside
+        className={`relative hidden h-full shrink-0 flex-col border-r border-border bg-panel transition-[width] duration-150 lg:flex ${
+          collapsed ? "w-[68px]" : "w-64"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={() => setCollapsed((prev) => !prev)}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="absolute -right-3 top-6 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-panel text-muted shadow-card hover:text-heading"
+        >
+          {collapsed ? <PanelLeftOpen size={13} /> : <PanelLeftClose size={13} />}
+        </button>
+
+        <div className={`flex items-center border-b border-border py-4 ${collapsed ? "justify-center px-2" : "gap-2 px-6"}`}>
+          {collapsed ? (
+            <span className="text-xl font-extrabold italic tracking-tight bg-gradient-to-r from-[#1E5AA8] to-[#8CC63F] bg-clip-text text-transparent">
+              Z
+            </span>
+          ) : (
+            <Logo size="md" />
+          )}
+        </div>
+
+        {renderNav(collapsed)}
+
+        {openItem && position && (
+          <Flyout
+            item={openItem}
+            position={position}
+            onNavigate={handleFlyoutNavigate}
+            onCancelClose={cancelClose}
+            onScheduleClose={scheduleClose}
+          />
+        )}
+
+        {renderFooter(collapsed)}
+      </aside>
+
+      {/* Mobile drawer — slides in over the content, always fully expanded. */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-heading/40 lg:hidden"
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-full w-72 max-w-[85vw] flex-col border-r border-border bg-panel shadow-popover transition-transform duration-200 lg:hidden ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
+          <Logo size="md" />
+          <button
+            type="button"
+            onClick={onCloseMobile}
+            aria-label="Close menu"
+            className="rounded-lg p-1.5 text-muted hover:bg-surface hover:text-heading"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {renderMobileNav()}
+
+        {renderFooter(false)}
+      </aside>
 
       <LogoutConfirmModal
         open={logoutConfirmOpen}
         onCancel={() => setLogoutConfirmOpen(false)}
         onConfirm={confirmLogout}
       />
-    </aside>
+    </>
   );
 }

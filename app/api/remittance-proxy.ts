@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServiceAccessToken } from "@/lib/remittanceAuth";
 
 interface ProxyOptions {
   method: "GET" | "POST" | "DELETE";
   body?: string;
+  // The signed-in user's own bearer token, forwarded as-is — the remittance
+  // API validates Bearer JWTs issued by the auth service on every route.
+  authorization?: string | null;
 }
 
 export async function proxyRemittanceRequest(path: string, options: ProxyOptions): Promise<NextResponse> {
@@ -16,21 +18,20 @@ export async function proxyRemittanceRequest(path: string, options: ProxyOptions
     );
   }
 
-  const token = await getServiceAccessToken();
-  if (!token) {
+  if (!options.authorization) {
     return NextResponse.json(
       {
         success: false,
-        message: "Could not authenticate with the remittance API.",
+        message: "Not authenticated.",
         data: null,
-        errorCode: "SERVICE_AUTH_FAILED",
+        errorCode: "MISSING_BEARER_TOKEN",
         timestamp: new Date().toISOString(),
       },
-      { status: 502 }
+      { status: 401 }
     );
   }
 
-  const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
+  const headers: Record<string, string> = { Authorization: options.authorization };
   if (options.body !== undefined) headers["Content-Type"] = "application/json";
 
   let upstream: Response;

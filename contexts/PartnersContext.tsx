@@ -3,10 +3,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { loadState, saveState } from "@/lib/persist";
 import { useNotifications } from "./NotificationsContext";
+import { useDataMode } from "./DataModeContext";
+import { listRemittancePartners, type RemittancePartnerRecord } from "@/lib/partnersApi";
 import { partnerEntries as initialEntries, type PartnerEntry } from "@/data/partnerData";
 
 interface PartnersContextValue {
   entries: PartnerEntry[];
+  entriesLoading: boolean;
+  entriesError: string | null;
+  refreshEntries: () => Promise<void>;
   addEntry: (entry: PartnerEntry) => void;
   removeEntry: (id: string) => void;
 }
@@ -15,13 +20,37 @@ const STORAGE_KEY = "zio-partners-state";
 
 const PartnersContext = createContext<PartnersContextValue | null>(null);
 
+// The API record has no `blocked`/`hasBank` concept — those stay UI-local,
+// defaulted false for anything loaded live.
+function mapPartnerRecord(record: RemittancePartnerRecord): PartnerEntry {
+  return {
+    id: String(record.id),
+    partnerName: record.userName,
+    partnerId: record.partnerCode,
+    country: record.partnerCountry.toUpperCase(),
+    partnerType: record.remitterType,
+    creditLimit: record.accountBalance,
+    hasBank: false,
+    blocked: false,
+  };
+}
+
 export function PartnersProvider({ children }: { children: React.ReactNode }) {
   const { notify } = useNotifications();
-  const [entries, setEntries] = useState<PartnerEntry[]>(initialEntries);
+  const { isLive } = useDataMode();
+  // Seed data is demo-only — a live session must never render it, not even
+  // for the instant before the first live fetch resolves.
+  const [entries, setEntries] = useState<PartnerEntry[]>(() => (isLive ? [] : initialEntries));
+  const [entriesLoading, setEntriesLoading] = useState(false);
+  const [entriesError, setEntriesError] = useState<string | null>(null);
 
+  // Only meaningful in demo mode — a live session gets its list from the API,
+  // never from a locally persisted demo snapshot.
   useEffect(() => {
+    if (isLive) return;
     const saved = loadState<PartnerEntry[]>(STORAGE_KEY);
     if (saved) setEntries(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Skip the very first save (still holds the pre-restore default state) so it
@@ -34,6 +63,33 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
     }
     saveState(STORAGE_KEY, entries);
   }, [entries]);
+
+  const refreshEntries = useCallback(async () => {
+    // In static/demo mode there's no backend to refresh from — the list
+    // already reflects whatever the admin has done locally.
+    if (!isLive) return;
+
+    // Wipe out whatever was there (e.g. demo-mode entries, if this refresh
+    // was triggered by just switching into live mode) before fetching —
+    // demo data must never linger on screen while Live API is active.
+    setEntries([]);
+    setEntriesLoading(true);
+    setEntriesError(null);
+
+    const response = await listRemittancePartners();
+    setEntriesLoading(false);
+
+    if (!response.success) {
+      setEntriesError(response.message || "Could not load remittance partners.");
+      return;
+    }
+
+    setEntries((response.data ?? []).map(mapPartnerRecord));
+  }, [isLive]);
+
+  useEffect(() => {
+    refreshEntries();
+  }, [refreshEntries]);
 
   const addEntry = useCallback(
     (entry: PartnerEntry) => {
@@ -55,8 +111,8 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ entries, addEntry, removeEntry }),
-    [entries, addEntry, removeEntry]
+    () => ({ entries, entriesLoading, entriesError, refreshEntries, addEntry, removeEntry }),
+    [entries, entriesLoading, entriesError, refreshEntries, addEntry, removeEntry]
   );
 
   return <PartnersContext.Provider value={value}>{children}</PartnersContext.Provider>;

@@ -47,7 +47,7 @@ export default function CreditLimitTable({
             const availLimit = getAvailableLimit(entry);
 
             return (
-              <tr key={entry.id} className="border-b border-border bg-white last:border-b-0">
+              <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
                 <td className="px-4 py-3 text-heading/80">{entry.country}</td>
                 <td className="px-4 py-3 font-medium text-heading">{entry.partner}</td>
                 <td className="px-4 py-3 text-heading/80">{formatAmount(entry.agentLimit)}</td>
@@ -65,7 +65,7 @@ export default function CreditLimitTable({
                     value={addLimitValues[entry.id] ?? ""}
                     onChange={(event) => onAddLimitChange(entry.id, event.target.value)}
                     placeholder="0.00"
-                    className="w-28 rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-heading placeholder:text-muted focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                    className="w-28 rounded-lg border border-border bg-panel px-2 py-1.5 text-sm text-heading placeholder:text-muted focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                   />
                 </td>
                 <td className="px-4 py-3 text-heading/80">
@@ -75,14 +75,14 @@ export default function CreditLimitTable({
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => onUpdate(entry)}
-                      className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-sm font-medium text-heading hover:bg-surface"
+                      className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm font-medium text-heading hover:bg-surface"
                     >
                       <SquarePen size={14} />
                       Update
                     </button>
                     <button
                       onClick={() => onViewLog(entry)}
-                      className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm font-medium text-heading hover:bg-surface"
+                      className="rounded-lg border border-border bg-panel px-3 py-1.5 text-sm font-medium text-heading hover:bg-surface"
                     >
                       Log
                     </button>

@@ -5,6 +5,7 @@ import type {
   TransactionByRefPayload,
   ViewTransactionPayload,
 } from "@/data/transactionData";
+import { getAccessToken } from "./authToken";
 
 export interface TransactionApiResponse<T> {
   success: boolean;
@@ -16,9 +17,13 @@ export interface TransactionApiResponse<T> {
 
 async function callTransactionAction<T>(action: string, body: unknown): Promise<TransactionApiResponse<T>> {
   try {
+    const token = getAccessToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
     const res = await fetch(`/api/transactions/${action}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify(body ?? {}),
     });
 

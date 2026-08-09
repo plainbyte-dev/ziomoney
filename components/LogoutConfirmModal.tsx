@@ -17,7 +17,7 @@ export default function LogoutConfirmModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-heading/40 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-card">
+      <div className="w-full max-w-sm rounded-2xl bg-panel p-6 shadow-card">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-green-light text-brand-green-dark">
           <LogOut size={20} />
         </div>
@@ -29,7 +29,7 @@ export default function LogoutConfirmModal({
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onCancel}
-            className="rounded-full border border-border bg-white px-6 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
+            className="rounded-full border border-border bg-panel px-6 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
           >
             Cancel
           </button>

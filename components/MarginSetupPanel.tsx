@@ -5,6 +5,7 @@ import { useRates } from "@/contexts/RatesContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import Spinner from "./Spinner";
 import {
   emptyMarginPayload,
   marginStatusValues,
@@ -40,9 +41,9 @@ export default function MarginSetupPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h1 className="text-lg font-bold text-white">Margin Setup</h1>
-          <p className="mt-0.5 text-sm text-white/80">
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Margin Setup</h1>
+          <p className="mt-0.5 text-sm text-muted">
             {isLive ? "Live remittance API" : "Static demo data"} — per-partner margin overrides on top of upstream
             rates.
           </p>
@@ -66,7 +67,7 @@ export default function MarginSetupPanel() {
                 </thead>
                 <tbody>
                   {margins.map((entry) => (
-                    <tr key={entry.id} className="border-b border-border bg-white last:border-b-0">
+                    <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
                       <td className="px-4 py-3 font-medium text-heading">{entry.targetPartner}</td>
                       <td className="px-4 py-3 text-heading/80">{entry.service}</td>
                       <td className="px-4 py-3 text-heading/80">{entry.remittanceType}</td>
@@ -89,7 +90,9 @@ export default function MarginSetupPanel() {
                   {margins.length === 0 && (
                     <tr>
                       <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
-                        No margin overrides configured yet.
+                        {isLive
+                          ? "The remittance API has no \"list all\" endpoint for this data — rows appear here after you save one below."
+                          : "No margin overrides configured yet."}
                       </td>
                     </tr>
                   )}
@@ -101,8 +104,8 @@ export default function MarginSetupPanel() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h2 className="text-base font-bold text-white">Add / Update Margin</h2>
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-base font-bold text-heading">Add / Update Margin</h2>
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
           <TextField
@@ -162,6 +165,7 @@ export default function MarginSetupPanel() {
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
             >
+              {saving && <Spinner className="h-4 w-4" />}
               {saving ? "Saving..." : "Save Margin"}
             </button>
           </div>

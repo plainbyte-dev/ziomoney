@@ -64,7 +64,7 @@ export default function DailyTransactionTable({
           id="daily-report-partner"
           value={selectedPartner ?? ""}
           onChange={(event) => setSelectedPartner(event.target.value || undefined)}
-          className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs text-heading focus:outline-none"
+          className="rounded-lg border border-border bg-panel px-3 py-1.5 text-xs text-heading focus:outline-none"
         >
           <option value="">Select a partner…</option>
           {dailyTransactionGroups.map((group) => (
@@ -77,7 +77,7 @@ export default function DailyTransactionTable({
 
       <div className="mt-4 flex flex-col gap-6">
         {selectedPartner === undefined && (
-          <p className="rounded-xl border border-border bg-white p-6 text-center text-sm text-muted">
+          <p className="rounded-xl border border-border bg-panel p-6 text-center text-sm text-muted">
             Select a partner above to view their daily transactions.
           </p>
         )}
@@ -109,7 +109,7 @@ export default function DailyTransactionTable({
               </thead>
               <tbody>
                 {group.rows.map((row, index) => (
-                  <tr key={row.tranId} className={index % 2 === 0 ? "bg-white" : "bg-surface/50"}>
+                  <tr key={row.tranId} className={index % 2 === 0 ? "bg-panel" : "bg-surface/50"}>
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.no}</td>
                     <td className="whitespace-nowrap px-3 py-2 font-medium text-brand-blue">{row.customerId}</td>
                     <td className="whitespace-nowrap px-3 py-2 font-medium text-brand-blue">{row.tranId}</td>
@@ -142,7 +142,7 @@ export default function DailyTransactionTable({
         ))}
 
         {selectedPartner !== undefined && groups.length === 0 && (
-          <p className="rounded-xl border border-border bg-white p-6 text-center text-sm text-muted">
+          <p className="rounded-xl border border-border bg-panel p-6 text-center text-sm text-muted">
             No daily transactions found for this partner in the selected date range.
           </p>
         )}

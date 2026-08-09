@@ -18,5 +18,9 @@ export async function POST(request: Request, { params }: { params: { action: str
   }
 
   const body = await request.text();
-  return proxyRemittanceRequest(path, { method: "POST", body });
+  return proxyRemittanceRequest(path, {
+    method: "POST",
+    body,
+    authorization: request.headers.get("authorization"),
+  });
 }

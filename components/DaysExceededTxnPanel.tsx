@@ -35,19 +35,19 @@ export default function DaysExceededTxnPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Days Exceeded TXN Requests</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Days Exceeded TXN Requests</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
-        <div className="rounded-xl border border-border bg-white p-4">
+        <div className="rounded-xl border border-border bg-panel p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1">
               <label className="mb-1.5 block text-sm text-heading/70">Receiver Name</label>
               <input
                 value={receiverName}
                 onChange={(event) => setReceiverName(event.target.value)}
-                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
               />
             </div>
             <div className="flex-1">
@@ -55,7 +55,7 @@ export default function DaysExceededTxnPanel() {
               <select
                 value={searchBy}
                 onChange={(event) => setSearchBy(event.target.value)}
-                className="w-full appearance-none rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full appearance-none rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
               >
                 {receiverSearchByOptions.map((option) => (
                   <option key={option} value={option}>
@@ -99,7 +99,7 @@ export default function DaysExceededTxnPanel() {
                 </tr>
               ) : (
                 rows.map((row) => (
-                  <tr key={row.sno} className="bg-white">
+                  <tr key={row.sno} className="bg-panel">
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.sno}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.destCountry}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{row.district}</td>

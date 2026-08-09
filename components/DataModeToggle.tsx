@@ -1,10 +1,14 @@
 "use client";
 
 import { Database, Wifi } from "lucide-react";
-import { useDataMode } from "@/contexts/DataModeContext";
+import { useDataMode, DATA_MODE_TOGGLE_ALLOWED } from "@/contexts/DataModeContext";
 
 export default function DataModeToggle() {
   const { mode, isLive, toggle } = useDataMode();
+
+  // Dev-only convenience — a production build always talks to the live API,
+  // so there's nothing to toggle.
+  if (!DATA_MODE_TOGGLE_ALLOWED) return null;
 
   return (
     <button
@@ -25,7 +29,7 @@ export default function DataModeToggle() {
         }`}
       >
         <span
-          className={`h-3 w-3 rounded-full bg-white shadow transition-transform ${
+          className={`h-3 w-3 rounded-full bg-panel shadow transition-transform ${
             isLive ? "translate-x-4" : "translate-x-0"
           }`}
         />

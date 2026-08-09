@@ -5,9 +5,11 @@ import TextField from "./TextField";
 import SelectField from "./SelectField";
 import DateField from "./DateField";
 import Checkbox from "./Checkbox";
+import Spinner from "./Spinner";
 import { useTabs } from "@/contexts/TabsContext";
 import { usePartners } from "@/contexts/PartnersContext";
-import { insertRemittancePartner } from "@/lib/remittanceApi";
+import { useDataMode } from "@/contexts/DataModeContext";
+import { insertRemittancePartner } from "@/lib/partnersApi";
 import {
   partnerCountrySelectOptions,
   partnerTypeOptions,
@@ -25,6 +27,7 @@ import {
 export default function CreatePartnerForm() {
   const { openTab } = useTabs();
   const { entries, addEntry } = usePartners();
+  const { isLive } = useDataMode();
 
   const [companyName, setCompanyName] = useState("");
   const [country, setCountry] = useState(partnerCountrySelectOptions[0]);
@@ -62,6 +65,23 @@ export default function CreatePartnerForm() {
     setSaveError(null);
     setSaving(true);
 
+    if (!isLive) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      addEntry({
+        id: String(11000000 + entries.length + 1),
+        partnerName: companyName || userName,
+        partnerId: partnerCode,
+        country: country.toUpperCase(),
+        partnerType: partnerType.replace(" Agent", ""),
+        creditLimit: 0,
+        hasBank: false,
+        blocked,
+      });
+      setSaving(false);
+      openTab({ key: "partner-info", title: "Partner Info" });
+      return;
+    }
+
     const response = await insertRemittancePartner({
       userName: userName || companyName,
       partnerCode,
@@ -75,19 +95,19 @@ export default function CreatePartnerForm() {
       email,
     });
 
+    setSaving(false);
     if (!response.success || !response.data) {
-      setSaving(false);
       setSaveError(response.message || "Could not create the partner. Please try again.");
       return;
     }
 
     const entry: PartnerEntry = {
-      id: String(response.data.id ?? 11000000 + entries.length + 1),
+      id: String(response.data.id),
       partnerName: companyName || response.data.userName,
       partnerId: partnerCode,
       country: country.toUpperCase(),
       partnerType: partnerType.replace(" Agent", ""),
-      creditLimit: response.data.balance ?? null,
+      creditLimit: response.data.accountBalance,
       hasBank: false,
       blocked,
     };
@@ -98,8 +118,8 @@ export default function CreatePartnerForm() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">New Partner</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">New Partner</h1>
       </div>
 
       <form onSubmit={handleSave} className="bg-panel p-6 sm:p-8">
@@ -108,9 +128,7 @@ export default function CreatePartnerForm() {
           <TextField label="Post:" required />
           <TextField label="Email:" required />
           <div />
-          <TextField label="Contact Person:" />
-          <TextField label="Post:" />
-          <TextField label="Email:" />
+         
           <div />
         </div>
 
@@ -249,7 +267,7 @@ export default function CreatePartnerForm() {
                 <input
                   type="text"
                   defaultValue="0"
-                  className="w-32 rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                  className="w-32 rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                 />
                 <span className="text-xs italic text-muted">Blank or Zero means Unlimited</span>
               </div>
@@ -261,7 +279,7 @@ export default function CreatePartnerForm() {
                 <input
                   type="text"
                   defaultValue="0"
-                  className="w-32 rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                  className="w-32 rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                 />
                 <span className="text-xs italic text-muted">
                   Blank or Zero means takes value from Cash Pay
@@ -283,7 +301,7 @@ export default function CreatePartnerForm() {
             <div className="flex flex-wrap items-center gap-3">
               <select
                 defaultValue={localTimeOptions[0]}
-                className="w-full max-w-md rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full max-w-md rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
               >
                 {localTimeOptions.map((option) => (
                   <option key={option} value={option}>
@@ -299,7 +317,7 @@ export default function CreatePartnerForm() {
             <label className="text-sm text-heading/70">Remarks:</label>
             <textarea
               rows={3}
-              className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
 
@@ -313,13 +331,13 @@ export default function CreatePartnerForm() {
               />
               <div className="flex items-center gap-2">
                 <label className="text-sm text-heading/70">Mobile Format:</label>
-                <input className="w-40 rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+                <input className="w-40 rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-sm text-heading/70">Mobile Digit: Min.</label>
-                <input className="w-16 rounded-lg border border-border bg-white px-2 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+                <input className="w-16 rounded-lg border border-border bg-panel px-2 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
                 <label className="text-sm text-heading/70">Max.</label>
-                <input className="w-16 rounded-lg border border-border bg-white px-2 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+                <input className="w-16 rounded-lg border border-border bg-panel px-2 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
               </div>
             </div>
 
@@ -332,7 +350,7 @@ export default function CreatePartnerForm() {
               />
               <div className="flex items-center gap-2">
                 <label className="text-sm text-heading/70">Country Code:</label>
-                <input className="w-40 rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+                <input className="w-40 rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
               </div>
             </div>
           </div>
@@ -347,13 +365,13 @@ export default function CreatePartnerForm() {
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <label className="text-sm text-heading/70">Alert notification if balance below</label>
-                <input className="w-32 rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+                <input className="w-32 rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
               </div>
               <span className="text-xs text-muted">if partner is Prepaid agent</span>
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm text-heading/70">Branch Limit To Make A payment:</label>
-              <input className="w-32 rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+              <input className="w-32 rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
             </div>
           </div>
 
@@ -393,6 +411,7 @@ export default function CreatePartnerForm() {
             disabled={saving}
             className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
           >
+            {saving && <Spinner className="h-4 w-4" />}
             {saving ? "Saving..." : "Save"}
           </button>
           <p className="mt-2 text-xs text-red-500">* are required fields</p>

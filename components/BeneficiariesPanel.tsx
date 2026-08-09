@@ -5,6 +5,7 @@ import { Plus, Trash2, UserPlus } from "lucide-react";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import Spinner from "./Spinner";
 import {
   beneficiaryRecords,
   relationshipOptions,
@@ -124,9 +125,9 @@ export default function BeneficiariesPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h1 className="text-lg font-bold text-white">Add Beneficiary</h1>
-          <p className="mt-0.5 text-sm text-white/80">
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Add Beneficiary</h1>
+          <p className="mt-0.5 text-sm text-muted">
             {isLive ? "Live remittance API" : "Static demo data"} — manage remittance beneficiaries.
           </p>
         </div>
@@ -165,7 +166,7 @@ export default function BeneficiariesPanel() {
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
             >
-              <Plus size={15} />
+              {saving ? <Spinner className="h-3.5 w-3.5" /> : <Plus size={15} />}
               {saving ? "Adding..." : "Add Beneficiary"}
             </button>
           </div>
@@ -173,9 +174,9 @@ export default function BeneficiariesPanel() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="flex items-center gap-2 bg-brand-blue px-6 py-4">
-          <UserPlus size={18} className="text-white" />
-          <h2 className="text-lg font-bold text-white">Beneficiaries</h2>
+        <div className="border-b border-border flex items-center gap-2 px-6 py-4">
+          <UserPlus size={18} className="text-heading" />
+          <h2 className="text-lg font-bold text-heading">Beneficiaries</h2>
         </div>
 
         <div className="bg-panel p-6 sm:p-8">
@@ -202,14 +203,17 @@ export default function BeneficiariesPanel() {
                   {loading && (
                     <tr>
                       <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
-                        Loading beneficiaries...
+                        <span className="inline-flex items-center gap-2">
+                          <Spinner className="h-4 w-4" />
+                          Loading beneficiaries...
+                        </span>
                       </td>
                     </tr>
                   )}
 
                   {!loading &&
                     beneficiaries.map((b) => (
-                      <tr key={b.id} className="border-b border-border bg-white last:border-b-0">
+                      <tr key={b.id} className="border-b border-border bg-panel last:border-b-0">
                         <td className="px-4 py-3 text-heading/80">{b.username}</td>
                         <td className="px-4 py-3 font-medium text-heading">{b.fullName}</td>
                         <td className="px-4 py-3 text-heading/80">
@@ -230,7 +234,7 @@ export default function BeneficiariesPanel() {
                             disabled={deletingId === b.id}
                             className="inline-flex items-center gap-1.5 rounded-full border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60"
                           >
-                            <Trash2 size={13} />
+                            {deletingId === b.id ? <Spinner className="h-3 w-3" /> : <Trash2 size={13} />}
                             {deletingId === b.id ? "Removing..." : "Remove"}
                           </button>
                         </td>

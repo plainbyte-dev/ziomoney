@@ -26,18 +26,18 @@ export default function UnconfirmedListPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Un-Confirmed List</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Un-Confirmed List</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
-        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-white p-4">
+        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-border bg-panel p-4">
           <label className="flex items-center gap-2 text-sm text-heading/80">
             Agent Name:
             <select
               value={agentName}
               onChange={(event) => setAgentName(event.target.value)}
-              className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="rounded-lg border border-border bg-panel px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               {agentFilterOptions.map((option) => (
                 <option key={option} value={option}>
@@ -96,14 +96,14 @@ export default function UnconfirmedListPanel() {
             </thead>
             <tbody>
               {rows.length === 0 ? (
-                <tr className="bg-white">
+                <tr className="bg-panel">
                   <td colSpan={5} className="px-4 py-3 text-xs text-muted">
                     No Un-Confirmed Transaction Pending
                   </td>
                 </tr>
               ) : (
                 rows.map((row) => (
-                  <tr key={row.sno} className="bg-white">
+                  <tr key={row.sno} className="bg-panel">
                     <td className="whitespace-nowrap px-4 py-2.5 text-heading/80">{row.sno}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-heading/80">{row.payoutCountry}</td>
                     <td className="whitespace-nowrap px-4 py-2.5 text-heading/80">{row.sendingAgent}</td>

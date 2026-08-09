@@ -38,7 +38,7 @@ export default function KycQueueTable({
           </thead>
           <tbody>
             {entries.map((entry) => (
-              <tr key={entry.id} className="border-b border-border bg-white last:border-b-0">
+              <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
                 <td className="px-4 py-3 font-medium text-heading">{entry.userName}</td>
                 <td className="px-4 py-3 text-heading/80">{entry.fullName}</td>
                 <td className="px-4 py-3 text-heading/80">{entry.nationality}</td>
@@ -51,7 +51,7 @@ export default function KycQueueTable({
                 <td className="px-4 py-3 text-right">
                   <button
                     onClick={() => onApprove(entry)}
-                    className="rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-heading hover:bg-surface"
+                    className="rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-semibold text-heading hover:bg-surface"
                   >
                     {approveLabel}
                   </button>

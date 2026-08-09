@@ -1,17 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import LedgerListHeader from "./LedgerListHeader";
 import LedgerTable from "./LedgerTable";
 import Pagination from "./Pagination";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
 import LedgerDetailModal from "./LedgerDetailModal";
+import { useDataMode } from "@/contexts/DataModeContext";
 import { ledgerEntries as initialEntries, PAGE_SIZE, type LedgerEntry } from "@/data/ledgerData";
 
 type DeleteRequest = { mode: "single"; id: string } | { mode: "bulk" } | null;
 
 export default function LedgerListPanel() {
-  const [entries, setEntries] = useState<LedgerEntry[]>(initialEntries);
+  const { isLive } = useDataMode();
+  // The remittance API has no ledger endpoints at all (no list, no create,
+  // no delete) — so a live session must never show the static seed rows,
+  // there's simply nothing real to show instead.
+  const [entries, setEntries] = useState<LedgerEntry[]>(() => (isLive ? [] : initialEntries));
+
+  useEffect(() => {
+    if (isLive) setEntries([]);
+  }, [isLive]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
@@ -101,8 +110,11 @@ export default function LedgerListPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Ledger List</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Ledger List</h1>
+        <p className="mt-0.5 text-sm text-muted">
+          {isLive ? "Live remittance API" : "Static demo data"}
+        </p>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -117,6 +129,7 @@ export default function LedgerListPanel() {
         <div className="mt-4">
           <LedgerTable
             entries={pageEntries}
+            isLive={isLive}
             selectionMode={selectionMode}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}

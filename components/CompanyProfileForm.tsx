@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import DateInput from "./DateInput";
+import Spinner from "./Spinner";
 import {
   prefectureOptions,
   businessLineOptions,
@@ -35,7 +36,7 @@ function FieldRow({
 }
 
 const inputClass =
-  "rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
+  "rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
 
 export default function CompanyProfileForm() {
   const [companyId, setCompanyId] = useState("");
@@ -49,8 +50,8 @@ export default function CompanyProfileForm() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Company Profile</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Company Profile</h1>
       </div>
 
       <form onSubmit={handleSave} className="bg-panel p-6 sm:p-8">
@@ -98,7 +99,7 @@ export default function CompanyProfileForm() {
             <input className={`${inputClass} w-24`} />
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-heading hover:bg-surface"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-sm font-medium text-heading hover:bg-surface"
             >
               <Search size={14} />
               Search
@@ -223,6 +224,7 @@ export default function CompanyProfileForm() {
             disabled={saving}
             className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
           >
+            {saving && <Spinner className="h-4 w-4" />}
             {saving ? "Saving..." : "Save"}
           </button>
         </div>

@@ -40,7 +40,7 @@ function CheckboxOption({
     >
       <span
         className={`flex h-4 w-4 items-center justify-center rounded ${
-          checked ? "bg-brand-green" : "border border-border bg-white"
+          checked ? "bg-brand-green" : "border border-border bg-panel"
         }`}
       >
         {checked && <Check size={12} className="text-white" strokeWidth={3} />}
@@ -72,8 +72,8 @@ export default function StatementOfAccountPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Statement of Account</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Statement of Account</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">

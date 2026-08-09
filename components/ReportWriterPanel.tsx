@@ -74,8 +74,8 @@ export default function ReportWriterPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Report Writer</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Report Writer</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -89,7 +89,7 @@ export default function ReportWriterPanel() {
             <input
               value={reportName}
               onChange={(event) => setReportName(event.target.value)}
-              className="w-full rounded-lg border border-border bg-white px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -97,7 +97,7 @@ export default function ReportWriterPanel() {
             <select
               value={reportGroup}
               onChange={(event) => setReportGroup(event.target.value)}
-              className="rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               {reportGroupOptions.map((option) => (
                 <option key={option} value={option}>
@@ -123,7 +123,7 @@ export default function ReportWriterPanel() {
             value={tsql}
             onChange={(event) => setTsql(event.target.value)}
             rows={8}
-            className="w-full rounded-lg border border-border bg-white px-3 py-2 font-mono text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="w-full rounded-lg border border-border bg-panel px-3 py-2 font-mono text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
         </div>
 
@@ -154,7 +154,7 @@ export default function ReportWriterPanel() {
             type="password"
             value={advancePassword}
             onChange={(event) => setAdvancePassword(event.target.value)}
-            className="w-48 rounded-lg border border-border bg-white px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="w-48 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
           <span className="text-xs text-red-500">* [Enter Password for Advance Report Writer]</span>
         </div>
@@ -170,18 +170,18 @@ export default function ReportWriterPanel() {
             value={clmNameId}
             onChange={(event) => setClmNameId(event.target.value)}
             placeholder="Clm Name ID"
-            className="w-32 rounded-lg border border-border bg-white px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="w-32 rounded-lg border border-border bg-panel px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
           <input
             value={clmLabel}
             onChange={(event) => setClmLabel(event.target.value)}
             placeholder="Clm Label"
-            className="w-32 rounded-lg border border-border bg-white px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="w-32 rounded-lg border border-border bg-panel px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
           <select
             value={dataType}
             onChange={(event) => setDataType(event.target.value)}
-            className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="rounded-lg border border-border bg-panel px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           >
             {columnDataTypeOptions.map((option) => (
               <option key={option} value={option}>
@@ -193,19 +193,19 @@ export default function ReportWriterPanel() {
             value={clmSource}
             onChange={(event) => setClmSource(event.target.value)}
             placeholder="Clm Source"
-            className="min-w-[220px] flex-1 rounded-lg border border-border bg-white px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="min-w-[220px] flex-1 rounded-lg border border-border bg-panel px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
           <input
             value={clmSequence}
             onChange={(event) => setClmSequence(event.target.value)}
             placeholder="Seq"
-            className="w-16 rounded-lg border border-border bg-white px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="w-16 rounded-lg border border-border bg-panel px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
           <input
             value={allowNull}
             onChange={(event) => setAllowNull(event.target.value)}
             placeholder="Allow Null"
-            className="w-20 rounded-lg border border-border bg-white px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="w-20 rounded-lg border border-border bg-panel px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
           <button
             onClick={handleAddColumn}
@@ -238,7 +238,7 @@ export default function ReportWriterPanel() {
                 </tr>
               ) : (
                 columns.map((column, index) => (
-                  <tr key={`${column.clmNameId}-${index}`} className="bg-white">
+                  <tr key={`${column.clmNameId}-${index}`} className="bg-panel">
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{reportId ?? "—"}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{column.clmNameId}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-heading/80">{column.clmLabel}</td>

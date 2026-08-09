@@ -53,8 +53,8 @@ export default function ManageRolesPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Manage Roles</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Manage Roles</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -74,7 +74,7 @@ export default function ManageRolesPanel() {
                 const grantedCount = privileges[role.roleName]?.size ?? 0;
                 return (
                   <Fragment key={role.roleName}>
-                    <tr className={index % 2 === 0 ? "bg-white" : "bg-brand-green-light/30"}>
+                    <tr className={index % 2 === 0 ? "bg-panel" : "bg-brand-green-light/30"}>
                       <td className="whitespace-nowrap px-4 py-2.5">
                         <button className="font-medium text-brand-blue hover:underline">{role.roleName}</button>
                       </td>
@@ -163,7 +163,7 @@ function PrivilegeEditor({
   onClose: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
+    <div className="rounded-xl border border-border bg-panel p-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-heading">Sidebar access for &ldquo;{roleName}&rdquo;</p>
         <div className="flex items-center gap-2">

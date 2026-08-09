@@ -29,17 +29,17 @@ export default function CorrespondenceReportResultsPanel({
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="flex items-center justify-between bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">
+      <div className="flex items-center justify-between border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">
           {view === "summary" ? "Summary Report" : "Daily Report"}
         </h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 rounded-full bg-surface p-1">
           <button
             onClick={handleBackToSummary}
             className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
               view === "summary"
-                ? "bg-white text-brand-blue"
-                : "bg-white/10 text-white hover:bg-white/20"
+                ? "bg-panel text-brand-blue shadow-card"
+                : "text-heading/60 hover:text-heading"
             }`}
           >
             Summary Report
@@ -48,8 +48,8 @@ export default function CorrespondenceReportResultsPanel({
             onClick={() => setView("daily")}
             className={`rounded-full px-4 py-1.5 text-xs font-semibold transition-colors ${
               view === "daily"
-                ? "bg-white text-brand-blue"
-                : "bg-white/10 text-white hover:bg-white/20"
+                ? "bg-panel text-brand-blue shadow-card"
+                : "text-heading/60 hover:text-heading"
             }`}
           >
             Daily Report

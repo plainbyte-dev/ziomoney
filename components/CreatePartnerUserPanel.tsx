@@ -45,8 +45,8 @@ export default function CreatePartnerUserPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Create Partner User</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Create Partner User</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -79,7 +79,7 @@ export default function CreatePartnerUserPanel() {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm text-heading/70">View Past TXN Limit:</label>
             <div className="flex items-center gap-2">
-              <input value={viewPastTxnLimit} onChange={(event) => setViewPastTxnLimit(event.target.value)} className="w-20 rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+              <input value={viewPastTxnLimit} onChange={(event) => setViewPastTxnLimit(event.target.value)} className="w-20 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
               <span className="text-sm text-heading/70">days</span>
             </div>
           </div>
@@ -88,7 +88,7 @@ export default function CreatePartnerUserPanel() {
           <div className="flex flex-col gap-1.5">
             <label className="text-sm text-heading/70">Deactivate User:</label>
             <div className="flex items-center gap-2">
-              <input value={deactivateUser} onChange={(event) => setDeactivateUser(event.target.value)} className="w-20 rounded-lg border border-border px-3 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
+              <input value={deactivateUser} onChange={(event) => setDeactivateUser(event.target.value)} className="w-20 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green" />
               <span className="text-sm text-heading/70">days, if not logged in.</span>
             </div>
             <span className="text-xs italic text-red-500">Blank means never Deactivate this user</span>
@@ -100,14 +100,14 @@ export default function CreatePartnerUserPanel() {
               value={remarks}
               onChange={(event) => setRemarks(event.target.value)}
               rows={3}
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
         </div>
 
         <div className="mt-6 max-w-3xl border-t border-border pt-5">
           <p className="mb-2 text-sm font-semibold text-heading">Roles:</p>
-          <div className="rounded-lg border border-border bg-white p-4">
+          <div className="rounded-lg border border-border bg-panel p-4">
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               {userRoleOptions.map((role) => (
                 <Checkbox key={role} checked={roles.includes(role)} onToggle={() => toggleRole(role)} label={role} className="text-red-500" />

@@ -22,7 +22,7 @@ export default function TabBar() {
             className={`group flex max-w-[220px] shrink-0 cursor-pointer items-center gap-2 rounded-t-lg border px-4 py-2 text-sm ${
               isActive
                 ? "border-border border-b-panel bg-panel font-semibold text-heading"
-                : "border-transparent text-muted hover:bg-white/60"
+                : "border-transparent text-muted hover:bg-panel/70 hover:text-heading"
             }`}
           >
             <span className="truncate">{tab.title}</span>

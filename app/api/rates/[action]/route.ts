@@ -21,7 +21,7 @@ const ACTIONS: Record<string, { path: string; method: "GET" | "POST" }> = {
   "cancel-partner-rate": { path: "/cancelRemittancePartnerRate", method: "POST" },
 };
 
-function proxy(action: string, body: string | undefined) {
+function proxy(action: string, body: string | undefined, authorization: string | null) {
   const config = ACTIONS[action];
   if (!config) {
     return NextResponse.json(
@@ -29,14 +29,14 @@ function proxy(action: string, body: string | undefined) {
       { status: 404 }
     );
   }
-  return proxyRemittanceRequest(config.path, { method: config.method, body });
+  return proxyRemittanceRequest(config.path, { method: config.method, body, authorization });
 }
 
 export async function POST(request: Request, { params }: { params: { action: string } }) {
   const body = await request.text();
-  return proxy(params.action, body);
+  return proxy(params.action, body, request.headers.get("authorization"));
 }
 
-export async function GET(_request: Request, { params }: { params: { action: string } }) {
-  return proxy(params.action, undefined);
+export async function GET(request: Request, { params }: { params: { action: string } }) {
+  return proxy(params.action, undefined, request.headers.get("authorization"));
 }

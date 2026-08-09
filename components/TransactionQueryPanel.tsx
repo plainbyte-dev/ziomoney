@@ -5,6 +5,7 @@ import { Search } from "lucide-react";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import Spinner from "./Spinner";
 import {
   transactionRecords,
   type RemittanceTransactionRecord,
@@ -116,9 +117,9 @@ export default function TransactionQueryPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h1 className="text-lg font-bold text-white">Transaction Query</h1>
-          <p className="mt-0.5 text-sm text-white/80">
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Transaction Query</h1>
+          <p className="mt-0.5 text-sm text-muted">
             {isLive ? "Live remittance API" : "Static demo data"} — read-only remittance transaction lookups.
           </p>
         </div>
@@ -177,7 +178,7 @@ export default function TransactionQueryPanel() {
               disabled={searching}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
             >
-              <Search size={15} />
+              {searching ? <Spinner className="h-4 w-4" /> : <Search size={15} />}
               {searching ? "Searching..." : "Search"}
             </button>
           </div>
@@ -205,7 +206,7 @@ export default function TransactionQueryPanel() {
                   </thead>
                   <tbody>
                     {results.map((txn) => (
-                      <tr key={txn.id} className="border-b border-border bg-white last:border-b-0">
+                      <tr key={txn.id} className="border-b border-border bg-panel last:border-b-0">
                         <td className="px-4 py-3 font-medium text-heading">{txn.referenceNo}</td>
                         <td className="px-4 py-3">
                           <span

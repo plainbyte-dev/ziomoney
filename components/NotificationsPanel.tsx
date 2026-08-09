@@ -18,7 +18,7 @@ export default function NotificationsPanel({
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-xl border border-border bg-white shadow-popover">
+    <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-xl border border-border bg-panel shadow-popover">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <p className="text-sm font-semibold text-heading">Notifications</p>
         <button
@@ -46,7 +46,7 @@ export default function NotificationsPanel({
             type="button"
             onClick={() => onMarkRead(notification.id)}
             className={`flex w-full items-start gap-2.5 border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-surface ${
-              notification.read ? "bg-white" : "bg-brand-green-light/40"
+              notification.read ? "bg-panel" : "bg-brand-green-light/40"
             }`}
           >
             <span

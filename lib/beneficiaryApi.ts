@@ -1,4 +1,5 @@
 import type { AddBeneficiaryPayload, Beneficiary } from "@/data/beneficiaryData";
+import { getAccessToken } from "./authToken";
 
 export interface BeneficiaryApiResponse<T> {
   success: boolean;
@@ -13,8 +14,13 @@ async function callBeneficiaryApi<T>(
   init?: RequestInit
 ): Promise<BeneficiaryApiResponse<T>> {
   try {
+    const token = getAccessToken();
+    const headers: Record<string, string> = {};
+    if (init?.body) headers["Content-Type"] = "application/json";
+    if (token) headers.Authorization = `Bearer ${token}`;
+
     const res = await fetch(`/api/beneficiaries${path}`, {
-      headers: init?.body ? { "Content-Type": "application/json" } : undefined,
+      headers,
       ...init,
     });
 

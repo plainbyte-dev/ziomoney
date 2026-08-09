@@ -27,7 +27,7 @@ export default function StatementOfAccountLogTable({
             <th className="px-4 py-3 text-right">
               <button
                 onClick={onRefresh}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-medium normal-case tracking-normal text-heading hover:bg-surface"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium normal-case tracking-normal text-heading hover:bg-surface"
               >
                 <RefreshCw size={13} />
                 Refresh
@@ -37,7 +37,7 @@ export default function StatementOfAccountLogTable({
         </thead>
         <tbody>
           {entries.map((entry, index) => (
-            <tr key={entry.id} className="border-b border-border bg-white last:border-b-0">
+            <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
               <td className="whitespace-nowrap px-4 py-3 text-heading/80">
                 {entry.batchDate}
               </td>

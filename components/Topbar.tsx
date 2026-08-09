@@ -2,14 +2,16 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { Search, Bell, ChevronDown } from "lucide-react";
+import { Search, Bell, ChevronDown, Menu } from "lucide-react";
 import NotificationsPanel from "./NotificationsPanel";
 import DataModeToggle from "./DataModeToggle";
+import ThemeToggle from "./ThemeToggle";
+import Logo from "./Logo";
 import { loggedInUser } from "@/data/staticData";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/contexts/NotificationsContext";
 
-export default function Topbar() {
+export default function Topbar({ onOpenMobileMenu }: { onOpenMobileMenu: () => void }) {
   const { user } = useAuth();
   const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -29,20 +31,37 @@ export default function Topbar() {
   }, []);
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border bg-panel px-6 shadow-[0_1px_0_rgba(16,24,40,0.02)]">
-      <div className="flex w-full max-w-sm items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 transition-colors focus-within:border-brand-green">
-        <Search size={16} className="text-muted" />
-        <input
-          type="text"
-          placeholder="Search..."
-          className="w-full bg-transparent text-sm text-heading placeholder:text-muted focus:outline-none"
-        />
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-border bg-panel px-4 shadow-[0_1px_0_rgba(16,24,40,0.02)] sm:px-6">
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={onOpenMobileMenu}
+          aria-label="Open menu"
+          className="rounded-lg p-1.5 text-heading/80 hover:bg-surface lg:hidden"
+        >
+          <Menu size={20} />
+        </button>
+
+        <Logo size="sm" className="shrink-0 lg:hidden" />
+
+        <div className="hidden w-full max-w-sm items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 transition-colors focus-within:border-brand-green md:flex">
+          <Search size={16} className="text-muted" />
+          <input
+            type="text"
+            placeholder="Search..."
+            className="w-full bg-transparent text-sm text-heading placeholder:text-muted focus:outline-none"
+          />
+        </div>
       </div>
 
-      <div className="flex items-center gap-5">
-        <DataModeToggle />
+      <div className="flex items-center gap-2 sm:gap-3 md:gap-5">
+        <div className="hidden sm:block">
+          <DataModeToggle />
+        </div>
 
-        <button className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-heading/80 hover:bg-surface">
+        <ThemeToggle />
+
+        <button className="hidden items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-heading/80 hover:bg-surface md:flex">
           <span className="text-lg leading-none">🇺🇸</span>
           English
           <ChevronDown size={14} className="text-muted" />
@@ -72,7 +91,7 @@ export default function Topbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="text-right">
+          <div className="hidden text-right sm:block">
             <p className="text-sm font-semibold text-heading">{user?.name ?? loggedInUser.name}</p>
             <p className="text-xs text-muted">{user?.role ?? loggedInUser.role}</p>
           </div>

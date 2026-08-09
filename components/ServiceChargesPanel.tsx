@@ -7,6 +7,7 @@ import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
 import Checkbox from "./Checkbox";
+import Spinner from "./Spinner";
 import { deliveryOptionValues, emptyServiceChargePayload, type ServiceChargeUpsertPayload } from "@/data/serviceChargeData";
 
 export default function ServiceChargesPanel() {
@@ -48,17 +49,17 @@ export default function ServiceChargesPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="flex items-center justify-between bg-brand-blue px-6 py-4">
+        <div className="border-b border-border flex items-center justify-between px-6 py-4">
           <div>
-            <h1 className="text-lg font-bold text-white">Service Charges</h1>
-            <p className="mt-0.5 text-sm text-white/80">
+            <h1 className="text-lg font-bold text-heading">Service Charges</h1>
+            <p className="mt-0.5 text-sm text-muted">
               {isLive ? "Live remittance API" : "Static demo data"} — per-country/agent service-charge configuration.
             </p>
           </div>
           <button
             onClick={refreshServiceCharges}
             disabled={serviceChargesLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
           >
             <RefreshCw size={13} className={serviceChargesLoading ? "animate-spin" : undefined} />
             Refresh
@@ -84,7 +85,7 @@ export default function ServiceChargesPanel() {
                 </thead>
                 <tbody>
                   {serviceCharges.map((charge) => (
-                    <tr key={charge.id} className="border-b border-border bg-white last:border-b-0">
+                    <tr key={charge.id} className="border-b border-border bg-panel last:border-b-0">
                       <td className="px-4 py-3 font-medium text-heading">{charge.countrySymbol}</td>
                       <td className="px-4 py-3 text-heading/80">{charge.agentName}</td>
                       <td className="px-4 py-3 text-heading/80">{charge.deliveryOption}</td>
@@ -108,8 +109,8 @@ export default function ServiceChargesPanel() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h2 className="text-base font-bold text-white">Save Service Charge</h2>
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-base font-bold text-heading">Save Service Charge</h2>
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-2 sm:p-8">
           <TextField
@@ -144,6 +145,7 @@ export default function ServiceChargesPanel() {
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
             >
+              {saving && <Spinner className="h-4 w-4" />}
               {saving ? "Saving..." : "Save Service Charge"}
             </button>
           </div>

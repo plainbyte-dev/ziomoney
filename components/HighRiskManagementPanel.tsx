@@ -52,8 +52,8 @@ export default function HighRiskManagementPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">High Risk Management</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">High Risk Management</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -68,7 +68,7 @@ export default function HighRiskManagementPanel() {
             </thead>
             <tbody>
               {rows.map((row, index) => (
-                <tr key={row.typeName} className={index % 2 === 0 ? "bg-white" : "bg-brand-green-light/30"}>
+                <tr key={row.typeName} className={index % 2 === 0 ? "bg-panel" : "bg-brand-green-light/30"}>
                   <td className="px-4 py-2.5 font-medium text-brand-green-dark">{row.typeName}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-heading/80">
                     {editingIndex === index ? (
@@ -76,7 +76,7 @@ export default function HighRiskManagementPanel() {
                         type="number"
                         value={draftWeight}
                         onChange={(event) => setDraftWeight(event.target.value)}
-                        className="w-16 rounded-lg border border-border px-2 py-1 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                        className="w-16 rounded-lg border border-border bg-panel px-2 py-1 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                         autoFocus
                       />
                     ) : (

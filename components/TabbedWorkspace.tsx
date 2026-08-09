@@ -12,7 +12,7 @@ export default function TabbedWorkspace() {
   return (
     <div className="flex flex-1 flex-col overflow-hidden">
       <TabBar />
-      <main className="flex-1 overflow-y-auto px-6 py-6 sm:px-10">
+      <main className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6 lg:px-10">
         {entry ? (
           <>
             <div className="mb-4">

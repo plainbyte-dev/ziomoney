@@ -20,8 +20,8 @@ export default function HighRiskBranchesPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">High Risk Branches</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">High Risk Branches</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -38,7 +38,7 @@ export default function HighRiskBranchesPanel() {
             </thead>
             <tbody>
               {rows.map((row, index) => (
-                <tr key={row.agentCode} className={index % 2 === 0 ? "bg-white" : "bg-brand-green-light/30"}>
+                <tr key={row.agentCode} className={index % 2 === 0 ? "bg-panel" : "bg-brand-green-light/30"}>
                   <td className="whitespace-nowrap px-4 py-2.5 font-medium text-brand-green-dark">{row.agentCode}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-heading/80">{row.country}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-heading/80">{row.branchName}</td>
@@ -46,7 +46,7 @@ export default function HighRiskBranchesPanel() {
                     <select
                       value={row.riskScore ?? ""}
                       onChange={(event) => updateScore(index, event.target.value)}
-                      className="w-28 appearance-none rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                      className="w-28 appearance-none rounded-lg border border-border bg-panel px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                     >
                       <option value="">--Select--</option>
                       {riskScoreOptions.map((option) => (

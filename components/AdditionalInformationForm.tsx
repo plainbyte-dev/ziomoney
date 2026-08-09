@@ -1,6 +1,7 @@
 "use client";
 
 import SharedDateInput from "./DateInput";
+import Spinner from "./Spinner";
 import { useKyc } from "@/contexts/KycContext";
 import {
   customerVisaTypeOptions,
@@ -12,7 +13,7 @@ import {
 } from "@/data/customerDetailsData";
 
 const inputClass =
-  "rounded-lg border border-border bg-white px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
+  "rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
 
 function FieldRow({
   label,
@@ -58,8 +59,8 @@ export default function AdditionalInformationForm() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Additional Information</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Additional Information</h1>
       </div>
 
       <form onSubmit={handleSave} className="bg-panel p-6 sm:p-8">
@@ -219,6 +220,7 @@ export default function AdditionalInformationForm() {
             disabled={saving}
             className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
           >
+            {saving && <Spinner className="h-4 w-4" />}
             {saving ? "Saving..." : "Save"}
           </button>
         </div>

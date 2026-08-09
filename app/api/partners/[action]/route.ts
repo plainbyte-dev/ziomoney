@@ -2,19 +2,19 @@ import { NextResponse } from "next/server";
 import { proxyRemittanceRequest } from "../../remittance-proxy";
 
 const ACTIONS: Record<string, { path: string; method: "GET" | "POST" }> = {
-  "update-customer": { path: "/updateCustomer", method: "POST" },
-  approve: { path: "/InsertApprovedKYC", method: "POST" },
-  "compliance-approve": { path: "/InsertApprovedCompilenceKYC", method: "POST" },
-  approved: { path: "/getAllapprovedKycs", method: "GET" },
-  pending: { path: "/getAllUnapprovedKycs", method: "GET" },
-  "compliance-hold": { path: "/getAllCompilenceHoldKycs", method: "GET" },
+  register: { path: "/insertRemittancePartner", method: "POST" },
+  list: { path: "/obtainAllRemittancePartner", method: "GET" },
+  lookup: { path: "/obtainRemittancePartner", method: "POST" },
+  info: { path: "/getRemittancePartnerInfo", method: "POST" },
+  "update-credit-limit": { path: "/updateCreditLimit", method: "POST" },
+  "add-actual-balance": { path: "/addActualBalance", method: "POST" },
 };
 
 function proxy(action: string, body: string | undefined, authorization: string | null) {
   const config = ACTIONS[action];
   if (!config) {
     return NextResponse.json(
-      { success: false, message: `Unknown KYC action "${action}".` },
+      { success: false, message: `Unknown partner action "${action}".` },
       { status: 404 }
     );
   }

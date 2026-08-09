@@ -5,6 +5,7 @@ import { useRates } from "@/contexts/RatesContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import Spinner from "./Spinner";
 import { commissionTypeValues, emptyCommissionPayload, type CommissionUpsertPayload } from "@/data/partnerCommissionData";
 
 export default function PartnerCommissionPanel() {
@@ -35,9 +36,9 @@ export default function PartnerCommissionPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h1 className="text-lg font-bold text-white">Partner Commission</h1>
-          <p className="mt-0.5 text-sm text-white/80">
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Partner Commission</h1>
+          <p className="mt-0.5 text-sm text-muted">
             {isLive ? "Live remittance API" : "Static demo data"} — per-partner commission configuration.
           </p>
         </div>
@@ -59,7 +60,7 @@ export default function PartnerCommissionPanel() {
                 </thead>
                 <tbody>
                   {commissions.map((entry) => (
-                    <tr key={entry.id} className="border-b border-border bg-white last:border-b-0">
+                    <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
                       <td className="px-4 py-3 font-medium text-heading">{entry.remittancePartner}</td>
                       <td className="px-4 py-3 text-heading/80">
                         {entry.commissionRate}
@@ -76,7 +77,9 @@ export default function PartnerCommissionPanel() {
                   {commissions.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted">
-                        No partner commissions configured yet.
+                        {isLive
+                          ? "The remittance API has no \"list all\" endpoint for this data — save or look up a commission below to see it here."
+                          : "No partner commissions configured yet."}
                       </td>
                     </tr>
                   )}
@@ -88,8 +91,8 @@ export default function PartnerCommissionPanel() {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="bg-brand-blue px-6 py-4">
-          <h2 className="text-base font-bold text-white">Insert / Update Commission</h2>
+        <div className="border-b border-border px-6 py-4">
+          <h2 className="text-base font-bold text-heading">Insert / Update Commission</h2>
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
           <TextField
@@ -138,6 +141,7 @@ export default function PartnerCommissionPanel() {
               disabled={saving}
               className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
             >
+              {saving && <Spinner className="h-4 w-4" />}
               {saving ? "Saving..." : "Save Commission"}
             </button>
           </div>

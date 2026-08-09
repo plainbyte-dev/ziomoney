@@ -36,14 +36,14 @@ export default function PartnerInfoTable({
             <th className="px-4 py-3">Summary</th>
             <th className="px-4 py-3">Delete</th>
           </tr>
-          <tr className="border-b border-border bg-white text-xs normal-case tracking-normal text-heading/70">
+          <tr className="border-b border-border bg-panel text-xs normal-case tracking-normal text-heading/70">
             <th className="px-4 py-2" colSpan={2}>
               <div className="flex items-center gap-2 font-normal">
                 <span>Select Country</span>
                 <select
                   value={countryFilter}
                   onChange={(event) => onCountryChange(event.target.value)}
-                  className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                  className="rounded-lg border border-border bg-panel px-2 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                 >
                   {partnerCountryOptions.map((option) => (
                     <option key={option} value={option}>
@@ -62,7 +62,7 @@ export default function PartnerInfoTable({
               key={entry.id}
               onClick={() => onSelect(entry.id)}
               className={`cursor-pointer border-b border-border last:border-b-0 ${
-                selectedId === entry.id ? "bg-brand-green-light/40" : "bg-white"
+                selectedId === entry.id ? "bg-brand-green-light/40" : "bg-panel"
               }`}
             >
               <td className="px-4 py-3 font-medium text-brand-blue">{entry.id}</td>
@@ -98,8 +98,13 @@ export default function PartnerInfoTable({
                   type="radio"
                   name="partner-delete-select"
                   checked={selectedId === entry.id}
-                  onChange={() => onSelect(entry.id)}
-                  onClick={(event) => event.stopPropagation()}
+                  onChange={() => {}}
+                  onClick={(event) => {
+                    // Radios don't fire onChange when clicking an already-checked
+                    // one again, so toggle-off has to happen here instead.
+                    event.stopPropagation();
+                    onSelect(entry.id);
+                  }}
                   className="h-4 w-4 accent-red-500"
                 />
               </td>

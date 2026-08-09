@@ -31,16 +31,16 @@ export default function CorrespondenceReportCard() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Correspondence Report</h1>
-        <p className="mt-1 max-w-2xl text-sm text-white/80">
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Correspondence Report</h1>
+        <p className="mt-1 max-w-2xl text-sm text-muted">
           Money-transfer correspondence between sending and payout partners, tracked
           from customer collection through to head-office settlement.
         </p>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
-        <div className="rounded-2xl border border-border bg-white p-6">
+        <div className="rounded-2xl border border-border bg-panel p-6">
           <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
             <SelectField
               label="Sending Country"
@@ -102,7 +102,7 @@ export default function CorrespondenceReportCard() {
           >
             View Full Report
           </button>
-          <button className="rounded-full border border-border bg-white px-8 py-2.5 text-sm font-semibold text-heading hover:bg-surface">
+          <button className="rounded-full border border-border bg-panel px-8 py-2.5 text-sm font-semibold text-heading hover:bg-surface">
             Reset
           </button>
         </div>

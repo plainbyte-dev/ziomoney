@@ -42,10 +42,10 @@ export default function KycApprovalQueuePanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="flex items-center justify-between bg-brand-blue px-6 py-4">
+      <div className="border-b border-border flex items-center justify-between px-6 py-4">
         <div>
-          <h1 className="text-lg font-bold text-white">KYC Approval Queue</h1>
-          <p className="mt-0.5 text-sm text-white/80">
+          <h1 className="text-lg font-bold text-heading">KYC Approval Queue</h1>
+          <p className="mt-0.5 text-sm text-muted">
             {isLive ? "Live remittance API" : "Static demo data"} — pending and compliance-hold
             customer KYCs.
           </p>
@@ -53,7 +53,7 @@ export default function KycApprovalQueuePanel() {
         <button
           onClick={refreshLists}
           disabled={listsLoading}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
         >
           <RefreshCw size={13} className={listsLoading ? "animate-spin" : undefined} />
           Refresh

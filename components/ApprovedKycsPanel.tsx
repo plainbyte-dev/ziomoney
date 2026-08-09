@@ -16,17 +16,17 @@ export default function ApprovedKycsPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="flex items-center justify-between bg-brand-blue px-6 py-4">
+      <div className="border-b border-border flex items-center justify-between px-6 py-4">
         <div>
-          <h1 className="text-lg font-bold text-white">Approved KYCs</h1>
-          <p className="mt-0.5 text-sm text-white/80">
+          <h1 className="text-lg font-bold text-heading">Approved KYCs</h1>
+          <p className="mt-0.5 text-sm text-muted">
             {isLive ? "Live remittance API" : "Static demo data"} — verified customer records.
           </p>
         </div>
         <button
           onClick={refreshLists}
           disabled={listsLoading}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
         >
           <RefreshCw size={13} className={listsLoading ? "animate-spin" : undefined} />
           Refresh
@@ -54,7 +54,7 @@ export default function ApprovedKycsPanel() {
               </thead>
               <tbody>
                 {approvedList.map((entry) => (
-                  <tr key={entry.id} className="border-b border-border bg-white last:border-b-0">
+                  <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
                     <td className="px-4 py-3 font-medium text-heading">{entry.userName}</td>
                     <td className="px-4 py-3 text-heading/80">{entry.fullName}</td>
                     <td className="px-4 py-3 text-heading/80">{entry.nationality}</td>

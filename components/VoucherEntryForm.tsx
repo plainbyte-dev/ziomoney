@@ -89,8 +89,8 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Voucher Entry</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Voucher Entry</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -107,7 +107,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
             <select
               value={ledger}
               onChange={(event) => setLedger(event.target.value)}
-              className="min-w-[220px] flex-1 rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="min-w-[220px] flex-1 rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               {voucherLedgerOptions.map((option) => (
                 <option key={option} value={option}>
@@ -118,7 +118,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
             <select
               value={drCr}
               onChange={(event) => setDrCr(event.target.value as DrCr)}
-              className="rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               {drCrOptions.map((option) => (
                 <option key={option} value={option}>
@@ -131,7 +131,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
               value={rowAmount}
               onChange={(event) => setRowAmount(event.target.value)}
               placeholder="0.00"
-              className="w-40 rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading placeholder:text-muted focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-40 rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading placeholder:text-muted focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
         </div>
@@ -156,7 +156,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
                 value={voucherAmount}
                 onChange={(event) => setVoucherAmount(event.target.value)}
                 disabled={!usingUsd}
-                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
+                className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
               />
               <span className="shrink-0 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm font-medium text-muted">
                 USD
@@ -172,7 +172,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
                 value={localAmount}
                 onChange={(event) => setLocalAmount(event.target.value)}
                 disabled={usingUsd}
-                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
+                className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
               />
               <input
                 type="text"
@@ -180,7 +180,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
                 onChange={(event) => setLocalCurrency(event.target.value)}
                 disabled={usingUsd}
                 placeholder="CCY"
-                className="w-20 rounded-lg border border-border bg-white px-2 py-2.5 text-center text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
+                className="w-20 rounded-lg border border-border bg-panel px-2 py-2.5 text-center text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
               />
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
                 type="number"
                 value={exchangeRate}
                 onChange={(event) => setExchangeRate(event.target.value)}
-                className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
               />
               <span className="shrink-0 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm font-medium text-muted">
                 {usingUsd ? "USD" : localCurrency || "CCY"}
@@ -205,7 +205,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
             <select
               value={applyLedger}
               onChange={(event) => setApplyLedger(event.target.value)}
-              className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             >
               {applyLedgerOptions.map((option) => (
                 <option key={option} value={option}>
@@ -220,7 +220,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
           <button
             type="button"
             onClick={handleAdd}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-heading hover:bg-surface"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-4 py-2 text-sm font-medium text-heading hover:bg-surface"
           >
             <Plus size={15} />
             Add
@@ -229,7 +229,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
             type="button"
             onClick={handleRemove}
             disabled={!selectedLineId}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-heading hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-4 py-2 text-sm font-medium text-heading hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
           >
             <Trash2 size={15} />
             Remove
@@ -257,7 +257,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
                     key={line.id}
                     onClick={() => setSelectedLineId(line.id)}
                     className={`cursor-pointer border-b border-border last:border-b-0 ${
-                      selectedLineId === line.id ? "bg-brand-green-light/40" : "bg-white"
+                      selectedLineId === line.id ? "bg-brand-green-light/40" : "bg-panel"
                     }`}
                   >
                     <td className="px-4 py-2 text-heading/80">{line.ledger}</td>
@@ -298,7 +298,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
               type="number"
               value={jpyRate}
               onChange={(event) => setJpyRate(event.target.value)}
-              className="w-40 rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+              className="w-40 rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
             <span className="text-sm italic text-red-500">
               Enter JPY USD Rate to effect JPY Ledger (Optional)
@@ -312,7 +312,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
             value={narration}
             onChange={(event) => setNarration(event.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+            className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
         </div>
 
@@ -328,7 +328,7 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
           <button
             type="button"
             onClick={handleClear}
-            className="rounded-full border border-border bg-white px-8 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
+            className="rounded-full border border-border bg-panel px-8 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
           >
             Clear
           </button>

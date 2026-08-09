@@ -61,8 +61,8 @@ export default function TransactionFrequencyPanel() {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="bg-brand-blue px-6 py-4">
-        <h1 className="text-lg font-bold text-white">Transaction Frequency</h1>
+      <div className="border-b border-border px-6 py-4">
+        <h1 className="text-lg font-bold text-heading">Transaction Frequency</h1>
       </div>
 
       <div className="bg-panel p-6 sm:p-8">
@@ -85,7 +85,7 @@ export default function TransactionFrequencyPanel() {
             </thead>
             <tbody>
               {rows.map((row, index) => (
-                <tr key={row.sno} className={index % 2 === 0 ? "bg-white" : "bg-brand-green-light/30"}>
+                <tr key={row.sno} className={index % 2 === 0 ? "bg-panel" : "bg-brand-green-light/30"}>
                   <td className="whitespace-nowrap px-4 py-2.5 font-medium text-brand-blue">{row.sno}</td>
                   <td className="whitespace-nowrap px-4 py-2.5 text-heading/80">
                     <div className="flex items-center gap-1.5">
@@ -132,7 +132,7 @@ export default function TransactionFrequencyPanel() {
                         type="text"
                         value={draft[field]}
                         onChange={(event) => updateDraft(field, event.target.value)}
-                        className="w-full min-w-[110px] rounded-lg border border-border px-2 py-1 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                        className="w-full min-w-[110px] rounded-lg border border-border bg-panel px-2 py-1 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                       />
                     </td>
                   ))}
