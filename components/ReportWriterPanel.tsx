@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Save, Trash2, Plus } from "lucide-react";
+import Button from "./Button";
 import {
   reportGroupOptions,
   columnDataTypeOptions,
@@ -128,28 +129,21 @@ export default function ReportWriterPanel() {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-border pt-4">
-          <button
-            onClick={handleSave}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-1.5 text-sm font-semibold text-heading/80 hover:bg-border"
-          >
-            <Save size={14} />
+          <Button variant="ghost" size="md" onClick={handleSave} icon={<Save size={14} />}>
             Save
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
             onClick={handleDelete}
             disabled={reportId === null}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-1.5 text-sm font-semibold text-heading/80 hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
+            icon={<Trash2 size={14} />}
           >
-            <Trash2 size={14} />
             Delete
-          </button>
-          <button
-            onClick={handleNew}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-1.5 text-sm font-semibold text-heading/80 hover:bg-border"
-          >
-            <Plus size={14} />
+          </Button>
+          <Button variant="ghost" size="md" onClick={handleNew} icon={<Plus size={14} />}>
             New
-          </button>
+          </Button>
           <input
             type="password"
             value={advancePassword}
@@ -207,12 +201,9 @@ export default function ReportWriterPanel() {
             placeholder="Allow Null"
             className="w-20 rounded-lg border border-border bg-panel px-2 py-1.5 text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
-          <button
-            onClick={handleAddColumn}
-            className="rounded-lg bg-heading px-4 py-1.5 text-sm font-semibold text-white hover:bg-heading/90"
-          >
+          <Button size="md" onClick={handleAddColumn}>
             Add
-          </button>
+          </Button>
         </div>
 
         <div className="mt-3 overflow-x-auto rounded-xl border border-border">

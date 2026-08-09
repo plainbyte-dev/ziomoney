@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
+import Button from "./Button";
 import { daysExceededTxnRows, receiverSearchByOptions } from "@/data/securityData";
 
 const columns = [
@@ -64,13 +65,9 @@ export default function DaysExceededTxnPanel() {
                 ))}
               </select>
             </div>
-            <button
-              onClick={handleSearch}
-              className="flex items-center justify-center gap-2 rounded-lg bg-brand-green px-6 py-2.5 text-sm font-semibold text-white shadow-card transition-shadow hover:bg-brand-green-dark hover:shadow-card-hover"
-            >
-              <Search size={16} />
+            <Button onClick={handleSearch} icon={<Search size={16} />}>
               Search
-            </button>
+            </Button>
           </div>
         </div>
 

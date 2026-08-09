@@ -1,5 +1,6 @@
 "use client";
 
+import Button from "./Button";
 import type { KycRecord } from "@/data/kycData";
 
 interface KycQueueTableProps {
@@ -49,12 +50,9 @@ export default function KycQueueTable({
                   {entry.remarks || "-"}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <button
-                    onClick={() => onApprove(entry)}
-                    className="rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-semibold text-heading hover:bg-surface"
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => onApprove(entry)}>
                     {approveLabel}
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}

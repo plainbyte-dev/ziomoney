@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Eye, Plus } from "lucide-react";
+import Button from "./Button";
 import { pendingDateFilterOptions, pendingTransactionRows } from "@/data/remittanceListsData";
 
 type StatusFilter = "Pending Only" | "Proceed Transaction" | "All";
@@ -81,14 +82,12 @@ export default function PendingTransactionPanel() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-1.5 text-sm font-semibold text-heading/80 hover:bg-border">
-              <Eye size={14} />
+            <Button variant="ghost" size="md" icon={<Eye size={14} />}>
               View Detail
-            </button>
-            <button className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-1.5 text-sm font-semibold text-heading/80 hover:bg-border">
-              <Plus size={14} />
+            </Button>
+            <Button variant="ghost" size="md" icon={<Plus size={14} />}>
               Add New
-            </button>
+            </Button>
           </div>
         </div>
 

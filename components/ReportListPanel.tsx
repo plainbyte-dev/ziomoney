@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FileText, Plus } from "lucide-react";
+import Button from "./Button";
 import { savedReports } from "@/data/reportWriterData";
 
 export default function ReportListPanel() {
@@ -77,14 +78,15 @@ export default function ReportListPanel() {
               </div>
             )}
 
-            <button
+            <Button
+              size="md"
+              className="mt-5"
               onClick={() => setViewed(true)}
               disabled={missingRequired}
-              className="mt-5 flex items-center gap-1.5 rounded-lg bg-heading px-4 py-2 text-sm font-semibold text-white hover:bg-heading/90 disabled:cursor-not-allowed disabled:opacity-40"
+              icon={<FileText size={14} />}
             >
-              <FileText size={14} />
               View Detail
-            </button>
+            </Button>
 
             {viewed && (
               <p className="mt-4 rounded-lg bg-brand-green-light/40 px-3 py-2 text-sm text-brand-green-dark">

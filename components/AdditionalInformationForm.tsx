@@ -1,7 +1,7 @@
 "use client";
 
 import SharedDateInput from "./DateInput";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import { useKyc } from "@/contexts/KycContext";
 import {
   customerVisaTypeOptions,
@@ -215,14 +215,9 @@ export default function AdditionalInformationForm() {
               Customer details saved.
             </p>
           )}
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-          >
-            {saving && <Spinner className="h-4 w-4" />}
+          <Button type="submit" loading={saving}>
             {saving ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

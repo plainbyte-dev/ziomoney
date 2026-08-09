@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import Button from "./Button";
 import { useTabs } from "@/contexts/TabsContext";
 
 interface LedgerListHeaderProps {
@@ -38,24 +39,24 @@ export default function LedgerListHeader({
         )}
 
         {!selectionMode && (
-          <button
+          <Button
+            variant="secondary"
             onClick={() =>
               openTab({ key: "ledger-create", title: "Create New Ledger" })
             }
-            className="flex items-center gap-1.5 rounded-full border border-border bg-panel px-5 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
+            icon={<Plus size={16} />}
           >
-            <Plus size={16} />
             Create Ledger
-          </button>
+          </Button>
         )}
 
-        <button
+        <Button
+          variant="danger"
           onClick={selectionMode ? onRequestBulkDelete : onStartSelection}
           disabled={selectionMode && selectedCount === 0}
-          className="rounded-full bg-red-500 px-6 py-2.5 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {selectionMode && selectedCount > 0 ? "Delete Selected" : "Bulk Delete"}
-        </button>
+        </Button>
       </div>
     </div>
   );

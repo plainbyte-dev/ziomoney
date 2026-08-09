@@ -1,6 +1,7 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
+import Button from "./Button";
 import type { SoaBatchLogEntry } from "@/data/statementOfAccountData";
 
 interface StatementOfAccountLogTableProps {
@@ -25,13 +26,15 @@ export default function StatementOfAccountLogTable({
             <th className="px-4 py-3">Description</th>
             <th className="px-4 py-3">Run By</th>
             <th className="px-4 py-3 text-right">
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
+                className="normal-case tracking-normal"
                 onClick={onRefresh}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium normal-case tracking-normal text-heading hover:bg-surface"
+                icon={<RefreshCw size={13} />}
               >
-                <RefreshCw size={13} />
                 Refresh
-              </button>
+              </Button>
             </th>
           </tr>
         </thead>

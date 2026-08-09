@@ -7,7 +7,7 @@ import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
 import Checkbox from "./Checkbox";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import { deliveryOptionValues, emptyServiceChargePayload, type ServiceChargeUpsertPayload } from "@/data/serviceChargeData";
 
 export default function ServiceChargesPanel() {
@@ -56,14 +56,15 @@ export default function ServiceChargesPanel() {
               {isLive ? "Live remittance API" : "Static demo data"} — per-country/agent service-charge configuration.
             </p>
           </div>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={refreshServiceCharges}
             disabled={serviceChargesLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
+            icon={<RefreshCw size={13} className={serviceChargesLoading ? "animate-spin" : undefined} />}
           >
-            <RefreshCw size={13} className={serviceChargesLoading ? "animate-spin" : undefined} />
             Refresh
-          </button>
+          </Button>
         </div>
 
         <div className="bg-panel p-6 sm:p-8">
@@ -140,14 +141,9 @@ export default function ServiceChargesPanel() {
             {saveError && (
               <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
             )}
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-            >
-              {saving && <Spinner className="h-4 w-4" />}
+            <Button type="submit" loading={saving}>
               {saving ? "Saving..." : "Save Service Charge"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

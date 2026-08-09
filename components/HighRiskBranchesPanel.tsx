@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Pencil } from "lucide-react";
+import Button from "./Button";
 import { highRiskBranches, riskScoreOptions } from "@/data/riskProfilingData";
 
 export default function HighRiskBranchesPanel() {
@@ -57,13 +58,14 @@ export default function HighRiskBranchesPanel() {
                     </select>
                   </td>
                   <td className="whitespace-nowrap px-4 py-2.5">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleUpdate(index)}
-                      className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-heading/80 hover:bg-border"
+                      icon={<Pencil size={12} />}
                     >
-                      <Pencil size={12} />
                       {savedIndex === index ? "Updated" : "Update"}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}

@@ -6,7 +6,7 @@ import { useRates } from "@/contexts/RatesContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import Checkbox from "./Checkbox";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import { emptyExchangeRatePayload, type ExchangeRateUpsertPayload } from "@/data/exchangeRateData";
 
 // Parses the small admin CSV import format: a header row followed by rows in
@@ -148,22 +148,24 @@ export default function ExchangeRatesPanel() {
               onChange={handleCsvFileChange}
               className="hidden"
             />
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => fileInputRef.current?.click()}
-              disabled={importing}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
+              loading={importing}
+              icon={<Upload size={13} />}
             >
-              {importing ? <Spinner className="h-3.5 w-3.5" /> : <Upload size={13} />}
               {importing ? "Importing..." : "Import CSV"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={refreshExchangeRates}
               disabled={exchangeRatesLoading}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
+              icon={<RefreshCw size={13} className={exchangeRatesLoading ? "animate-spin" : undefined} />}
             >
-              <RefreshCw size={13} className={exchangeRatesLoading ? "animate-spin" : undefined} />
               Refresh
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -230,15 +232,18 @@ export default function ExchangeRatesPanel() {
               onChange={setLookupSymbol}
             />
           </div>
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
+            className="mb-1.5"
             onClick={handleLookup}
-            disabled={lookupLoading || !lookupSymbol.trim()}
-            className="mb-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2.5 text-sm font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
+            disabled={!lookupSymbol.trim()}
+            loading={lookupLoading}
+            icon={<Search size={14} />}
           >
-            {lookupLoading ? <Spinner className="h-3.5 w-3.5" /> : <Search size={14} />}
             {lookupLoading ? "Looking up..." : "Look up"}
-          </button>
+          </Button>
           {lookupError && <p className="mb-1.5 text-sm text-red-600">{lookupError}</p>}
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
@@ -289,14 +294,9 @@ export default function ExchangeRatesPanel() {
             {saveError && (
               <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
             )}
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-            >
-              {saving && <Spinner className="h-4 w-4" />}
+            <Button type="submit" loading={saving}>
               {saving ? "Saving..." : "Save Rate"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

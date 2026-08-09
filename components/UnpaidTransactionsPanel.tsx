@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
+import Button from "./Button";
 import { unpaidTransactionRows } from "@/data/remittanceListsData";
 
 const filterOptions = ["All", "Sri Lanka", "Philippines", "Nepal", "Republic of Korea"];
@@ -64,13 +65,9 @@ export default function UnpaidTransactionsPanel() {
             placeholder="Search PIN No. or Receiver"
             className="min-w-[220px] flex-1 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
           />
-          <button
-            onClick={handleSearch}
-            className="flex items-center gap-1.5 rounded-lg bg-brand-green px-4 py-1.5 text-sm font-semibold text-white hover:bg-brand-green-dark"
-          >
-            <Search size={14} />
+          <Button size="md" onClick={handleSearch} icon={<Search size={14} />}>
             Search
-          </button>
+          </Button>
         </div>
 
         <div className="mt-4 overflow-x-auto rounded-xl border border-border">

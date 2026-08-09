@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AuthField from "./AuthField";
-import Spinner from "../Spinner";
+import Button from "../Button";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginForm() {
@@ -75,14 +75,9 @@ export default function LoginForm() {
           Remember me
         </label>
 
-        <button
-          type="submit"
-          disabled={signingIn}
-          className="mt-2 inline-flex items-center justify-center gap-2 rounded-full bg-brand-green px-6 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-        >
-          {signingIn && <Spinner className="h-4 w-4" />}
+        <Button type="submit" loading={signingIn} className="mt-2">
           {signingIn ? "Signing in..." : "Sign In"}
-        </button>
+        </Button>
       </form>
     </div>
   );

@@ -4,6 +4,7 @@ import { useState } from "react";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
 import Checkbox from "./Checkbox";
+import Button from "./Button";
 import { partnerCountrySelectOptions, partnerEntries } from "@/data/partnerData";
 import { sendBranchOptions } from "@/data/transactionSendData";
 import { privilegeOptions, userRoleOptions } from "@/data/userManagementData";
@@ -122,13 +123,9 @@ export default function CreatePartnerUserPanel() {
               Partner user saved.
             </p>
           )}
-          <button
-            onClick={handleSave}
-            disabled={!canSave}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <Button onClick={handleSave} disabled={!canSave}>
             Save
-          </button>
+          </Button>
           <p className="mt-2 text-xs text-red-500">* are required fields</p>
         </div>
       </div>

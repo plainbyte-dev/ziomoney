@@ -5,6 +5,7 @@ import { Check, FileText } from "lucide-react";
 import SelectField from "./SelectField";
 import DateField from "./DateField";
 import RadioPill from "./RadioPill";
+import Button from "./Button";
 import StatementOfAccountLogTable from "./StatementOfAccountLogTable";
 import StatementOfAccountReportModal, {
   buildSoaReportTableHtml,
@@ -136,10 +137,7 @@ export default function StatementOfAccountPanel() {
         </div>
 
         <div className="mt-6">
-          <button className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark">
-            <FileText size={16} />
-            View Detail
-          </button>
+          <Button icon={<FileText size={16} />}>View Detail</Button>
         </div>
       </div>
 

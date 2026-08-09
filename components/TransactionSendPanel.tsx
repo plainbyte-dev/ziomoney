@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronRight, CheckCircle2, Search, ZoomIn, X, Calculator } from "lucide-react";
+import Button from "./Button";
 import {
   sendPartnerOptions,
   sendBranchOptions,
@@ -369,7 +370,7 @@ export default function TransactionSendPanel() {
           <div className="border-b border-border px-6 py-3">
             <h2 className="text-sm font-bold uppercase text-heading">Search Customer</h2>
           </div>
-          <div className="flex flex-wrap items-center gap-3 bg-blue-50 p-4">
+          <div className="flex flex-wrap items-center gap-3 bg-blue-50 p-4 dark:bg-blue-950/40">
             <span className="text-xs font-semibold text-heading/70">
               Payout Country <span className="text-red-500">*</span>
             </span>
@@ -396,7 +397,7 @@ export default function TransactionSendPanel() {
           <div className="bg-red-600 px-6 py-3">
             <h2 className="text-sm font-bold uppercase text-white">Remitter Detail</h2>
           </div>
-          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-red-50 p-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-red-50 p-6 dark:bg-red-950/40 sm:grid-cols-2">
             <FormRow label="Senders Name:" required>
               <div className="flex gap-2">
                 <input
@@ -509,7 +510,7 @@ export default function TransactionSendPanel() {
           <div className="bg-red-600 px-6 py-3">
             <h2 className="text-sm font-bold uppercase text-white">Security Information</h2>
           </div>
-          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-red-50 p-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-red-50 p-6 dark:bg-red-950/40 sm:grid-cols-2">
             <FormRow label="My Number:">
               <input value={security.myNumber} onChange={(event) => updateSecurity("myNumber", event.target.value)} className={inputClass} />
             </FormRow>
@@ -550,7 +551,7 @@ export default function TransactionSendPanel() {
           <div className="border-b border-border px-6 py-3">
             <h2 className="text-sm font-bold uppercase text-heading">Beneficiary Detail</h2>
           </div>
-          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-blue-50 p-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-blue-50 p-6 dark:bg-blue-950/40 sm:grid-cols-2">
             <FormRow label="Choose Receiver:">
               <Select
                 value={beneficiary.chooseReceiver}
@@ -593,9 +594,9 @@ export default function TransactionSendPanel() {
             <FormRow label="Payout Partner/Bank:">
               <div className="flex gap-2">
                 <Select value={beneficiary.payoutPartnerBank} onChange={(v) => updateBeneficiary("payoutPartnerBank", v)} options={payoutPartnerBankOptions} />
-                <button className="whitespace-nowrap rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-heading/80 hover:bg-border">
+                <Button variant="ghost" size="sm" className="whitespace-nowrap">
                   Branch
-                </button>
+                </Button>
               </div>
             </FormRow>
 
@@ -622,7 +623,7 @@ export default function TransactionSendPanel() {
           <h2 className="text-sm font-bold uppercase text-heading">Transaction Detail</h2>
         </div>
 
-        <div className="space-y-4 bg-green-50 p-6">
+        <div className="space-y-4 bg-green-50 p-6 dark:bg-green-950/40">
           <div className="flex flex-wrap items-center gap-6">
             <span className="text-xs font-semibold uppercase text-heading/70">Amount Collect From Remitter:</span>
             {collectMethodOptions.map((option) => (
@@ -732,29 +733,26 @@ export default function TransactionSendPanel() {
           </FormRow>
 
           <div className="flex items-center gap-3 border-t border-border/60 pt-4">
-            <button
+            <Button
+              variant="ghost"
+              size="md"
               onClick={handleCalculate}
               disabled={Number(transferAmountLC) <= 0}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-4 py-2 text-sm font-semibold text-heading/80 hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
+              icon={<Calculator size={14} />}
             >
-              <Calculator size={14} />
               Calculate
-            </button>
-            <button
-              onClick={handleReset}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-4 py-2 text-sm font-semibold text-heading/80 hover:bg-border"
-            >
-              <X size={14} />
+            </Button>
+            <Button variant="ghost" size="md" onClick={handleReset} icon={<X size={14} />}>
               Reset
-            </button>
-            <button
+            </Button>
+            <Button
+              size="md"
               onClick={() => setStep("done")}
               disabled={!transactionValid}
-              className="flex items-center gap-1 rounded-lg bg-heading px-4 py-2 text-sm font-semibold text-white hover:bg-heading/90 disabled:cursor-not-allowed disabled:opacity-40"
+              icon={<ChevronRight size={16} />}
             >
-              <ChevronRight size={16} />
               Continue
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -773,7 +771,10 @@ export default function TransactionSendPanel() {
           Transaction created: {remitter.firstName} {remitter.lastName} → {beneficiary.firstName}{" "}
           {beneficiary.lastName} for {formatAmount(receiveAmount)} via {partnerId}.
         </p>
-        <button
+        <Button
+          variant="ghost"
+          size="md"
+          className="mt-4"
           onClick={() => {
             setStep("partner");
             setRemitter(emptyRemitter);
@@ -781,10 +782,9 @@ export default function TransactionSendPanel() {
             setBeneficiary(emptyBeneficiary);
             handleReset();
           }}
-          className="mt-4 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-heading/80 hover:bg-border"
         >
           Start New Transaction
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -807,14 +807,9 @@ function StepButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="flex items-center gap-1 rounded-lg bg-heading px-4 py-2 text-sm font-semibold text-white hover:bg-heading/90 disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      <ChevronRight size={16} />
+    <Button size="md" onClick={onClick} disabled={disabled} icon={<ChevronRight size={16} />}>
       {children}
-    </button>
+    </Button>
   );
 }
 

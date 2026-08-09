@@ -21,7 +21,26 @@ const CLOSE_DELAY_MS = 150;
 const FLYOUT_WIDTH = 256; // px, matches w-64
 const COLLAPSED_STORAGE_KEY = "zio-sidebar-collapsed";
 
-type FlyoutPosition = { top: number; left: number };
+// Anchored from the top for rows in the upper/middle of the sidebar; anchored
+// from the bottom (opening upward) for rows near the bottom of the viewport,
+// so a tall submenu list doesn't run off the bottom of the screen.
+type FlyoutPosition = { left: number } & ({ top: number; bottom?: never } | { bottom: number; top?: never });
+
+function anchorPosition(rect: DOMRect, left: number): FlyoutPosition {
+  const viewportHeight = typeof window !== "undefined" ? window.innerHeight : 0;
+  if (rect.top > viewportHeight * 0.6) {
+    return { left, bottom: Math.max(viewportHeight - rect.bottom, 8) };
+  }
+  return { left, top: Math.min(rect.top, viewportHeight - 24) };
+}
+
+function positionStyle(position: FlyoutPosition): React.CSSProperties {
+  return {
+    left: position.left,
+    width: FLYOUT_WIDTH,
+    ...(position.top !== undefined ? { top: position.top } : { bottom: position.bottom }),
+  };
+}
 
 function NavRow({
   item,
@@ -59,7 +78,7 @@ function NavRow({
     if (!rect) return;
     // Collapsed rows are narrower — anchor flush to the icon rail's edge
     // instead of the (unused) label's would-be right edge.
-    onOpen(item.label, { top: rect.top, left: rect.right + (collapsed ? 4 : 8) });
+    onOpen(item.label, anchorPosition(rect, rect.right + (collapsed ? 4 : 8)));
   }
 
   function handleClick() {
@@ -140,12 +159,6 @@ function NavRow({
   );
 }
 
-// Clamp a flyout's top position so it stays on-screen when the anchoring row
-// is near the bottom of the viewport.
-function clampTop(top: number) {
-  return typeof window !== "undefined" ? Math.min(top, window.innerHeight - 24) : top;
-}
-
 function SubMenuRow({
   subItem,
   isOpen,
@@ -165,7 +178,7 @@ function SubMenuRow({
   function openWithPosition() {
     const rect = rowRef.current?.getBoundingClientRect();
     if (!rect) return;
-    onOpenNested(subItem.label, { top: rect.top, left: rect.right + 8 });
+    onOpenNested(subItem.label, anchorPosition(rect, rect.right + 8));
   }
 
   function handleClick() {
@@ -214,7 +227,7 @@ function NestedFlyout({
     <div
       onMouseEnter={onCancelClose}
       onMouseLeave={onScheduleClose}
-      style={{ top: clampTop(position.top), left: position.left, width: FLYOUT_WIDTH }}
+      style={positionStyle(position)}
       className="fixed z-50 rounded-xl border border-border bg-panel p-2 shadow-popover"
     >
       <p className="px-3 pb-2 pt-1 text-[11px] font-semibold tracking-wider text-muted">
@@ -295,7 +308,7 @@ function Flyout({
     <div
       onMouseEnter={onCancelClose}
       onMouseLeave={onScheduleClose}
-      style={{ top: clampTop(position.top), left: position.left, width: FLYOUT_WIDTH }}
+      style={positionStyle(position)}
       className="fixed z-50 rounded-xl border border-border bg-panel p-2 shadow-popover"
     >
       <p className="px-3 pb-2 pt-1 text-[11px] font-semibold tracking-wider text-muted">
@@ -665,7 +678,7 @@ export default function Sidebar({
       {/* Mobile drawer — slides in over the content, always fully expanded. */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-heading/40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
           onClick={onCloseMobile}
           aria-hidden="true"
         />

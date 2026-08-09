@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, MoreHorizontal } from "lucide-react";
+import Button from "./Button";
 import { auditRoleFilterOptions, functionNameOptions, searchAreaOptions } from "@/data/userManagementData";
 
 export default function AuditUserRightsPartnerPanel() {
@@ -73,13 +74,9 @@ export default function AuditUserRightsPartnerPanel() {
             </select>
           </FormRow>
 
-          <button
-            onClick={() => setSearched(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-semibold text-heading/80 hover:bg-border"
-          >
-            <Search size={14} />
+          <Button variant="ghost" size="md" onClick={() => setSearched(true)} icon={<Search size={14} />}>
             Search
-          </button>
+          </Button>
 
           {searched && (
             <p className="rounded-lg bg-surface px-4 py-2.5 text-xs text-muted">

@@ -7,7 +7,7 @@ import { useDataMode } from "@/contexts/DataModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import {
   emptyPartnerOfferRateInsertPayload,
   quoteTypeValues,
@@ -80,14 +80,15 @@ export default function PartnerOfferRatesPanel() {
               rates.
             </p>
           </div>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={refreshPartnerOfferRates}
             disabled={partnerOfferRatesLoading}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
+            icon={<RefreshCw size={13} className={partnerOfferRatesLoading ? "animate-spin" : undefined} />}
           >
-            <RefreshCw size={13} className={partnerOfferRatesLoading ? "animate-spin" : undefined} />
             Refresh
-          </button>
+          </Button>
         </div>
 
         <div className="bg-panel p-6 sm:p-8">
@@ -145,13 +146,14 @@ export default function PartnerOfferRatesPanel() {
                             >
                               Confirm
                             </button>
-                            <button
+                            <Button
+                              variant="secondary"
+                              size="sm"
                               onClick={() => handleCancel(entry.uniqueId)}
                               disabled={actioningId === entry.uniqueId}
-                              className="rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-semibold text-heading hover:bg-surface disabled:opacity-60"
                             >
                               Cancel
-                            </button>
+                            </Button>
                           </div>
                         ) : (
                           <span className="text-xs text-muted">—</span>
@@ -233,14 +235,9 @@ export default function PartnerOfferRatesPanel() {
           />
 
           <div className="sm:col-span-3 mt-2 border-t border-border pt-5">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-            >
-              {submitting && <Spinner className="h-4 w-4" />}
+            <Button type="submit" loading={submitting}>
               {submitting ? "Submitting..." : "Submit for Approval"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

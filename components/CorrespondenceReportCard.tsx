@@ -5,6 +5,7 @@ import SelectField from "./SelectField";
 import DateField from "./DateField";
 import RadioPill from "./RadioPill";
 import Checkbox from "./Checkbox";
+import Button from "./Button";
 import { useTabs } from "@/contexts/TabsContext";
 import {
   countryOptions,
@@ -96,15 +97,8 @@ export default function CorrespondenceReportCard() {
         </div>
 
         <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
-          <button
-            onClick={handleViewFullReport}
-            className="rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card transition-shadow hover:bg-brand-green-dark hover:shadow-card-hover"
-          >
-            View Full Report
-          </button>
-          <button className="rounded-full border border-border bg-panel px-8 py-2.5 text-sm font-semibold text-heading hover:bg-surface">
-            Reset
-          </button>
+          <Button onClick={handleViewFullReport}>View Full Report</Button>
+          <Button variant="secondary">Reset</Button>
         </div>
       </div>
     </div>

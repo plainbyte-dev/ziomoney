@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import RadioPill from "./RadioPill";
 import Checkbox from "./Checkbox";
 import DateInput from "./DateInput";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import { useKyc } from "@/contexts/KycContext";
 import {
   contactCountryOptions,
@@ -261,13 +261,9 @@ export default function PersonalContactDetailsForm() {
               onChange={(event) => handleZipChange("zip2", event.target.value)}
               className={`${inputClass} w-24`}
             />
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-2 text-sm font-medium text-heading hover:bg-surface"
-            >
-              <Search size={14} />
+            <Button type="button" variant="secondary" size="md" icon={<Search size={14} />}>
               Search
-            </button>
+            </Button>
           </FieldRow>
 
           <FieldRow label="Prefecture">
@@ -318,14 +314,9 @@ export default function PersonalContactDetailsForm() {
               Customer details saved.
             </p>
           )}
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-          >
-            {saving && <Spinner className="h-4 w-4" />}
+          <Button type="submit" loading={saving}>
             {saving ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

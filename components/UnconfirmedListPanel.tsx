@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Eye } from "lucide-react";
+import Button from "./Button";
 import { agentFilterOptions, unconfirmedListRows } from "@/data/remittanceListsData";
 
 function todayIso() {
@@ -77,10 +78,9 @@ export default function UnconfirmedListPanel() {
             />
           </label>
 
-          <button className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-1.5 text-sm font-semibold text-heading/80 hover:bg-border">
-            <Eye size={14} />
+          <Button variant="ghost" size="md" icon={<Eye size={14} />}>
             View
-          </button>
+          </Button>
         </div>
 
         <div className="mt-4 overflow-x-auto rounded-xl border border-border">

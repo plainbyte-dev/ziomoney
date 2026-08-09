@@ -1,6 +1,7 @@
 "use client";
 
 import { X, Download } from "lucide-react";
+import Button from "./Button";
 import { formatAmount } from "@/lib/format";
 import { downloadHtmlTableAsExcel } from "@/lib/exportExcel";
 import { forexCompanyHeader, type SoaReportDetail } from "@/data/statementOfAccountReportData";
@@ -79,7 +80,7 @@ export default function StatementOfAccountReportModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-heading/40 px-4 py-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
       <div className="flex max-h-full w-full max-w-4xl flex-col rounded-2xl bg-panel shadow-card">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <p className="text-sm font-semibold text-heading">Statement of Account</p>
@@ -228,19 +229,10 @@ export default function StatementOfAccountReportModal({
         </div>
 
         <div className="flex justify-end gap-3 border-t border-border px-6 py-4">
-          <button
-            onClick={handleExport}
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-panel px-6 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
-          >
-            <Download size={16} />
+          <Button variant="secondary" icon={<Download size={16} />} onClick={handleExport}>
             Export to Excel
-          </button>
-          <button
-            onClick={onClose}
-            className="rounded-full bg-brand-green px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-dark"
-          >
-            Close
-          </button>
+          </Button>
+          <Button onClick={onClose}>Close</Button>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { Fragment, useState } from "react";
 import { Plus, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { roleRecords } from "@/data/userManagementData";
+import Button from "./Button";
 import { buildSidebarPrivilegeTree, allPrivilegeIds, type PrivilegeNode } from "@/lib/sidebarPrivileges";
 
 const privilegeTree = buildSidebarPrivilegeTree();
@@ -126,21 +127,18 @@ export default function ManageRolesPanel() {
         </div>
 
         <div className="mt-4 flex items-center gap-3">
-          <button
-            onClick={handleNew}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-1.5 text-sm font-semibold text-heading/80 hover:bg-border"
-          >
-            <Plus size={14} />
+          <Button variant="ghost" size="md" onClick={handleNew} icon={<Plus size={14} />}>
             New
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
             onClick={handleDelete}
             disabled={selected.size === 0}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-1.5 text-sm font-semibold text-heading/80 hover:bg-border disabled:cursor-not-allowed disabled:opacity-50"
+            icon={<Trash2 size={14} />}
           >
-            <Trash2 size={14} />
             Delete
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -167,15 +165,15 @@ function PrivilegeEditor({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-heading">Sidebar access for &ldquo;{roleName}&rdquo;</p>
         <div className="flex items-center gap-2">
-          <button onClick={onSelectAll} className="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-heading/70 hover:bg-border">
+          <Button variant="ghost" size="sm" onClick={onSelectAll}>
             Select All
-          </button>
-          <button onClick={onClearAll} className="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-heading/70 hover:bg-border">
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClearAll}>
             Clear All
-          </button>
-          <button onClick={onClose} className="rounded-lg bg-heading px-3 py-1 text-xs font-semibold text-white hover:bg-heading/90">
+          </Button>
+          <Button size="sm" onClick={onClose}>
             Done
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import DateField from "./DateField";
 import SelectField from "./SelectField";
+import Button from "./Button";
 import { auditLogEntries, logPanelOptions } from "@/data/securityData";
 import { reportDefaults } from "@/data/staticData";
 
@@ -69,13 +70,9 @@ export default function AuditTranLogPanel() {
           </div>
 
           <div className="mt-6 flex justify-end border-t border-border pt-5">
-            <button
-              onClick={handleFind}
-              className="flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card transition-shadow hover:bg-brand-green-dark hover:shadow-card-hover"
-            >
-              <Search size={16} />
+            <Button onClick={handleFind} icon={<Search size={16} />}>
               Find Transaction
-            </button>
+            </Button>
           </div>
         </div>
 

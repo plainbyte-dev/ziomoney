@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import type { LedgerEntry } from "@/data/ledgerData";
+import Button from "./Button";
 
 export default function LedgerDetailModal({
   entry,
@@ -13,7 +14,7 @@ export default function LedgerDetailModal({
   if (!entry) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-heading/40 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-panel p-6 shadow-card">
         <div className="flex items-start justify-between">
           <div>
@@ -43,12 +44,7 @@ export default function LedgerDetailModal({
         </div>
 
         <div className="mt-6 flex justify-end">
-          <button
-            onClick={onClose}
-            className="rounded-full bg-brand-green px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-dark"
-          >
-            Close
-          </button>
+          <Button onClick={onClose}>Close</Button>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { Plus, Trash2, UserPlus } from "lucide-react";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import Button from "./Button";
 import Spinner from "./Spinner";
 import {
   beneficiaryRecords,
@@ -161,14 +162,9 @@ export default function BeneficiariesPanel() {
             {saveError && (
               <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
             )}
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-            >
-              {saving ? <Spinner className="h-3.5 w-3.5" /> : <Plus size={15} />}
+            <Button type="submit" loading={saving} icon={<Plus size={15} />}>
               {saving ? "Adding..." : "Add Beneficiary"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

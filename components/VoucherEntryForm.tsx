@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import RadioPill from "./RadioPill";
 import DateInput from "./DateInput";
+import Button from "./Button";
 import { formatAmount } from "@/lib/format";
 import {
   voucherLedgerOptions,
@@ -217,23 +218,19 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
         </div>
 
         <div className="mt-5 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleAdd}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-4 py-2 text-sm font-medium text-heading hover:bg-surface"
-          >
-            <Plus size={15} />
+          <Button type="button" variant="secondary" size="md" onClick={handleAdd} icon={<Plus size={15} />}>
             Add
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
             onClick={handleRemove}
             disabled={!selectedLineId}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-4 py-2 text-sm font-medium text-heading hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+            icon={<Trash2 size={15} />}
           >
-            <Trash2 size={15} />
             Remove
-          </button>
+          </Button>
         </div>
 
         <div className="mt-3 min-h-[120px] overflow-x-auto rounded-xl border border-border">
@@ -317,21 +314,12 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
         </div>
 
         <div className="mt-5 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={lines.length === 0}
-            className="rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:cursor-not-allowed disabled:opacity-50"
-          >
+          <Button type="button" onClick={handleSave} disabled={lines.length === 0}>
             Save
-          </button>
-          <button
-            type="button"
-            onClick={handleClear}
-            className="rounded-full border border-border bg-panel px-8 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
-          >
+          </Button>
+          <Button type="button" variant="secondary" onClick={handleClear}>
             Clear
-          </button>
+          </Button>
         </div>
       </div>
     </div>

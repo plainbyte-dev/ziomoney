@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Plus, Trash2, FileBarChart2, RefreshCw } from "lucide-react";
 import Logo from "./Logo";
+import Button from "./Button";
 import PartnerInfoTable from "./PartnerInfoTable";
 import { usePartners } from "@/contexts/PartnersContext";
 import { useTabs } from "@/contexts/TabsContext";
@@ -48,33 +49,31 @@ export default function PartnerInfoPanel() {
         )}
 
         <div className="flex flex-wrap items-center justify-end gap-3">
-          <button
+          <Button
+            variant="secondary"
             onClick={refreshEntries}
             disabled={entriesLoading}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel px-5 py-2.5 text-sm font-semibold text-heading hover:bg-surface disabled:opacity-60"
+            icon={<RefreshCw size={16} className={entriesLoading ? "animate-spin" : undefined} />}
           >
-            <RefreshCw size={16} className={entriesLoading ? "animate-spin" : undefined} />
             Refresh
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() => openTab({ key: "partner-create", title: "New Partner" })}
-            className="inline-flex items-center gap-1.5 rounded-full bg-brand-green px-5 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark"
+            icon={<Plus size={16} />}
           >
-            <Plus size={16} />
             New
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
             onClick={handleDelete}
             disabled={!selectedId}
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel px-5 py-2.5 text-sm font-semibold text-heading hover:bg-surface disabled:cursor-not-allowed disabled:opacity-40"
+            icon={<Trash2 size={16} />}
           >
-            <Trash2 size={16} />
             Delete
-          </button>
-          <button className="inline-flex items-center gap-1.5 rounded-full border border-border bg-panel px-5 py-2.5 text-sm font-semibold text-heading hover:bg-surface">
-            <FileBarChart2 size={16} />
+          </Button>
+          <Button variant="secondary" icon={<FileBarChart2 size={16} />}>
             Reports
-          </button>
+          </Button>
         </div>
 
         <div className="mt-4">

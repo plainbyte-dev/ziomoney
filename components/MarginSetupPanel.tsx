@@ -5,7 +5,7 @@ import { useRates } from "@/contexts/RatesContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import {
   emptyMarginPayload,
   marginStatusValues,
@@ -160,14 +160,9 @@ export default function MarginSetupPanel() {
             {saveError && (
               <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
             )}
-            <button
-              type="submit"
-              disabled={saving}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-            >
-              {saving && <Spinner className="h-4 w-4" />}
+            <Button type="submit" loading={saving}>
               {saving ? "Saving..." : "Save Margin"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

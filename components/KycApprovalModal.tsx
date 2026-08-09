@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import RadioPill from "./RadioPill";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import { agentOptions, branchOptions, kycModeOptions, type KycMode } from "@/data/corporateCustomerData";
 import type { KycApprovalFields, KycRecord } from "@/data/kycData";
 
@@ -44,7 +44,7 @@ export default function KycApprovalModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-heading/40 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-panel p-6 shadow-card">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-green-light text-brand-green-dark">
           <ShieldCheck size={20} />
@@ -123,21 +123,12 @@ export default function KycApprovalModal({
           )}
 
           <div className="mt-1 flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-full border border-border bg-panel px-6 py-2.5 text-sm font-semibold text-heading hover:bg-surface"
-            >
+            <Button type="button" variant="secondary" onClick={onCancel}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-green-dark disabled:opacity-70"
-            >
-              {submitting && <Spinner className="h-4 w-4" />}
+            </Button>
+            <Button type="submit" loading={submitting}>
               {submitting ? "Submitting..." : isCompliance ? "Compliance Approve" : "Approve"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

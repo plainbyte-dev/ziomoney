@@ -1,6 +1,7 @@
 "use client";
 
 import { SquarePen } from "lucide-react";
+import Button from "./Button";
 import type { CreditLimitEntry } from "@/data/creditLimitData";
 import { getTotalLimit, getAvailableLimit } from "@/data/creditLimitData";
 import { formatAmount, formatAccounting } from "@/lib/format";
@@ -73,19 +74,17 @@ export default function CreditLimitTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-2">
-                    <button
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       onClick={() => onUpdate(entry)}
-                      className="flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm font-medium text-heading hover:bg-surface"
+                      icon={<SquarePen size={14} />}
                     >
-                      <SquarePen size={14} />
                       Update
-                    </button>
-                    <button
-                      onClick={() => onViewLog(entry)}
-                      className="rounded-lg border border-border bg-panel px-3 py-1.5 text-sm font-medium text-heading hover:bg-surface"
-                    >
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => onViewLog(entry)}>
                       Log
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>

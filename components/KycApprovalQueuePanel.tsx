@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import KycQueueTable from "./KycQueueTable";
 import KycApprovalModal from "./KycApprovalModal";
+import Button from "./Button";
 import { useKyc } from "@/contexts/KycContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import type { KycApprovalFields, KycRecord } from "@/data/kycData";
@@ -50,14 +51,15 @@ export default function KycApprovalQueuePanel() {
             customer KYCs.
           </p>
         </div>
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={refreshLists}
           disabled={listsLoading}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-3 py-1.5 text-xs font-medium text-heading/80 hover:bg-surface disabled:opacity-60"
+          icon={<RefreshCw size={13} className={listsLoading ? "animate-spin" : undefined} />}
         >
-          <RefreshCw size={13} className={listsLoading ? "animate-spin" : undefined} />
           Refresh
-        </button>
+        </Button>
       </div>
 
       <div className="flex flex-col gap-6 bg-panel p-6 sm:p-8">

@@ -4,6 +4,7 @@ import { Check, Trash2 } from "lucide-react";
 import { formatAmount } from "@/lib/format";
 import { voucherCompany, type VoucherLogEntry } from "@/data/voucherEntryData";
 import Logo from "./Logo";
+import Button from "./Button";
 
 interface VoucherApprovalTableProps {
   entries: VoucherLogEntry[];
@@ -117,24 +118,25 @@ export default function VoucherApprovalTable({
       </div>
 
       <div className="flex items-center gap-3 border-t border-border bg-panel px-6 py-4">
-        <button
+        <Button
           type="button"
+          size="md"
           onClick={() => selected && onApprove(selected.id)}
           disabled={!selected || selected.status === "Approved"}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-brand-green px-5 py-2 text-sm font-semibold text-white hover:bg-brand-green-dark disabled:cursor-not-allowed disabled:opacity-50"
+          icon={<Check size={15} />}
         >
-          <Check size={15} />
           Approve
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="md"
           onClick={() => selected && onRemove(selected.id)}
           disabled={!selected}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-panel px-5 py-2 text-sm font-medium text-heading hover:bg-surface disabled:cursor-not-allowed disabled:opacity-50"
+          icon={<Trash2 size={15} />}
         >
-          <Trash2 size={15} />
           Remove
-        </button>
+        </Button>
       </div>
     </div>
   );

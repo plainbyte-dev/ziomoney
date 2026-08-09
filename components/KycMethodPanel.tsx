@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import RadioPill from "./RadioPill";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import {
   kycStatusOptions,
   kycModeOptions,
@@ -122,15 +122,9 @@ export default function KycMethodPanel({ remarks, onRemarksChange }: KycMethodPa
       </div>
 
       <div className="border-t border-border bg-panel px-6 py-4 sm:px-8">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-        >
-          {saving && <Spinner className="h-4 w-4" />}
+        <Button type="button" onClick={handleSave} loading={saving}>
           {saving ? "Saving..." : "Save"}
-        </button>
+        </Button>
       </div>
     </div>
   );

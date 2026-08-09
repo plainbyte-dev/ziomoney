@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
-import Spinner from "./Spinner";
+import Button from "./Button";
 import {
   transactionRecords,
   type RemittanceTransactionRecord,
@@ -173,14 +173,9 @@ export default function TransactionQueryPanel() {
             {searchError && (
               <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{searchError}</p>
             )}
-            <button
-              type="submit"
-              disabled={searching}
-              className="inline-flex items-center gap-2 rounded-full bg-brand-green px-8 py-2.5 text-sm font-semibold text-white shadow-card hover:bg-brand-green-dark disabled:opacity-70"
-            >
-              {searching ? <Spinner className="h-4 w-4" /> : <Search size={15} />}
+            <Button type="submit" loading={searching} icon={<Search size={15} />}>
               {searching ? "Searching..." : "Search"}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
