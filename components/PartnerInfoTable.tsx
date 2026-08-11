@@ -1,6 +1,6 @@
 "use client";
 
-import { formatAccounting } from "@/lib/format";
+import { formatAccounting, formatDate } from "@/lib/format";
 import { partnerCountryOptions, type PartnerEntry } from "@/data/partnerData";
 
 interface PartnerInfoTableProps {
@@ -11,6 +11,8 @@ interface PartnerInfoTableProps {
   onSelect: (id: string) => void;
 }
 
+const COLUMN_COUNT = 15;
+
 export default function PartnerInfoTable({
   entries,
   countryFilter,
@@ -20,20 +22,23 @@ export default function PartnerInfoTable({
 }: PartnerInfoTableProps) {
   return (
     <div className="overflow-x-auto rounded-xl border border-border">
-      <table className="w-full min-w-[1200px] text-left text-sm">
+      <table className="w-full min-w-[1600px] text-left text-sm">
         <thead>
           <tr className="border-b border-border bg-brand-green-light/50 text-xs font-semibold uppercase tracking-wide text-heading/70">
             <th className="px-4 py-3">ID</th>
             <th className="px-4 py-3">Partner Name</th>
             <th className="px-4 py-3">Partner ID</th>
             <th className="px-4 py-3">Country</th>
-            <th className="px-4 py-3">Agent Function</th>
+            <th className="px-4 py-3">Description</th>
+            <th className="px-4 py-3">Partner Address</th>
             <th className="px-4 py-3">Partner Type</th>
+            <th className="px-4 py-3">Settlement Currency</th>
+            <th className="px-4 py-3">API User</th>
+            <th className="px-4 py-3 text-right">Settled Balance</th>
             <th className="px-4 py-3 text-right">Credit Limit</th>
-            <th className="px-4 py-3">Corridor</th>
             <th className="px-4 py-3">Banks</th>
-            <th className="px-4 py-3">Branch Detail</th>
-            <th className="px-4 py-3">Summary</th>
+            <th className="px-4 py-3">Registered</th>
+            <th className="px-4 py-3">Updated</th>
             <th className="px-4 py-3">Delete</th>
           </tr>
           <tr className="border-b border-border bg-panel text-xs normal-case tracking-normal text-heading/70">
@@ -53,7 +58,7 @@ export default function PartnerInfoTable({
                 </select>
               </div>
             </th>
-            <th colSpan={10} />
+            <th colSpan={COLUMN_COUNT - 2} />
           </tr>
         </thead>
         <tbody>
@@ -74,25 +79,28 @@ export default function PartnerInfoTable({
               </td>
               <td className="px-4 py-3 text-heading/80">{entry.partnerId}</td>
               <td className="px-4 py-3 text-heading/80">{entry.country}</td>
-              <td className="px-4 py-3">
-                <span className="font-medium text-brand-blue">Agent Function</span>
+              <td className="max-w-[200px] truncate px-4 py-3 text-heading/80" title={entry.description}>
+                {entry.description || ""}
+              </td>
+              <td className="max-w-[200px] truncate px-4 py-3 text-heading/80" title={entry.partnerAddress}>
+                {entry.partnerAddress || ""}
               </td>
               <td className="px-4 py-3 text-heading/80">{entry.partnerType}</td>
+              <td className="px-4 py-3 text-heading/80">{entry.settlementCurrency || ""}</td>
+              <td className="px-4 py-3 text-heading/80">
+                {entry.apiUser === undefined ? "" : entry.apiUser ? "Yes" : "No"}
+              </td>
+              <td className="px-4 py-3 text-right text-heading/80">
+                {entry.balance === undefined ? "" : formatAccounting(entry.balance)}
+              </td>
               <td className="px-4 py-3 text-right text-heading/80">
                 {entry.creditLimit === null ? "" : formatAccounting(entry.creditLimit)}
               </td>
               <td className="px-4 py-3">
-                <span className="font-medium text-brand-blue">Corridor</span>
-              </td>
-              <td className="px-4 py-3">
                 {entry.hasBank && <span className="font-medium text-brand-blue">Bank</span>}
               </td>
-              <td className="px-4 py-3">
-                <span className="font-medium text-brand-blue">Detail</span>
-              </td>
-              <td className="px-4 py-3">
-                <span className="font-medium text-brand-blue">View Summary</span>
-              </td>
+              <td className="px-4 py-3 text-heading/80">{formatDate(entry.registeredDate)}</td>
+              <td className="px-4 py-3 text-heading/80">{formatDate(entry.updatedDate)}</td>
               <td className="px-4 py-3">
                 <input
                   type="radio"
@@ -113,7 +121,7 @@ export default function PartnerInfoTable({
 
           {entries.length === 0 && (
             <tr>
-              <td colSpan={12} className="px-4 py-10 text-center text-sm text-muted">
+              <td colSpan={COLUMN_COUNT} className="px-4 py-10 text-center text-sm text-muted">
                 No partners match the selected country.
               </td>
             </tr>

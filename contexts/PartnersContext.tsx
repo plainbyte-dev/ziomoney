@@ -14,6 +14,7 @@ interface PartnersContextValue {
   refreshEntries: () => Promise<void>;
   addEntry: (entry: PartnerEntry) => void;
   removeEntry: (id: string) => void;
+  updateEntry: (id: string, patch: Partial<PartnerEntry>) => void;
 }
 
 const STORAGE_KEY = "zio-partners-state";
@@ -32,6 +33,15 @@ function mapPartnerRecord(record: RemittancePartnerRecord): PartnerEntry {
     creditLimit: record.accountBalance,
     hasBank: false,
     blocked: false,
+    email: record.email,
+    acceptPartnerPin: record.acceptPartnerPin,
+    description: record.description,
+    partnerAddress: record.partnerAddress,
+    settlementCurrency: record.settlementCurrency,
+    apiUser: record.apiUser,
+    balance: record.balance,
+    registeredDate: record.registeredDate,
+    updatedDate: record.updatedDate,
   };
 }
 
@@ -110,9 +120,13 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
     [notify]
   );
 
+  const updateEntry = useCallback((id: string, patch: Partial<PartnerEntry>) => {
+    setEntries((prev) => prev.map((entry) => (entry.id === id ? { ...entry, ...patch } : entry)));
+  }, []);
+
   const value = useMemo(
-    () => ({ entries, entriesLoading, entriesError, refreshEntries, addEntry, removeEntry }),
-    [entries, entriesLoading, entriesError, refreshEntries, addEntry, removeEntry]
+    () => ({ entries, entriesLoading, entriesError, refreshEntries, addEntry, removeEntry, updateEntry }),
+    [entries, entriesLoading, entriesError, refreshEntries, addEntry, removeEntry, updateEntry]
   );
 
   return <PartnersContext.Provider value={value}>{children}</PartnersContext.Provider>;

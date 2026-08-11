@@ -6,6 +6,12 @@ import { highRiskManagementRows, riskBands, type HighRiskManagementRow } from "@
 import { useTabs } from "@/contexts/TabsContext";
 import { tabRegistry } from "@/data/tabRegistry";
 
+const riskBandClasses: Record<string, string> = {
+  Low: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300",
+  Medium: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+  High: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300",
+};
+
 const actionLabels: Record<HighRiskManagementRow["action"], string> = {
   update: "Update",
   "country-risk": "Update Your Country Risk",
@@ -148,7 +154,7 @@ export default function HighRiskManagementPanel() {
           {riskBands.map((band) => (
             <div
               key={band.label}
-              className="flex-1 rounded-lg border border-red-300 px-4 py-2 text-center text-sm font-semibold text-red-600"
+              className={`flex-1 rounded-lg border px-4 py-2 text-center text-sm font-semibold ${riskBandClasses[band.label] ?? riskBandClasses.High}`}
             >
               {band.label}: {band.range}
             </div>

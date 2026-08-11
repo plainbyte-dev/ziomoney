@@ -13,6 +13,10 @@ export interface ServiceChargeRecord extends ServiceChargeUpsertPayload {
   updatedDate: string;
 }
 
+// UNCONFIRMED with backend — deliveryOption has no enum in the schema (it's
+// a plain string). These three values are an educated guess based on the
+// payout-channel pattern used elsewhere in this API (allowCash /
+// allowAccountCredit), not a confirmed set. Do not treat this as final.
 export const deliveryOptionValues = ["Cash Pickup", "Bank Deposit", "Mobile Wallet"];
 
 export function emptyServiceChargePayload(): ServiceChargeUpsertPayload {

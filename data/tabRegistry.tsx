@@ -10,6 +10,9 @@ import VoucherEntryPanel from "@/components/VoucherEntryPanel";
 import VoucherApprovalPanel from "@/components/VoucherApprovalPanel";
 import PartnerInfoPanel from "@/components/PartnerInfoPanel";
 import CreatePartnerForm from "@/components/CreatePartnerForm";
+import PartnerBalanceCreditPanel from "@/components/PartnerBalanceCreditPanel";
+import PayoutConfigurationPanel from "@/components/PayoutConfigurationPanel";
+import PayoutBanksPanel from "@/components/PayoutBanksPanel";
 import CorporateCustomerPanel from "@/components/CorporateCustomerPanel";
 import CustomerDetailsPanel from "@/components/CustomerDetailsPanel";
 import KycApprovalQueuePanel from "@/components/KycApprovalQueuePanel";
@@ -18,9 +21,13 @@ import ExchangeRatesPanel from "@/components/ExchangeRatesPanel";
 import ServiceChargesPanel from "@/components/ServiceChargesPanel";
 import MarginSetupPanel from "@/components/MarginSetupPanel";
 import CountryCurrencyPanel from "@/components/CountryCurrencyPanel";
-import PartnerOfferRatesPanel from "@/components/PartnerOfferRatesPanel";
+import PartnerOfferRatePropose from "@/components/PartnerOfferRatePropose";
+import PartnerOfferRateApprovals from "@/components/PartnerOfferRateApprovals";
+import PartnerOfferRateCurrent from "@/components/PartnerOfferRateCurrent";
+import PartnerOfferRateHistory from "@/components/PartnerOfferRateHistory";
 import PartnerCommissionPanel from "@/components/PartnerCommissionPanel";
 import TransactionQueryPanel from "@/components/TransactionQueryPanel";
+import ComplianceTxnHoldsPanel from "@/components/ComplianceTxnHoldsPanel";
 import BeneficiariesPanel from "@/components/BeneficiariesPanel";
 import DailyReportPanel from "@/components/DailyReportPanel";
 import SummaryReportPanel from "@/components/SummaryReportPanel";
@@ -37,9 +44,13 @@ import CustomerVisaTypeRiskPanel from "@/components/CustomerVisaTypeRiskPanel";
 import ComplianceRangeRiskPanel from "@/components/ComplianceRangeRiskPanel";
 import AgeGroupRiskPanel from "@/components/AgeGroupRiskPanel";
 import HighRiskBranchesPanel from "@/components/HighRiskBranchesPanel";
+import ComplianceRulesSetupPanel from "@/components/ComplianceRulesSetupPanel";
+import ComplianceRuleValuesPanel from "@/components/ComplianceRuleValuesPanel";
+import AgentFileUploadPanel from "@/components/AgentFileUploadPanel";
 import TransactionFrequencyPanel from "@/components/TransactionFrequencyPanel";
 import TransactionSendPanel from "@/components/TransactionSendPanel";
 import UnconfirmedListPanel from "@/components/UnconfirmedListPanel";
+import UnconfirmedListPartnerApiPanel from "@/components/UnconfirmedListPartnerApiPanel";
 import UnpaidTransactionsPanel from "@/components/UnpaidTransactionsPanel";
 import PendingTransactionPanel from "@/components/PendingTransactionPanel";
 import AuditUserRightsPartnerPanel from "@/components/AuditUserRightsPartnerPanel";
@@ -140,6 +151,33 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     ],
     component: CreatePartnerForm,
   },
+  "partner-balance-credit": {
+    title: "Balance & Credit Adjustments",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Partners", href: "#" },
+      { label: "Balance & Credit Adjustments", href: "#", active: true },
+    ],
+    component: PartnerBalanceCreditPanel,
+  },
+  "payout-configuration": {
+    title: "Payout Configuration",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Partners", href: "#" },
+      { label: "Payout Configuration", href: "#", active: true },
+    ],
+    component: PayoutConfigurationPanel,
+  },
+  "payout-banks": {
+    title: "Payout Banks",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Partners", href: "#" },
+      { label: "Payout Banks", href: "#", active: true },
+    ],
+    component: PayoutBanksPanel,
+  },
   "corporate-customer": {
     title: "Corporate Customer",
     breadcrumb: [
@@ -221,14 +259,45 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     ],
     component: CountryCurrencyPanel,
   },
-  "partner-offer-rates": {
-    title: "Partner Offer Rates",
+  "partner-offer-rates-propose": {
+    title: "Propose Offer Rate",
     breadcrumb: [
       { label: "Home", href: "#" },
       { label: "Exchange Rate & Commission", href: "#" },
-      { label: "Partner Offer Rates", href: "#", active: true },
+      { label: "Partner Offer Rates", href: "#" },
+      { label: "Propose", href: "#", active: true },
     ],
-    component: PartnerOfferRatesPanel,
+    component: PartnerOfferRatePropose,
+  },
+  "partner-offer-rates-approvals": {
+    title: "Offer Rate Approvals",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Partner Offer Rates", href: "#" },
+      { label: "Approvals", href: "#", active: true },
+    ],
+    component: PartnerOfferRateApprovals,
+  },
+  "partner-offer-rates-current": {
+    title: "Current Offer Rate",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Partner Offer Rates", href: "#" },
+      { label: "Current", href: "#", active: true },
+    ],
+    component: PartnerOfferRateCurrent,
+  },
+  "partner-offer-rates-history": {
+    title: "Offer Rate History",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Partner Offer Rates", href: "#" },
+      { label: "History", href: "#", active: true },
+    ],
+    component: PartnerOfferRateHistory,
   },
   "partner-commission": {
     title: "Partner Commission",
@@ -256,6 +325,16 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
       { label: "Transaction Query", href: "#", active: true },
     ],
     component: TransactionQueryPanel,
+  },
+  "agent-file-upload": {
+    title: "Upload Files",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Agent", href: "#" },
+      { label: "Upload Files", href: "#", active: true },
+    ],
+    closable: true,
+    component: AgentFileUploadPanel,
   },
   "daily-report": {
     title: "Daily Report",
@@ -409,6 +488,36 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     closable: true,
     component: AgeGroupRiskPanel,
   },
+  "compliance-rules-setup": {
+    title: "Compliance Rules Setup",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Compliance Rules Setup", href: "#", active: true },
+    ],
+    closable: true,
+    component: ComplianceRulesSetupPanel,
+  },
+  "compliance-rule-values": {
+    title: "Compliance Rule Values",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Compliance Rule Values", href: "#", active: true },
+    ],
+    closable: true,
+    component: ComplianceRuleValuesPanel,
+  },
+  "compliance-txn-holds": {
+    title: "Transaction Compliance Holds",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Compliance", href: "#" },
+      { label: "Transaction Compliance Holds", href: "#", active: true },
+    ],
+    closable: true,
+    component: ComplianceTxnHoldsPanel,
+  },
   "high-risk-branches": {
     title: "High Risk Branches",
     breadcrumb: [
@@ -452,6 +561,16 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     ],
     closable: true,
     component: UnconfirmedListPanel,
+  },
+  "unconfirmed-list-partner-api": {
+    title: "Un-Confirmed List (Partner API)",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Remittances", href: "#" },
+      { label: "Un-Confirmed List (Partner API)", href: "#", active: true },
+    ],
+    closable: true,
+    component: UnconfirmedListPartnerApiPanel,
   },
   "unpaid-transactions": {
     title: "Unpaid Transactions",

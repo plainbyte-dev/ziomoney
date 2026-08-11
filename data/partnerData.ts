@@ -38,6 +38,21 @@ export type PartnerEntry = {
   creditLimit: number | null;
   hasBank: boolean;
   blocked: boolean;
+  // Populated once known — either from the insert/lookup response (live) or
+  // left undefined for the static demo rows.
+  email?: string;
+  acceptPartnerPin?: boolean;
+  txnCurrencies?: string[];
+  description?: string;
+  partnerAddress?: string;
+  settlementCurrency?: string;
+  apiUser?: boolean;
+  // Settled balance — distinct from `creditLimit` (the virtual credit limit,
+  // i.e. the API's accountBalance). addActualBalance moves both;
+  // updateCreditLimit moves only the virtual one.
+  balance?: number;
+  registeredDate?: string;
+  updatedDate?: string;
 };
 
 export const partnerEntries: PartnerEntry[] = [

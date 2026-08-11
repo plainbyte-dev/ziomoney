@@ -3,17 +3,10 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
 import RadioPill from "./RadioPill";
-import Checkbox from "./Checkbox";
 import DateInput from "./DateInput";
 import Button from "./Button";
 import { useKyc } from "@/contexts/KycContext";
-import {
-  contactCountryOptions,
-  genderOptions,
-  nationalityOptions,
-  addressEntryMethodOptions,
-  type AddressEntryMethod,
-} from "@/data/customerDetailsData";
+import { genderOptions, nationalityOptions } from "@/data/customerDetailsData";
 
 const inputClass =
   "rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
@@ -39,13 +32,8 @@ function FieldRow({
 }
 
 export default function PersonalContactDetailsForm() {
-  const { record, updateField, saving, saveError, saveSuccess, saveCustomer } = useKyc();
+  const { record, updateField } = useKyc();
 
-  const [secondLastName, setSecondLastName] = useState(false);
-  const [receiveOffers, setReceiveOffers] = useState(false);
-  const [entryMethod, setEntryMethod] = useState<AddressEntryMethod>(
-    addressEntryMethodOptions[0]
-  );
   const [zip1, setZip1] = useState("");
   const [zip2, setZip2] = useState("");
 
@@ -57,18 +45,13 @@ export default function PersonalContactDetailsForm() {
     updateField("zipCode", nextZip2 ? `${nextZip1}-${nextZip2}` : nextZip1);
   }
 
-  function handleSave(event: React.FormEvent) {
-    event.preventDefault();
-    saveCustomer();
-  }
-
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
       <div className="border-b border-border px-6 py-4">
         <h1 className="text-lg font-bold text-heading">Personal Details</h1>
       </div>
 
-      <form onSubmit={handleSave} className="bg-panel p-6 sm:p-8">
+      <div className="bg-panel p-6 sm:p-8">
         <p className="border-b-2 border-brand-blue pb-2 text-base font-semibold text-heading/70">
           Personal Details
         </p>
@@ -119,37 +102,6 @@ export default function PersonalContactDetailsForm() {
             </div>
           </FieldRow>
 
-          <FieldRow label="">
-            <Checkbox
-              checked={secondLastName}
-              onToggle={() => setSecondLastName((v) => !v)}
-              label="If Second Last Name."
-            />
-          </FieldRow>
-
-          <FieldRow label="Alternate Name (in Kana)">
-            <input className={`${inputClass} flex-1`} />
-            <input className={`${inputClass} flex-1`} />
-            <input className={`${inputClass} flex-1`} />
-          </FieldRow>
-
-          <FieldRow label="Alternate Name (in Kanji)">
-            <input className={`${inputClass} flex-1`} />
-            <input className={`${inputClass} flex-1`} />
-          </FieldRow>
-
-          <FieldRow label="Smbc Card Number:">
-            <input className={`${inputClass} w-full`} />
-          </FieldRow>
-
-          <FieldRow label="Lawson Card Number">
-            <input className={`${inputClass} w-full`} />
-          </FieldRow>
-
-          <FieldRow label="Yucho Card Number">
-            <input className={`${inputClass} w-full`} />
-          </FieldRow>
-
           <FieldRow label="Gender">
             {genderOptions.map((option) => (
               <RadioPill
@@ -191,28 +143,6 @@ export default function PersonalContactDetailsForm() {
             />
           </FieldRow>
 
-          <FieldRow label="">
-            <Checkbox
-              checked={receiveOffers}
-              onToggle={() => setReceiveOffers((v) => !v)}
-              label="I want to receive emails about special offers and promotions."
-            />
-          </FieldRow>
-
-          <FieldRow label="Alternate Email">
-            <input type="email" className={`${inputClass} w-full`} />
-          </FieldRow>
-
-          <FieldRow label="Country">
-            <select defaultValue={contactCountryOptions[0]} className={`${inputClass} w-full`}>
-              {contactCountryOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </FieldRow>
-
           <FieldRow label="Telephone">
             <input
               value={record.telephoneNo}
@@ -236,19 +166,6 @@ export default function PersonalContactDetailsForm() {
         </p>
 
         <div className="mx-auto mt-5 flex max-w-3xl flex-col gap-4">
-          <FieldRow label="Select entry method">
-            <div className="flex flex-col gap-2">
-              {addressEntryMethodOptions.map((option) => (
-                <RadioPill
-                  key={option}
-                  label={option}
-                  checked={entryMethod === option}
-                  onSelect={() => setEntryMethod(option)}
-                />
-              ))}
-            </div>
-          </FieldRow>
-
           <FieldRow label="Zip Code" required>
             <input
               value={zip1}
@@ -297,28 +214,8 @@ export default function PersonalContactDetailsForm() {
               className={`${inputClass} w-full`}
             />
           </FieldRow>
-
-          <FieldRow label="Sender Address- Japanese">
-            <input disabled className={`${inputClass} w-full bg-surface text-muted`} />
-          </FieldRow>
         </div>
-
-        <div className="mt-6 border-t border-border pt-5">
-          {saveError && (
-            <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-              {saveError}
-            </p>
-          )}
-          {saveSuccess && !saveError && (
-            <p className="mb-3 rounded-lg bg-brand-green-light px-3 py-2 text-sm text-brand-green-dark">
-              Customer details saved.
-            </p>
-          )}
-          <Button type="submit" loading={saving}>
-            {saving ? "Saving..." : "Save"}
-          </Button>
-        </div>
-      </form>
+      </div>
     </div>
   );
 }

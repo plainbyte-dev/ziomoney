@@ -13,3 +13,10 @@ export function formatAccounting(value: number): string {
   const formatted = formatAmount(Math.abs(value));
   return value < 0 ? `(${formatted})` : formatted;
 }
+
+export function formatDate(value: string | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
+}

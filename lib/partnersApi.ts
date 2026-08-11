@@ -1,4 +1,6 @@
 import { getAccessToken } from "./authToken";
+import type { PayoutPartnerConfigPayload, PayoutPartnerConfigRecord } from "@/data/payoutConfigData";
+import type { PayoutBankUpdatePayload, PayoutBankRecord } from "@/data/payoutBankData";
 
 export interface InsertRemittancePartnerPayload {
   userName: string;
@@ -95,4 +97,76 @@ export function addActualBalance(childUserName: string, amount: number, descript
     method: "POST",
     body: { childUserName, amount, description },
   });
+}
+
+export function updateRemittancePartnerEmail(userName: string, email: string) {
+  return callPartnerAction<RemittancePartnerRecord>("update-email", {
+    method: "POST",
+    body: { userName, email },
+  });
+}
+
+export function updateRemittancePartnerAcceptPin(userName: string, acceptPartnerPin: boolean) {
+  return callPartnerAction<RemittancePartnerRecord>("update-accept-pin", {
+    method: "POST",
+    body: { userName, acceptPartnerPin },
+  });
+}
+
+export function insertRemittancePartnerTxnCurrency(remittancePartnerUserName: string, txnCurrency: string) {
+  return callPartnerAction<RemittancePartnerRecord>("insert-txn-currency", {
+    method: "POST",
+    body: { remittancePartnerUserName, txnCurrency },
+  });
+}
+
+// Registers the well-known default agent partner ("remitteragent") — a
+// fixed, server-side record, so this takes no payload.
+export function insertAgentPartner() {
+  return callPartnerAction<RemittancePartnerRecord>("insert-agent-partner", {
+    method: "POST",
+    body: {},
+  });
+}
+
+export function changeRemittancePartnerPassword(userName: string, newPassword: string) {
+  return callPartnerAction<RemittancePartnerRecord>("change-password", {
+    method: "POST",
+    body: { userName, newPassword },
+  });
+}
+
+export function insertRemittancePayoutPartnerConfiguration(payload: PayoutPartnerConfigPayload) {
+  return callPartnerAction<PayoutPartnerConfigRecord>("insert-payout-config", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function obtainRemittancePayoutPartnerConfiguration(remittancePartnerUserName: string) {
+  return callPartnerAction<PayoutPartnerConfigRecord>("get-payout-config", {
+    method: "POST",
+    body: { remittancePartnerUserName },
+  });
+}
+
+export function updateRemittancePayoutPartnerConfiguration(payload: PayoutPartnerConfigPayload) {
+  return callPartnerAction<PayoutPartnerConfigRecord>("update-payout-config", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export function requestPayoutBankUpdate(payload: PayoutBankUpdatePayload) {
+  return callPartnerAction<PayoutBankRecord>("payout-bank-update", {
+    method: "POST",
+    body: payload,
+  });
+}
+
+// GET /getPayoutPartner — the fixed "payout partner" enum values. The
+// Swagger doc's response schema is ambiguous about array-vs-single-value
+// shape, so callers should treat `data` as unknown and normalize it.
+export function getPayoutPartner() {
+  return callPartnerAction<unknown>("payout-partner-networks", { method: "GET" });
 }

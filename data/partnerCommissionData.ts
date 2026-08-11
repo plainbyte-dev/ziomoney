@@ -1,3 +1,5 @@
+import { settlementCurrencyOptions, partnerCountrySelectOptions } from "./partnerData";
+
 export type CommissionType = "PERCENT" | "FLAT";
 
 export const commissionTypeValues: CommissionType[] = ["PERCENT", "FLAT"];
@@ -31,14 +33,17 @@ export interface CommissionRecord {
   remittanceType: string;
 }
 
+// userName is deliberately left "" — it's backfilled once the partner list
+// loads (see PartnerCommissionPanel's effect), since that dropdown's options
+// aren't known synchronously at form-init time the way currency/country are.
 export function emptyCommissionPayload(): CommissionUpsertPayload {
   return {
     userName: "",
     commissionRate: 0,
     commissionType: "PERCENT",
     service: "",
-    sendCurrency: "",
-    destinationCountry: "",
+    sendCurrency: settlementCurrencyOptions[0],
+    destinationCountry: partnerCountrySelectOptions[0],
     remittanceType: "",
   };
 }

@@ -8,6 +8,16 @@ const ACTIONS: Record<string, { path: string; method: "GET" | "POST" }> = {
   info: { path: "/getRemittancePartnerInfo", method: "POST" },
   "update-credit-limit": { path: "/updateCreditLimit", method: "POST" },
   "add-actual-balance": { path: "/addActualBalance", method: "POST" },
+  "update-email": { path: "/updateRemittancePartnerEmail", method: "POST" },
+  "update-accept-pin": { path: "/updateRemittancePartnerAcceptPin", method: "POST" },
+  "insert-txn-currency": { path: "/insertRemittancePartnerTxnCurrency", method: "POST" },
+  "insert-agent-partner": { path: "/insertAgentPartner", method: "POST" },
+  "change-password": { path: "/changeRemittancePartnerPassword", method: "POST" },
+  "insert-payout-config": { path: "/insertRemittancePayoutPartnerConfiguration", method: "POST" },
+  "get-payout-config": { path: "/obtainRemittancePayoutPartnerConfiguration", method: "POST" },
+  "update-payout-config": { path: "/updateRemittancePayoutPartnerConfiguration", method: "POST" },
+  "payout-bank-update": { path: "/requestPayoutBankUpdate", method: "POST" },
+  "payout-partner-networks": { path: "/getPayoutPartner", method: "GET" },
 };
 
 function proxy(action: string, body: string | undefined, authorization: string | null) {

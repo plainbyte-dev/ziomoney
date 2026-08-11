@@ -11,6 +11,7 @@ import { VouchersProvider } from "@/contexts/VouchersContext";
 import { PartnersProvider } from "@/contexts/PartnersContext";
 import { KycProvider } from "@/contexts/KycContext";
 import { RatesProvider } from "@/contexts/RatesContext";
+import { ComplianceRuleProvider } from "@/contexts/ComplianceRuleContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,14 +46,16 @@ export default function AppShell() {
             <PartnersProvider>
               <KycProvider>
                 <RatesProvider>
-                  <div className="flex h-screen bg-surface">
-                    <Sidebar mobileOpen={mobileSidebarOpen} onCloseMobile={closeMobileSidebar} />
-                    <div className="flex flex-1 flex-col overflow-hidden">
-                      <Topbar onOpenMobileMenu={openMobileSidebar} />
-                      <TabbedWorkspace />
+                  <ComplianceRuleProvider>
+                    <div className="flex h-screen bg-surface">
+                      <Sidebar mobileOpen={mobileSidebarOpen} onCloseMobile={closeMobileSidebar} />
+                      <div className="flex flex-1 flex-col overflow-hidden">
+                        <Topbar onOpenMobileMenu={openMobileSidebar} />
+                        <TabbedWorkspace />
+                      </div>
                     </div>
-                  </div>
-                  <ToastHost />
+                    <ToastHost />
+                  </ComplianceRuleProvider>
                 </RatesProvider>
               </KycProvider>
             </PartnersProvider>

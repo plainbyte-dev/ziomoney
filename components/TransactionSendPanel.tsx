@@ -1,757 +1,354 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronRight, CheckCircle2, Search, ZoomIn, X, Calculator } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, CheckCircle2, Send } from "lucide-react";
 import Button from "./Button";
+import SelectField from "./SelectField";
+import TextField from "./TextField";
+import { useDataMode } from "@/contexts/DataModeContext";
+import { listBeneficiaries } from "@/lib/beneficiaryApi";
+import { getCountryWiseExRate } from "@/lib/rateApi";
+import { insertTransfer } from "@/lib/transferApi";
+import { beneficiaryRecords, type Beneficiary } from "@/data/beneficiaryData";
+import { partnerEntries, settlementCurrencyOptions, partnerCountrySelectOptions } from "@/data/partnerData";
 import {
-  sendPartnerOptions,
-  sendBranchOptions,
-  sendCountryOptions,
-  sendMethodOptions,
-  tradeRestrictionItems,
-  genderOptions,
-  idTypeOptions,
-  photoIdTypeOptions,
-  japanPrefectureOptions,
-  discountOptions,
-  payoutPartnerBankOptions,
-  collectMethodOptions,
-  type CollectMethod,
-} from "@/data/transactionSendData";
-import {
-  senderOccupationRiskScores,
-  reasonForRemittanceRiskScores,
-  sourceOfIncomeRiskScores,
-  relationRiskScores,
-  customerVisaTypeRiskScores,
-  countryRiskScores,
-} from "@/data/riskProfilingData";
-import { beneficiaryRecords } from "@/data/beneficiaryData";
-import { exchangeRateRecords } from "@/data/exchangeRateData";
+  emptyTransferInsertPayload,
+  transferPurposeOptions,
+  type TransferInsertPayload,
+  type TransferRecord,
+} from "@/data/transferData";
+import { formatAccounting } from "@/lib/format";
 
-type Step = "partner" | "declaration" | "remitter" | "beneficiary" | "transaction" | "done";
+type Stage = "selectPartner" | "restrictions" | "form" | "confirm" | "done";
 
-const countryNames = countryRiskScores.map((c) => c.label);
-const occupationOptions = senderOccupationRiskScores.map((r) => r.label);
-const purposeOfRemittanceOptions = reasonForRemittanceRiskScores.map((r) => r.label);
-const sourceOfIncomeOptions = sourceOfIncomeRiskScores.map((r) => r.label);
-const relationshipOptions = relationRiskScores.map((r) => r.label);
-const visaStatusOptions = customerVisaTypeRiskScores.map((r) => r.label);
+const branchNameOptions = ["Head Office"];
+const partnerNameOptions = partnerEntries.map((p) => p.partnerName);
 
-const MAX_LIMIT_JPY = 4006400;
-const FLAT_SERVICE_CHARGE_JPY = 500;
+type YesNo = "NA" | "YES";
 
-interface RemitterForm {
-  payoutCountry: string;
-  customerSearch: string;
-  lastName: string;
-  firstName: string;
-  middleName: string;
-  depositorName: string;
-  emailId: string;
-  sendEmail: boolean;
-  zipCode: string;
-  town: string;
-  city: string;
-  state: string;
-  mobileNo: string;
-  smsEnabled: boolean;
-  gender: string;
-  dateOfBirth: string;
-  nationality: string;
-  visaStatus: string;
-  employerName: string;
-  primaryIdType: string;
-  primaryIdNumber: string;
-  placeOfIssue: string;
-  issueDate: string;
-  expireDate: string;
-}
-
-const emptyRemitter: RemitterForm = {
-  payoutCountry: sendCountryOptions[0],
-  customerSearch: "",
-  lastName: "",
-  firstName: "",
-  middleName: "",
-  depositorName: "",
-  emailId: "",
-  sendEmail: false,
-  zipCode: "",
-  town: "",
-  city: "",
-  state: "",
-  mobileNo: "",
-  smsEnabled: true,
-  gender: "",
-  dateOfBirth: "",
-  nationality: "",
-  visaStatus: "",
-  employerName: "",
-  primaryIdType: "",
-  primaryIdNumber: "",
-  placeOfIssue: "",
-  issueDate: "",
-  expireDate: "",
+type PartnerSelection = {
+  partnerId: string;
+  branchName: string;
+  country: string;
+  method: string;
 };
 
-interface SecurityForm {
-  myNumber: string;
-  occupation: string;
-  secondaryIdType: string;
-  secondaryIdNumber: string;
-  purposeOfRemittance: string;
-  issueOnCountry: string;
-  sourceOfIncome: string;
-  issueDate: string;
-  expireDate: string;
-  relationshipToBeneficiary: string;
-}
-
-const emptySecurity: SecurityForm = {
-  myNumber: "",
-  occupation: "",
-  secondaryIdType: "",
-  secondaryIdNumber: "",
-  purposeOfRemittance: "",
-  issueOnCountry: "",
-  sourceOfIncome: "",
-  issueDate: "",
-  expireDate: "",
-  relationshipToBeneficiary: "",
+type TradeRestrictions = {
+  northKoreaIran: YesNo;
+  governmentPermit: YesNo;
+  nameLending: YesNo;
+  importingGoods: YesNo;
 };
 
-interface BeneficiaryForm {
-  chooseReceiver: string;
-  lastName: string;
-  firstName: string;
-  middleName: string;
-  photoIdType: string;
-  address: string;
-  idNumber: string;
-  city: string;
-  placeOfIssue: string;
-  contactNo: string;
-  paymentType: string;
-  receiverEmail: string;
-  payoutPartnerBank: string;
-  branchNameOrIfsc: string;
+function emptyPartnerSelection(): PartnerSelection {
+  return {
+    partnerId: partnerNameOptions[0],
+    branchName: branchNameOptions[0],
+    country: partnerCountrySelectOptions[0],
+    method: partnerNameOptions[0],
+  };
 }
 
-const emptyBeneficiary: BeneficiaryForm = {
-  chooseReceiver: "New Receiver",
-  lastName: "",
-  firstName: "",
-  middleName: "",
-  photoIdType: photoIdTypeOptions[0],
-  address: "",
-  idNumber: "",
-  city: "",
-  placeOfIssue: "",
-  contactNo: "",
-  paymentType: "C-CASH PAY",
-  receiverEmail: "",
-  payoutPartnerBank: payoutPartnerBankOptions[0],
-  branchNameOrIfsc: "",
-};
+function emptyTradeRestrictions(): TradeRestrictions {
+  return {
+    northKoreaIran: "NA",
+    governmentPermit: "NA",
+    nameLending: "NA",
+    importingGoods: "NA",
+  };
+}
 
 export default function TransactionSendPanel() {
-  const [step, setStep] = useState<Step>("partner");
+  const { isLive } = useDataMode();
 
-  const [partnerId, setPartnerId] = useState(sendPartnerOptions[0]);
-  const [branchName, setBranchName] = useState(sendBranchOptions[0]);
-  const [country, setCountry] = useState(sendCountryOptions[0]);
-  const [method, setMethod] = useState(sendMethodOptions[0]);
+  const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
+  const [beneficiariesLoading, setBeneficiariesLoading] = useState(true);
 
-  const [declarations, setDeclarations] = useState<boolean[]>(tradeRestrictionItems.map(() => true));
+  const [form, setForm] = useState<TransferInsertPayload>(emptyTransferInsertPayload());
+  const [partnerSelection, setPartnerSelection] = useState<PartnerSelection>(emptyPartnerSelection());
+  const [tradeRestrictions, setTradeRestrictions] = useState<TradeRestrictions>(emptyTradeRestrictions());
+  const [stage, setStage] = useState<Stage>("selectPartner");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [result, setResult] = useState<TransferRecord | null>(null);
 
-  const [remitter, setRemitter] = useState<RemitterForm>({ ...emptyRemitter, payoutCountry: country });
-  const [security, setSecurity] = useState<SecurityForm>(emptySecurity);
-  const [beneficiary, setBeneficiary] = useState<BeneficiaryForm>(emptyBeneficiary);
+  // Estimated rate/payout preview — clearly NOT authoritative. The real
+  // exchangeRate/fee/totalAmount/receiverAmount only come back once
+  // POST /transfers actually succeeds (see `result` above).
+  const [estimatedRate, setEstimatedRate] = useState<{ selling: number; unit: number } | null>(null);
+  const [estimating, setEstimating] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [collectMethod, setCollectMethod] = useState<CollectMethod>(collectMethodOptions[0]);
-  const [discount, setDiscount] = useState(discountOptions[0]);
-  const [transferAmountLC, setTransferAmountLC] = useState("0.00");
-  const [customerRate, setCustomerRate] = useState(0);
-  const [customerRateEditable, setCustomerRateEditable] = useState(false);
-  const [payoutAmountFC, setPayoutAmountFC] = useState(0);
-  const [serviceCharge, setServiceCharge] = useState(0);
-  const [additionalFee, setAdditionalFee] = useState(0);
-  const [collectedAmount, setCollectedAmount] = useState(0);
-  const [receiveAmount, setReceiveAmount] = useState(0);
-  const [memo, setMemo] = useState("");
-  const [hasCalculated, setHasCalculated] = useState(false);
-
-  const rate = useMemo(
-    () => exchangeRateRecords.find((r) => r.countryName.toLowerCase() === remitter.payoutCountry.toLowerCase()),
-    [remitter.payoutCountry]
-  );
-
-  function setDeclaration(index: number, value: boolean) {
-    setDeclarations((prev) => prev.map((item, i) => (i === index ? value : item)));
-  }
-
-  function updateRemitter<K extends keyof RemitterForm>(field: K, value: RemitterForm[K]) {
-    setRemitter((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function updateSecurity<K extends keyof SecurityForm>(field: K, value: SecurityForm[K]) {
-    setSecurity((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function updateBeneficiary<K extends keyof BeneficiaryForm>(field: K, value: BeneficiaryForm[K]) {
-    setBeneficiary((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function pickExistingReceiver(fullName: string) {
-    updateBeneficiary("chooseReceiver", fullName);
-    if (fullName === "New Receiver") {
-      setBeneficiary({ ...emptyBeneficiary, chooseReceiver: "New Receiver" });
+  useEffect(() => {
+    setBeneficiariesLoading(true);
+    if (!isLive) {
+      setBeneficiaries(beneficiaryRecords);
+      setBeneficiariesLoading(false);
       return;
     }
-    const existing = beneficiaryRecords.find((b) => b.fullName === fullName);
-    if (!existing) return;
-    const [firstName, ...rest] = existing.fullName.split(" ");
-    setBeneficiary((prev) => ({
-      ...prev,
-      chooseReceiver: fullName,
-      firstName,
-      lastName: rest.join(" "),
-      contactNo: existing.phone,
-      receiverEmail: existing.email,
-      city: existing.bankBranch,
-      branchNameOrIfsc: existing.accountNumber,
-    }));
+    listBeneficiaries().then((response) => {
+      setBeneficiariesLoading(false);
+      if (response.success && Array.isArray(response.data)) setBeneficiaries(response.data);
+    });
+  }, [isLive]);
+
+  const beneficiaryOptions = beneficiaries.map((b) => `${b.id}`);
+  const beneficiaryLabel = (id: string) => beneficiaries.find((b) => String(b.id) === id)?.fullName ?? id;
+
+  // The beneficiary list loads asynchronously, so the dropdown's options
+  // aren't known at form-init time — backfill once they arrive rather than
+  // leaving the select visually showing an option form.beneficiaryId
+  // disagrees with (which was silently keeping the form invalid).
+  useEffect(() => {
+    if (beneficiaries.length === 0) return;
+    setForm((prev) => (prev.beneficiaryId ? prev : { ...prev, beneficiaryId: beneficiaries[0].id }));
+  }, [beneficiaries]);
+
+  function updateField<K extends keyof TransferInsertPayload>(field: K, value: TransferInsertPayload[K]) {
+    setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  const remitterValid =
-    remitter.payoutCountry &&
-    remitter.lastName.trim() &&
-    remitter.firstName.trim() &&
-    remitter.zipCode.trim() &&
-    remitter.city.trim() &&
-    remitter.mobileNo.trim() &&
-    remitter.gender &&
-    remitter.dateOfBirth &&
-    remitter.nationality &&
-    remitter.placeOfIssue &&
-    remitter.issueDate;
+  // Debounced (~400ms) estimate — fires on amount/currency change.
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!form.destinationCurrency || form.amount <= 0) {
+      setEstimatedRate(null);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setEstimating(true);
+      const response = await getCountryWiseExRate(form.destinationCurrency);
+      setEstimating(false);
+      if (response.success && response.data) {
+        setEstimatedRate({ selling: response.data.selling, unit: response.data.unit });
+      } else {
+        setEstimatedRate(null);
+      }
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.amount, form.destinationCurrency]);
 
-  const beneficiaryValid =
-    security.occupation &&
-    security.purposeOfRemittance &&
-    security.sourceOfIncome &&
-    security.relationshipToBeneficiary &&
-    beneficiary.lastName.trim() &&
-    beneficiary.firstName.trim() &&
-    beneficiary.address.trim() &&
-    beneficiary.contactNo.trim() &&
-    beneficiary.branchNameOrIfsc.trim();
+  const estimatedPayout =
+    estimatedRate && estimatedRate.selling > 0 ? (form.amount / estimatedRate.selling) * estimatedRate.unit : null;
 
-  function handleCalculate() {
-    const lc = Number(transferAmountLC) || 0;
-    const unit = rate?.unit ?? 1;
-    const sellingRate = customerRateEditable && customerRate > 0 ? customerRate : rate?.selling ?? 1;
-    const fc = sellingRate > 0 ? Math.round((lc / sellingRate) * unit) : 0;
-    const fee = lc > 0 ? FLAT_SERVICE_CHARGE_JPY : 0;
+  const formValid =
+    form.beneficiaryId > 0 &&
+    form.amount > 0 &&
+    form.sourceCurrency &&
+    form.destinationCurrency &&
+    form.destinationCountry &&
+    form.purpose;
 
-    setCustomerRate(sellingRate);
-    setPayoutAmountFC(fc);
-    setServiceCharge(fee);
-    setAdditionalFee(0);
-    setCollectedAmount(lc + fee);
-    setReceiveAmount(fc);
-    setHasCalculated(true);
+  async function handleConfirmSubmit() {
+    setSubmitting(true);
+    setSubmitError(null);
+
+    if (!isLive) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      const beneficiary = beneficiaries.find((b) => b.id === form.beneficiaryId);
+      setResult({
+        ...form,
+        referenceNumber: `REF-DEMO-${Math.floor(Math.random() * 900000 + 100000)}`,
+        senderName: "You",
+        receiverName: beneficiary?.fullName ?? "",
+        status: "INSERTED",
+        provider: "demo",
+        providerReference: "",
+        exchangeRate: estimatedRate?.selling ?? 0,
+        fee: 0,
+        totalAmount: form.amount,
+        receiverAmount: estimatedPayout ?? 0,
+      });
+      setSubmitting(false);
+      setStage("done");
+      return;
+    }
+
+    const response = await insertTransfer(form);
+    setSubmitting(false);
+    if (!response.success || !response.data) {
+      setSubmitError(response.message || "Could not send the transaction. Please try again.");
+      return;
+    }
+    setResult(response.data);
+    setStage("done");
   }
 
-  function handleReset() {
-    setTransferAmountLC("0.00");
-    setDiscount(discountOptions[0]);
-    setCustomerRate(0);
-    setCustomerRateEditable(false);
-    setPayoutAmountFC(0);
-    setServiceCharge(0);
-    setAdditionalFee(0);
-    setCollectedAmount(0);
-    setReceiveAmount(0);
-    setMemo("");
-    setHasCalculated(false);
+  function startOver() {
+    setForm(emptyTransferInsertPayload());
+    setPartnerSelection(emptyPartnerSelection());
+    setTradeRestrictions(emptyTradeRestrictions());
+    setResult(null);
+    setSubmitError(null);
+    setEstimatedRate(null);
+    setStage("selectPartner");
   }
 
-  const transactionValid = hasCalculated && Number(transferAmountLC) > 0;
-
-  if (step === "partner") {
+  if (stage === "selectPartner") {
     return (
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
         <div className="border-b border-border px-6 py-4">
           <h1 className="text-lg font-bold text-heading">Select Partner to Send Transaction</h1>
         </div>
-
-        <div className="bg-panel p-6 sm:p-8">
-          <div className="max-w-xl space-y-4">
-            <FormRow label="Partner ID:">
-              <Select value={partnerId} onChange={setPartnerId} options={sendPartnerOptions} />
-            </FormRow>
-            <FormRow label="Branch Name:">
-              <Select value={branchName} onChange={setBranchName} options={sendBranchOptions} />
-            </FormRow>
-            <FormRow label="Country:">
-              <Select
-                value={country}
-                onChange={(value) => {
-                  setCountry(value);
-                  updateRemitter("payoutCountry", value);
-                }}
-                options={sendCountryOptions}
-              />
-            </FormRow>
-            <FormRow label="Method:">
-              <Select value={method} onChange={setMethod} options={sendMethodOptions} />
-            </FormRow>
-
-            <StepButton onClick={() => setStep("declaration")}>Continue</StepButton>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setStage("restrictions");
+          }}
+          className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-2 sm:p-8"
+        >
+          <SelectField
+            label="Partner ID:"
+            required
+            options={partnerNameOptions}
+            defaultValue={partnerNameOptions[0]}
+            value={partnerSelection.partnerId}
+            onChange={(v) => setPartnerSelection((prev) => ({ ...prev, partnerId: v }))}
+          />
+          <SelectField
+            label="Branch Name:"
+            required
+            options={branchNameOptions}
+            defaultValue={branchNameOptions[0]}
+            value={partnerSelection.branchName}
+            onChange={(v) => setPartnerSelection((prev) => ({ ...prev, branchName: v }))}
+          />
+          <SelectField
+            label="Country:"
+            required
+            options={partnerCountrySelectOptions}
+            defaultValue={partnerCountrySelectOptions[0]}
+            value={partnerSelection.country}
+            onChange={(v) => setPartnerSelection((prev) => ({ ...prev, country: v }))}
+          />
+          <SelectField
+            label="Method:"
+            required
+            options={partnerNameOptions}
+            defaultValue={partnerNameOptions[0]}
+            value={partnerSelection.method}
+            onChange={(v) => setPartnerSelection((prev) => ({ ...prev, method: v }))}
+          />
+          <div className="sm:col-span-2">
+            <Button type="submit" icon={<ArrowRight size={15} />}>
+              Continue
+            </Button>
           </div>
-        </div>
+        </form>
       </div>
     );
   }
 
-  if (step === "declaration") {
+  if (stage === "restrictions") {
     return (
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
         <div className="border-b border-border px-6 py-4">
-          <h1 className="text-sm font-bold text-heading sm:text-base">
+          <h1 className="text-lg font-bold text-heading">
             Trade Restrictions and Use of Funds Restrictions must be cleared prior to the client before the
             declaration.
           </h1>
         </div>
-
-        <div className="bg-panel p-6 sm:p-8">
-          <div className="space-y-3">
-            {tradeRestrictionItems.map((item, index) => (
-              <div key={item.label} className="flex flex-wrap items-center gap-x-10 gap-y-2">
-                <span className="min-w-[280px] text-sm text-heading/80">{item.label}</span>
-                <label className="flex items-center gap-1.5 text-sm text-heading/80">
-                  <input
-                    type="checkbox"
-                    checked={declarations[index]}
-                    onChange={() => setDeclaration(index, true)}
-                    className="h-4 w-4 rounded border-border text-brand-blue focus:ring-brand-blue"
-                  />
-                  N/A
-                </label>
-                <label className="flex items-center gap-1.5 text-sm text-heading/80">
-                  <input
-                    type="checkbox"
-                    checked={!declarations[index]}
-                    onChange={() => setDeclaration(index, false)}
-                    className="h-4 w-4 rounded border-border text-brand-blue focus:ring-brand-blue"
-                  />
-                  Yes
-                </label>
-              </div>
-            ))}
-
-            <StepButton onClick={() => setStep("remitter")}>Continue</StepButton>
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setStage("form");
+          }}
+          className="flex flex-col gap-4 bg-panel p-6 sm:p-8"
+        >
+          <TradeRestrictionRow
+            label="Non-Relevant to North Korea and Iran Restrictions:"
+            value={tradeRestrictions.northKoreaIran}
+            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, northKoreaIran: v }))}
+          />
+          <TradeRestrictionRow
+            label="Government Permit Approval is not required for this transaction:"
+            value={tradeRestrictions.governmentPermit}
+            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, governmentPermit: v }))}
+          />
+          <TradeRestrictionRow
+            label="Not a Name-lending transaction :"
+            value={tradeRestrictions.nameLending}
+            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, nameLending: v }))}
+          />
+          <TradeRestrictionRow
+            label="Importing goods or merchandising trade transaction :"
+            value={tradeRestrictions.importingGoods}
+            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, importingGoods: v }))}
+          />
+          <div className="pt-1">
+            <Button type="submit" icon={<ArrowRight size={15} />}>
+              Continue
+            </Button>
           </div>
-        </div>
+        </form>
       </div>
     );
   }
 
-  if (step === "remitter") {
-    return (
-      <div className="space-y-4">
-        <p className="rounded-lg bg-surface px-4 py-2 text-xs font-medium text-heading/70">
-          Remittance Detail Form [ Your Current User TXN Collect Limit Left: {formatAmount(MAX_LIMIT_JPY)} JPY ]
-        </p>
-
-        <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-          <div className="border-b border-border px-6 py-3">
-            <h2 className="text-sm font-bold uppercase text-heading">Search Customer</h2>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 bg-blue-50 p-4 dark:bg-blue-950/40">
-            <span className="text-xs font-semibold text-heading/70">
-              Payout Country <span className="text-red-500">*</span>
-            </span>
-            <Select
-              value={remitter.payoutCountry}
-              onChange={(value) => updateRemitter("payoutCountry", value)}
-              options={sendCountryOptions}
-              className="w-40"
-            />
-            <input
-              type="text"
-              placeholder="Search customer / user ID"
-              value={remitter.customerSearch}
-              onChange={(event) => updateRemitter("customerSearch", event.target.value)}
-              className="min-w-[220px] flex-1 rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
-            />
-            <IconButton icon={Search} />
-            <IconButton icon={ZoomIn} />
-            <IconButton icon={X} onClick={() => updateRemitter("customerSearch", "")} />
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-          <div className="bg-red-600 px-6 py-3">
-            <h2 className="text-sm font-bold uppercase text-white">Remitter Detail</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-red-50 p-6 dark:bg-red-950/40 sm:grid-cols-2">
-            <FormRow label="Senders Name:" required>
-              <div className="flex gap-2">
-                <input
-                  placeholder="Last Name"
-                  value={remitter.lastName}
-                  onChange={(event) => updateRemitter("lastName", event.target.value)}
-                  className={inputClass}
-                />
-                <input
-                  placeholder="First Name"
-                  value={remitter.firstName}
-                  onChange={(event) => updateRemitter("firstName", event.target.value)}
-                  className={inputClass}
-                />
-                <input
-                  placeholder="Middle Name"
-                  value={remitter.middleName}
-                  onChange={(event) => updateRemitter("middleName", event.target.value)}
-                  className={inputClass}
-                />
-              </div>
-            </FormRow>
-            <FormRow label="Visa Status">
-              <Select value={remitter.visaStatus} onChange={(v) => updateRemitter("visaStatus", v)} options={visaStatusOptions} placeholder="--SELECT--" />
-            </FormRow>
-
-            <FormRow label="Depositor Name:">
-              <input value={remitter.depositorName} onChange={(event) => updateRemitter("depositorName", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Name of Employer:">
-              <input value={remitter.employerName} onChange={(event) => updateRemitter("employerName", event.target.value)} className={inputClass} />
-            </FormRow>
-
-            <FormRow label="Email ID:">
-              <div className="flex items-center gap-2">
-                <input value={remitter.emailId} onChange={(event) => updateRemitter("emailId", event.target.value)} className={inputClass} />
-                <label className="flex items-center gap-1 whitespace-nowrap text-xs text-heading/70">
-                  <input type="checkbox" checked={remitter.sendEmail} onChange={(event) => updateRemitter("sendEmail", event.target.checked)} />
-                  Send Email
-                </label>
-              </div>
-            </FormRow>
-            <FormRow label="Primary ID:">
-              <div className="flex gap-2">
-                <Select value={remitter.primaryIdType} onChange={(v) => updateRemitter("primaryIdType", v)} options={idTypeOptions} placeholder="--Select--" />
-                <input value={remitter.primaryIdNumber} onChange={(event) => updateRemitter("primaryIdNumber", event.target.value)} className={inputClass} />
-              </div>
-            </FormRow>
-
-            <FormRow label="Zip Code:" required>
-              <input value={remitter.zipCode} onChange={(event) => updateRemitter("zipCode", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Gender:" required>
-              <Select value={remitter.gender} onChange={(v) => updateRemitter("gender", v)} options={genderOptions} placeholder="--SELECT--" />
-            </FormRow>
-
-            <FormRow label="Town:">
-              <input value={remitter.town} onChange={(event) => updateRemitter("town", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Date of Birth:" required>
-              <input type="date" value={remitter.dateOfBirth} onChange={(event) => updateRemitter("dateOfBirth", event.target.value)} className={inputClass} />
-            </FormRow>
-
-            <FormRow label="City:" required>
-              <input value={remitter.city} onChange={(event) => updateRemitter("city", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Place of Issue:" required>
-              <Select value={remitter.placeOfIssue} onChange={(v) => updateRemitter("placeOfIssue", v)} options={countryNames} placeholder="--SELECT COUNTRY--" />
-            </FormRow>
-
-            <FormRow label="State:">
-              <div className="flex items-center gap-2">
-                <Select value={remitter.state} onChange={(v) => updateRemitter("state", v)} options={japanPrefectureOptions} placeholder="--SELECT--" />
-                <span className="text-sm font-semibold text-heading/70">JAPAN</span>
-              </div>
-            </FormRow>
-            <FormRow label="Issue / Expire Date:" required>
-              <div className="flex gap-2">
-                <input type="date" value={remitter.issueDate} onChange={(event) => updateRemitter("issueDate", event.target.value)} className={inputClass} />
-                <input type="date" value={remitter.expireDate} onChange={(event) => updateRemitter("expireDate", event.target.value)} className={inputClass} />
-              </div>
-            </FormRow>
-
-            <FormRow label="Mobile No:" required>
-              <div className="flex items-center gap-2">
-                <input value={remitter.mobileNo} onChange={(event) => updateRemitter("mobileNo", event.target.value)} className={inputClass} />
-                <label className="flex items-center gap-1 whitespace-nowrap text-xs text-heading/70">
-                  <input type="checkbox" checked={remitter.smsEnabled} onChange={(event) => updateRemitter("smsEnabled", event.target.checked)} />
-                  SMS
-                </label>
-              </div>
-            </FormRow>
-            <FormRow label="Nationality:" required>
-              <Select value={remitter.nationality} onChange={(v) => updateRemitter("nationality", v)} options={countryNames} placeholder="--SELECT COUNTRY--" />
-            </FormRow>
-          </div>
-        </div>
-
-        <StepButton onClick={() => setStep("beneficiary")} disabled={!remitterValid}>
-          Continue
-        </StepButton>
-      </div>
-    );
-  }
-
-  if (step === "beneficiary") {
-    return (
-      <div className="space-y-4">
-        <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-          <div className="bg-red-600 px-6 py-3">
-            <h2 className="text-sm font-bold uppercase text-white">Security Information</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-red-50 p-6 dark:bg-red-950/40 sm:grid-cols-2">
-            <FormRow label="My Number:">
-              <input value={security.myNumber} onChange={(event) => updateSecurity("myNumber", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Occupation:" required>
-              <Select value={security.occupation} onChange={(v) => updateSecurity("occupation", v)} options={occupationOptions} placeholder="--SELECT--" />
-            </FormRow>
-
-            <FormRow label="Secondary ID:">
-              <div className="flex gap-2">
-                <Select value={security.secondaryIdType} onChange={(v) => updateSecurity("secondaryIdType", v)} options={idTypeOptions} placeholder="--Select--" />
-                <input value={security.secondaryIdNumber} onChange={(event) => updateSecurity("secondaryIdNumber", event.target.value)} className={inputClass} />
-              </div>
-            </FormRow>
-            <FormRow label="Purpose of Remittance:" required>
-              <Select value={security.purposeOfRemittance} onChange={(v) => updateSecurity("purposeOfRemittance", v)} options={purposeOfRemittanceOptions} placeholder="--SELECT--" />
-            </FormRow>
-
-            <FormRow label="Issue On:">
-              <Select value={security.issueOnCountry} onChange={(v) => updateSecurity("issueOnCountry", v)} options={countryNames} placeholder="--SELECT COUNTRY--" />
-            </FormRow>
-            <FormRow label="Source of Income:" required>
-              <Select value={security.sourceOfIncome} onChange={(v) => updateSecurity("sourceOfIncome", v)} options={sourceOfIncomeOptions} placeholder="--SELECT--" />
-            </FormRow>
-
-            <FormRow label="Issue / Expire Date:">
-              <div className="flex gap-2">
-                <input type="date" value={security.issueDate} onChange={(event) => updateSecurity("issueDate", event.target.value)} className={inputClass} />
-                <input type="date" value={security.expireDate} onChange={(event) => updateSecurity("expireDate", event.target.value)} className={inputClass} />
-              </div>
-            </FormRow>
-            <FormRow label="Relationship to Beneficiary:" required>
-              <Select value={security.relationshipToBeneficiary} onChange={(v) => updateSecurity("relationshipToBeneficiary", v)} options={relationshipOptions} placeholder="--SELECT--" />
-            </FormRow>
-          </div>
-        </div>
-
-        <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-          <div className="border-b border-border px-6 py-3">
-            <h2 className="text-sm font-bold uppercase text-heading">Beneficiary Detail</h2>
-          </div>
-          <div className="grid grid-cols-1 gap-x-10 gap-y-4 bg-blue-50 p-6 dark:bg-blue-950/40 sm:grid-cols-2">
-            <FormRow label="Choose Receiver:">
-              <Select
-                value={beneficiary.chooseReceiver}
-                onChange={pickExistingReceiver}
-                options={["New Receiver", ...beneficiaryRecords.map((b) => b.fullName)]}
-              />
-            </FormRow>
-            <FormRow label="Photo ID Type:">
-              <Select value={beneficiary.photoIdType} onChange={(v) => updateBeneficiary("photoIdType", v)} options={photoIdTypeOptions} />
-            </FormRow>
-
-            <FormRow label="Receiver's Name:" required>
-              <div className="flex gap-2">
-                <input placeholder="Last Name" value={beneficiary.lastName} onChange={(event) => updateBeneficiary("lastName", event.target.value)} className={inputClass} />
-                <input placeholder="First Name" value={beneficiary.firstName} onChange={(event) => updateBeneficiary("firstName", event.target.value)} className={inputClass} />
-                <input placeholder="Middle Name" value={beneficiary.middleName} onChange={(event) => updateBeneficiary("middleName", event.target.value)} className={inputClass} />
-              </div>
-            </FormRow>
-            <FormRow label="ID Number:">
-              <input value={beneficiary.idNumber} onChange={(event) => updateBeneficiary("idNumber", event.target.value)} className={inputClass} />
-            </FormRow>
-
-            <FormRow label="Address:" required>
-              <input value={beneficiary.address} onChange={(event) => updateBeneficiary("address", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Place of Issue:">
-              <input value={beneficiary.placeOfIssue} onChange={(event) => updateBeneficiary("placeOfIssue", event.target.value)} className={inputClass} />
-            </FormRow>
-
-            <FormRow label="City:">
-              <input value={beneficiary.city} onChange={(event) => updateBeneficiary("city", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Payment Type:">
-              <Select value={beneficiary.paymentType} onChange={(v) => updateBeneficiary("paymentType", v)} options={["C-CASH PAY", "Bank Transfer", "Wallet"]} />
-            </FormRow>
-
-            <FormRow label="Contact No:" required>
-              <input value={beneficiary.contactNo} onChange={(event) => updateBeneficiary("contactNo", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Payout Partner/Bank:">
-              <div className="flex gap-2">
-                <Select value={beneficiary.payoutPartnerBank} onChange={(v) => updateBeneficiary("payoutPartnerBank", v)} options={payoutPartnerBankOptions} />
-                <Button variant="ghost" size="sm" className="whitespace-nowrap">
-                  Branch
-                </Button>
-              </div>
-            </FormRow>
-
-            <FormRow label="Receiver Email:">
-              <input value={beneficiary.receiverEmail} onChange={(event) => updateBeneficiary("receiverEmail", event.target.value)} className={inputClass} />
-            </FormRow>
-            <FormRow label="Branch Name/IFSC Code:" required>
-              <input value={beneficiary.branchNameOrIfsc} onChange={(event) => updateBeneficiary("branchNameOrIfsc", event.target.value)} className={inputClass} />
-            </FormRow>
-          </div>
-        </div>
-
-        <StepButton onClick={() => setStep("transaction")} disabled={!beneficiaryValid}>
-          Continue
-        </StepButton>
-      </div>
-    );
-  }
-
-  if (step === "transaction") {
+  if (stage === "done" && result) {
     return (
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="border-b border-border px-6 py-3">
-          <h2 className="text-sm font-bold uppercase text-heading">Transaction Detail</h2>
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Send Transaction</h1>
         </div>
-
-        <div className="space-y-4 bg-green-50 p-6 dark:bg-green-950/40">
-          <div className="flex flex-wrap items-center gap-6">
-            <span className="text-xs font-semibold uppercase text-heading/70">Amount Collect From Remitter:</span>
-            {collectMethodOptions.map((option) => (
-              <label key={option} className="flex items-center gap-1.5 text-sm text-heading/80">
-                <input
-                  type="radio"
-                  name="collectMethod"
-                  checked={collectMethod === option}
-                  onChange={() => setCollectMethod(option)}
-                  className="h-4 w-4 text-brand-blue focus:ring-brand-blue"
-                />
-                {option.toUpperCase()}
-              </label>
-            ))}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-xs font-semibold uppercase text-heading/70">
-              Max Limit {formatAmount(MAX_LIMIT_JPY)} JPY
+        <div className="bg-panel p-10 text-center">
+          <CheckCircle2 size={40} className="mx-auto mb-3 text-brand-green" />
+          <p className="text-sm text-heading/70">Transaction submitted successfully.</p>
+          <p className="mt-2 text-2xl font-bold text-heading">{result.referenceNumber}</p>
+          <p className="mt-4 text-sm text-heading/70">
+            {result.receiverName} will receive{" "}
+            <span className="font-semibold text-heading">
+              {formatAccounting(result.receiverAmount)} {result.destinationCurrency}
             </span>
-            <Select value={discount} onChange={setDiscount} options={discountOptions} className="w-52" />
-          </div>
+          </p>
+          <Button variant="ghost" size="md" className="mt-6" onClick={startOver}>
+            Send Another Transaction
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
-          <div className="grid grid-cols-1 gap-x-10 gap-y-4 sm:grid-cols-2">
-            <FormRow label="Transfer Amount (LC):">
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={transferAmountLC}
-                  onChange={(event) => {
-                    setTransferAmountLC(event.target.value);
-                    setHasCalculated(false);
-                  }}
-                  className="w-full rounded-lg border border-border bg-yellow-100 px-3 py-1.5 text-right text-sm focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
-                />
-                <span className="text-sm text-heading/70">JPY</span>
-              </div>
-            </FormRow>
-            <FormRow label="Payout Amount (FC):">
-              <div className="flex items-center gap-2">
-                <div className="w-full rounded-lg border border-border bg-yellow-100 px-3 py-1.5 text-right text-sm font-semibold">
-                  {formatAmount(payoutAmountFC)}
-                </div>
-              </div>
-            </FormRow>
+  if (stage === "confirm") {
+    return (
+      <div className="overflow-hidden rounded-2xl border border-border shadow-card">
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Confirm Transaction</h1>
+          <p className="mt-0.5 text-sm text-muted">
+            This moves real money — review before submitting. Values below marked "estimated" are not
+            authoritative; the real rate/fee/payout are only known once this succeeds.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4 bg-panel p-6 sm:grid-cols-2 sm:p-8">
+          <ConfirmField label="Beneficiary" value={beneficiaryLabel(String(form.beneficiaryId))} />
+          <ConfirmField label="Amount" value={`${formatAccounting(form.amount)} ${form.sourceCurrency}`} />
+          <ConfirmField label="Destination" value={`${form.destinationCountry} (${form.destinationCurrency})`} />
+          <ConfirmField label="Purpose" value={form.purpose} />
+          <ConfirmField
+            label="Estimated Payout"
+            value={
+              estimating
+                ? "Calculating..."
+                : estimatedPayout !== null
+                  ? `≈ ${formatAccounting(estimatedPayout)} ${form.destinationCurrency} (estimate)`
+                  : "Unavailable"
+            }
+          />
+          <ConfirmField label="Remarks" value={form.remarks || "-"} />
 
-            <FormRow label="Service Charge:">
-              <div className="flex items-center gap-2">
-                <div className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-right text-sm text-heading/60">
-                  {formatAmount(serviceCharge)}
-                </div>
-                <span className="text-sm text-heading/70">JPY</span>
-              </div>
-            </FormRow>
-            <FormRow label="Customer Rate:">
-              <div className="flex items-center gap-2">
-                <label className="flex items-center gap-1 text-xs text-heading/70">
-                  <input
-                    type="checkbox"
-                    checked={customerRateEditable}
-                    onChange={(event) => setCustomerRateEditable(event.target.checked)}
-                  />
-                  Edit
-                </label>
-                <input
-                  type="number"
-                  value={customerRate}
-                  disabled={!customerRateEditable}
-                  onChange={(event) => setCustomerRate(Number(event.target.value))}
-                  className="w-full rounded-lg border border-border px-3 py-1.5 text-right text-sm disabled:bg-surface disabled:text-heading/60"
-                />
-              </div>
-            </FormRow>
+          {submitError && (
+            <p className="sm:col-span-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
+          )}
 
-            <FormRow label="Additional Fee:">
-              <div className="flex items-center gap-2">
-                <div className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-right text-sm text-heading/60">
-                  {formatAmount(additionalFee)}
-                </div>
-                <span className="text-sm text-heading/70">JPY</span>
-              </div>
-            </FormRow>
-            <div />
-
-            <FormRow label="Collected Amount:">
-              <div className="flex items-center gap-2">
-                <div className="w-full rounded-lg border border-border bg-yellow-100 px-3 py-1.5 text-right text-sm font-semibold">
-                  {formatAmount(collectedAmount)}
-                </div>
-                <span className="text-sm text-heading/70">JPY</span>
-              </div>
-            </FormRow>
-            <FormRow label="Receive Amount:">
-              <div className="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-right text-sm text-heading/60">
-                {formatAmount(receiveAmount)}
-              </div>
-            </FormRow>
-          </div>
-
-          <FormRow label="Memo:">
-            <textarea
-              value={memo}
-              onChange={(event) => setMemo(event.target.value)}
-              rows={3}
-              className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
-            />
-          </FormRow>
-
-          <div className="flex items-center gap-3 border-t border-border/60 pt-4">
-            <Button
-              variant="ghost"
-              size="md"
-              onClick={handleCalculate}
-              disabled={Number(transferAmountLC) <= 0}
-              icon={<Calculator size={14} />}
-            >
-              Calculate
+          <div className="sm:col-span-2 flex items-center gap-3 border-t border-border pt-5">
+            <Button onClick={handleConfirmSubmit} loading={submitting} icon={<Send size={15} />}>
+              {submitting ? "Submitting..." : "Confirm & Send"}
             </Button>
-            <Button variant="ghost" size="md" onClick={handleReset} icon={<X size={14} />}>
-              Reset
-            </Button>
-            <Button
-              size="md"
-              onClick={() => setStep("done")}
-              disabled={!transactionValid}
-              icon={<ChevronRight size={16} />}
-            >
-              Continue
+            <Button variant="secondary" onClick={() => setStage("form")} disabled={submitting}>
+              Back to Edit
             </Button>
           </div>
         </div>
@@ -763,113 +360,148 @@ export default function TransactionSendPanel() {
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
       <div className="border-b border-border px-6 py-4">
         <h1 className="text-lg font-bold text-heading">Send Transaction</h1>
-      </div>
-
-      <div className="bg-panel p-10 text-center">
-        <CheckCircle2 size={40} className="mx-auto mb-3 text-brand-green" />
-        <p className="text-sm font-medium text-heading">
-          Transaction created: {remitter.firstName} {remitter.lastName} → {beneficiary.firstName}{" "}
-          {beneficiary.lastName} for {formatAmount(receiveAmount)} via {partnerId}.
+        <p className="mt-0.5 text-sm text-muted">
+          {isLive ? "Live remittance API" : "Static demo data"} — POST /transfers.
         </p>
-        <Button
-          variant="ghost"
-          size="md"
-          className="mt-4"
-          onClick={() => {
-            setStep("partner");
-            setRemitter(emptyRemitter);
-            setSecurity(emptySecurity);
-            setBeneficiary(emptyBeneficiary);
-            handleReset();
-          }}
-        >
-          Start New Transaction
-        </Button>
       </div>
+
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          setStage("confirm");
+        }}
+        className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-2 sm:p-8"
+      >
+        {beneficiaryOptions.length > 0 ? (
+          <SelectField
+            label="Beneficiary:"
+            required
+            options={beneficiaryOptions}
+            defaultValue={beneficiaryOptions[0]}
+            value={String(form.beneficiaryId)}
+            onChange={(v) => updateField("beneficiaryId", Number(v))}
+          />
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm text-heading/70">Beneficiary:</label>
+            <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+              {beneficiariesLoading ? "Loading beneficiaries..." : "No beneficiaries found — add one first."}
+            </p>
+          </div>
+        )}
+        {beneficiaryOptions.length > 0 && (
+          <p className="sm:col-start-2 self-end pb-2.5 text-sm text-heading/70">
+            Sending to <span className="font-medium text-heading">{beneficiaryLabel(String(form.beneficiaryId))}</span>
+          </p>
+        )}
+
+        <TextField
+          label="Amount:"
+          required
+          value={form.amount ? String(form.amount) : ""}
+          onChange={(v) => updateField("amount", Number(v) || 0)}
+        />
+        <SelectField
+          label="Source Currency:"
+          required
+          options={settlementCurrencyOptions}
+          defaultValue={settlementCurrencyOptions[0]}
+          value={form.sourceCurrency}
+          onChange={(v) => updateField("sourceCurrency", v)}
+        />
+        <SelectField
+          label="Destination Country:"
+          required
+          options={partnerCountrySelectOptions}
+          defaultValue={partnerCountrySelectOptions[0]}
+          value={form.destinationCountry}
+          onChange={(v) => updateField("destinationCountry", v)}
+        />
+        <SelectField
+          label="Destination Currency:"
+          required
+          options={settlementCurrencyOptions}
+          defaultValue={settlementCurrencyOptions[0]}
+          value={form.destinationCurrency}
+          onChange={(v) => updateField("destinationCurrency", v)}
+        />
+        <SelectField
+          label="Purpose:"
+          required
+          options={transferPurposeOptions}
+          defaultValue={transferPurposeOptions[0]}
+          value={form.purpose}
+          onChange={(v) => updateField("purpose", v)}
+        />
+        <div className="sm:col-span-2 flex flex-col gap-1.5">
+          <label className="text-sm text-heading/70">Remarks:</label>
+          <textarea
+            rows={3}
+            value={form.remarks}
+            onChange={(event) => updateField("remarks", event.target.value)}
+            className="w-full rounded-xl border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+          />
+        </div>
+
+        <div className="sm:col-span-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-heading/70">
+          {estimating
+            ? "Calculating estimate..."
+            : estimatedPayout !== null
+              ? `Estimated payout: ≈ ${formatAccounting(estimatedPayout)} ${form.destinationCurrency} — estimate only, not authoritative until submitted.`
+              : "Enter an amount and destination currency to see an estimated payout."}
+        </div>
+
+        <div className="sm:col-span-2 border-t border-border pt-5">
+          <Button type="submit" disabled={!formValid} icon={<ArrowRight size={15} />}>
+            Review & Send
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
 
-function formatAmount(value: number) {
-  return value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-const inputClass =
-  "w-full rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green";
-
-function StepButton({
-  onClick,
-  disabled,
-  children,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
+function ConfirmField({ label, value }: { label: string; value: string }) {
   return (
-    <Button size="md" onClick={onClick} disabled={disabled} icon={<ChevronRight size={16} />}>
-      {children}
-    </Button>
+    <div>
+      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 font-medium text-heading">{value}</p>
+    </div>
   );
 }
 
-function FormRow({
+function TradeRestrictionRow({
   label,
-  required,
-  children,
-}: {
-  label: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-wrap items-start gap-3">
-      <span className="w-40 shrink-0 pt-1.5 text-sm text-heading/80">
-        {label} {required && <span className="text-red-500">*</span>}
-      </span>
-      <div className="min-w-[220px] flex-1">{children}</div>
-    </div>
-  );
-}
-
-function Select({
   value,
   onChange,
-  options,
-  placeholder,
-  className,
 }: {
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-  placeholder?: string;
-  className?: string;
+  label: string;
+  value: YesNo;
+  onChange: (value: YesNo) => void;
 }) {
   return (
-    <select
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      className={`rounded-lg border border-border bg-panel px-3 py-1.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green ${
-        className ?? "w-full"
-      }`}
-    >
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-function IconButton({ icon: Icon, onClick }: { icon: typeof Search; onClick?: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-panel text-heading/70 hover:bg-border"
-    >
-      <Icon size={14} />
-    </button>
+    <div className="flex flex-wrap items-center justify-between gap-3 sm:max-w-2xl">
+      <p className="text-sm text-heading/80">{label}</p>
+      <div className="flex items-center gap-6">
+        <label className="flex items-center gap-2 text-sm text-heading/80">
+          <input
+            type="checkbox"
+            checked={value === "NA"}
+            onChange={() => onChange("NA")}
+            className="h-4 w-4 rounded border-border text-brand-blue focus:ring-brand-blue"
+          />
+          N/A
+        </label>
+        <label className="flex items-center gap-2 text-sm text-heading/80">
+          <input
+            type="checkbox"
+            checked={value === "YES"}
+            onChange={() => onChange("YES")}
+            className="h-4 w-4 rounded border-border text-brand-blue focus:ring-brand-blue"
+          />
+          Yes
+        </label>
+      </div>
+    </div>
   );
 }

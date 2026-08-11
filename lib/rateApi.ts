@@ -75,19 +75,43 @@ export function updateExchangeRateFromCsv(payload: ExchangeRateUpsertPayload) {
 }
 
 // Service Charge
+// Singular lookup — "most recently created active service charge," one row.
+// Not for populating the main table (that's getAllServiceCharges/GetSeRate
+// below) — unused by any screen right now; wire it up only once a real spot
+// that needs a single fallback/default service charge is identified.
 export function getServiceCharge() {
   return callRateAction<ServiceChargeRecord>("get-service-charge", { method: "GET" });
 }
 
+// GetSeRate's 200 response is documented as a bare `string` in the schema —
+// unexpanded, same as several other endpoints in this API. callRateAction
+// still types it as ServiceChargeRecord[] here on the assumption it matches
+// ResponseDtoListServiceChargeResponse; RatesContext.refreshServiceCharges
+// guards against an unexpected shape at the point it's consumed rather than
+// trusting this type blindly. Update this comment once confirmed against a
+// real call.
 export function getAllServiceCharges() {
   return callRateAction<ServiceChargeRecord[]>("get-se-rate", { method: "GET" });
 }
 
+// Existing row (has a real id) — update in place.
 export function saveServiceCharge(payload: ServiceChargeUpsertPayload) {
   return callRateAction<ServiceChargeRecord>("service-charges-save", { method: "POST", body: payload });
 }
 
-// Country / Currency
+// New row (id: 0) — separate endpoint from the one above. Whether it
+// rejects or just ignores a populated id is unconfirmed, so callers should
+// still send id: 0 for a genuinely new row rather than omitting the field.
+export function insertServiceCharge(payload: ServiceChargeUpsertPayload) {
+  return callRateAction<ServiceChargeRecord>("service-charges-insert", { method: "POST", body: payload });
+}
+
+// Country / Currency — POST /UpdateCsvfileForCountries upserts ONE row per
+// call, as a structured JSON object with the normal envelope response
+// (confirmed against Swagger). "From a CSV import" in its description refers
+// to the source of the data, not the request/response shape — an earlier
+// build pass wrongly treated this as a raw-string endpoint; see
+// data/countryCurrencyData.ts.
 export function upsertCountryCurrency(payload: CountryCurrencyUpsertPayload) {
   return callRateAction<CountryCurrencyRecord>("update-csv-file-for-countries", { method: "POST", body: payload });
 }

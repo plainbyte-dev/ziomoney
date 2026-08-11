@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { Pencil, X } from "lucide-react";
 import { useRates } from "@/contexts/RatesContext";
+import { usePartners } from "@/contexts/PartnersContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
@@ -10,19 +12,35 @@ import {
   emptyMarginPayload,
   marginStatusValues,
   marginTypeValues,
+  type MarginRecord,
   type MarginUpsertPayload,
 } from "@/data/marginSetupData";
 
 export default function MarginSetupPanel() {
   const { isLive } = useDataMode();
   const { margins, saveMargin } = useRates();
+  const { entries: partners } = usePartners();
 
   const [form, setForm] = useState<MarginUpsertPayload>(emptyMarginPayload());
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  const isEditing = form.id !== 0;
+  const targetPartnerOptions = partners.map((p) => p.partnerName);
+
   function updateField<K extends keyof MarginUpsertPayload>(field: K, value: MarginUpsertPayload[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function startEdit(entry: MarginRecord) {
+    const { createdDate: _createdDate, ...payload } = entry;
+    setForm(payload);
+    setSaveError(null);
+  }
+
+  function cancelEdit() {
+    setForm(emptyMarginPayload());
+    setSaveError(null);
   }
 
   async function handleSave(event: React.FormEvent) {
@@ -63,11 +81,17 @@ export default function MarginSetupPanel() {
                     <th className="px-4 py-3">Bind String</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Expiry</th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody>
                   {margins.map((entry) => (
-                    <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
+                    <tr
+                      key={entry.id}
+                      className={`border-b border-border last:border-b-0 ${
+                        form.id === entry.id ? "bg-brand-green-light/40" : "bg-panel"
+                      }`}
+                    >
                       <td className="px-4 py-3 font-medium text-heading">{entry.targetPartner}</td>
                       <td className="px-4 py-3 text-heading/80">{entry.service}</td>
                       <td className="px-4 py-3 text-heading/80">{entry.remittanceType}</td>
@@ -84,12 +108,21 @@ export default function MarginSetupPanel() {
                       <td className="whitespace-nowrap px-4 py-3 text-heading/80">
                         {entry.expiryDate.slice(0, 10)}
                       </td>
+                      <td className="whitespace-nowrap px-4 py-3">
+                        <button
+                          onClick={() => startEdit(entry)}
+                          className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-heading/80 hover:bg-border"
+                        >
+                          <Pencil size={12} />
+                          Edit
+                        </button>
+                      </td>
                     </tr>
                   ))}
 
                   {margins.length === 0 && (
                     <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
+                      <td colSpan={9} className="px-4 py-10 text-center text-sm text-muted">
                         {isLive
                           ? "The remittance API has no \"list all\" endpoint for this data — rows appear here after you save one below."
                           : "No margin overrides configured yet."}
@@ -105,15 +138,26 @@ export default function MarginSetupPanel() {
 
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
         <div className="border-b border-border px-6 py-4">
-          <h2 className="text-base font-bold text-heading">Add / Update Margin</h2>
+          <h2 className="text-base font-bold text-heading">{isEditing ? "Update Margin" : "Add Margin"}</h2>
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
-          <TextField
-            label="Target Partner:"
-            required
-            value={form.targetPartner}
-            onChange={(v) => updateField("targetPartner", v)}
-          />
+          {targetPartnerOptions.length > 0 ? (
+            <SelectField
+              label="Target Partner:"
+              required
+              options={targetPartnerOptions}
+              defaultValue={targetPartnerOptions[0]}
+              value={form.targetPartner}
+              onChange={(v) => updateField("targetPartner", v)}
+            />
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm text-heading/70">Target Partner:</label>
+              <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+                No partners found — create one under Partner Info first.
+              </p>
+            </div>
+          )}
           <TextField label="Service:" value={form.service} onChange={(v) => updateField("service", v)} />
           <TextField
             label="Remittance Type:"
@@ -160,9 +204,16 @@ export default function MarginSetupPanel() {
             {saveError && (
               <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
             )}
-            <Button type="submit" loading={saving}>
-              {saving ? "Saving..." : "Save Margin"}
-            </Button>
+            <div className="flex items-center gap-3">
+              <Button type="submit" loading={saving}>
+                {saving ? "Saving..." : isEditing ? "Update Margin" : "Save Margin"}
+              </Button>
+              {isEditing && (
+                <Button type="button" variant="secondary" onClick={cancelEdit} icon={<X size={14} />}>
+                  Cancel
+                </Button>
+              )}
+            </div>
           </div>
         </form>
       </div>

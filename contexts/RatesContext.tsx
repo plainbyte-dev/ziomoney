@@ -11,10 +11,13 @@ import {
   updateExchangeRateFromCsv,
   getAllServiceCharges,
   saveServiceCharge,
+  insertServiceCharge,
   upsertCountryCurrency,
   getPartnerCommissions,
   upsertPartnerCommission,
   getAllPendingPartnerOfferRates,
+  getLatestConfirmedPartnerRate,
+  getPartnerRateHistory,
   insertPartnerOfferRate,
   confirmPartnerOfferRate,
   cancelPartnerOfferRate,
@@ -33,11 +36,13 @@ import {
 } from "@/data/serviceChargeData";
 import {
   countryCurrencyRecords,
+  type CountryCurrencyImportRowResult,
   type CountryCurrencyRecord,
   type CountryCurrencyUpsertPayload,
 } from "@/data/countryCurrencyData";
 import {
   commissionRecords,
+  type CommissionLookupPayload,
   type CommissionRecord,
   type CommissionUpsertPayload,
 } from "@/data/partnerCommissionData";
@@ -45,6 +50,7 @@ import {
   partnerOfferRateRecords,
   type PartnerOfferRateActionPayload,
   type PartnerOfferRateInsertPayload,
+  type PartnerOfferRateLookupPayload,
   type PartnerOfferRateRecord,
 } from "@/data/partnerOfferRateData";
 import { marginRecords, type MarginRecord, type MarginUpsertPayload } from "@/data/marginSetupData";
@@ -62,21 +68,33 @@ interface RatesContextValue {
   serviceChargesLoading: boolean;
   serviceChargesError: string | null;
   refreshServiceCharges: () => Promise<void>;
-  saveServiceChargeEntry: (payload: ServiceChargeUpsertPayload) => Promise<boolean>;
+  saveServiceChargeEntry: (payload: ServiceChargeUpsertPayload, isNew: boolean) => Promise<boolean>;
 
   countryCurrencies: CountryCurrencyRecord[];
-  saveCountryCurrency: (payload: CountryCurrencyUpsertPayload) => Promise<boolean>;
+  countryCurrencyImporting: boolean;
+  importCountryCurrencyCsv: (rows: CountryCurrencyUpsertPayload[]) => Promise<CountryCurrencyImportRowResult[]>;
 
   commissions: CommissionRecord[];
+  commissionsLoading: boolean;
+  commissionsError: string | null;
+  searchCommissions: (payload: CommissionLookupPayload) => Promise<boolean>;
   saveCommission: (payload: CommissionUpsertPayload) => Promise<boolean>;
 
   partnerOfferRates: PartnerOfferRateRecord[];
   partnerOfferRatesLoading: boolean;
   partnerOfferRateActionError: string | null;
   refreshPartnerOfferRates: () => Promise<void>;
-  insertOfferRate: (payload: PartnerOfferRateInsertPayload) => Promise<boolean>;
-  confirmOfferRate: (payload: PartnerOfferRateActionPayload) => Promise<boolean>;
-  cancelOfferRate: (payload: PartnerOfferRateActionPayload) => Promise<boolean>;
+  insertOfferRate: (payload: PartnerOfferRateInsertPayload) => Promise<PartnerOfferRateRecord | null>;
+  confirmOfferRate: (
+    payload: PartnerOfferRateActionPayload,
+    options?: { allowSelfApproval?: boolean }
+  ) => Promise<boolean>;
+  cancelOfferRate: (
+    payload: PartnerOfferRateActionPayload,
+    options?: { allowSelfApproval?: boolean }
+  ) => Promise<boolean>;
+  lookupCurrentPartnerOfferRate: (payload: PartnerOfferRateLookupPayload) => Promise<PartnerOfferRateRecord | null>;
+  lookupPartnerOfferRateHistory: (payload: PartnerOfferRateLookupPayload) => Promise<PartnerOfferRateRecord[]>;
 
   margins: MarginRecord[];
   saveMargin: (payload: MarginUpsertPayload) => Promise<boolean>;
@@ -116,15 +134,27 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   const [serviceChargesLoading, setServiceChargesLoading] = useState(false);
   const [serviceChargesError, setServiceChargesError] = useState<string | null>(null);
 
-  // These two have no "list all" endpoint on the backend at all — only
-  // upsert/filtered-lookup — so a live session can never populate them from
-  // a general fetch. They only ever fill in from a save/lookup response.
+  // countryCurrencies has no "list all" endpoint at all — the only backend
+  // call is UpdateCsvfileForCountries, which takes one raw CSV row string per
+  // call and returns an opaque string, not a saved record. So this table is
+  // built entirely from what was successfully imported this session, using
+  // the values as parsed from the CSV — never from a response payload.
   const [countryCurrencies, setCountryCurrencies] = useState<CountryCurrencyRecord[]>(() =>
     isLive ? [] : countryCurrencyRecords
   );
+  const [countryCurrencyImporting, setCountryCurrencyImporting] = useState(false);
+
+  // No "list ALL" endpoint for commissions — obtainRemittancePartnerCommission
+  // is a real search endpoint (userName + destinationCountry + sendCurrency),
+  // just a filtered one, not a full fetch. So this table only ever holds
+  // what's been searched for or saved this session, merged in rather than
+  // replaced so an earlier search's rows don't disappear when a different
+  // one is saved.
   const [commissions, setCommissions] = useState<CommissionRecord[]>(() =>
     isLive ? [] : commissionRecords
   );
+  const [commissionsLoading, setCommissionsLoading] = useState(false);
+  const [commissionsError, setCommissionsError] = useState<string | null>(null);
 
   const [partnerOfferRates, setPartnerOfferRates] = useState<PartnerOfferRateRecord[]>(() =>
     isLive ? [] : partnerOfferRateRecords
@@ -327,11 +357,22 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       setServiceChargesError(response.message || "Could not load service charges.");
       return;
     }
-    setServiceCharges(response.data ?? []);
+    // GetSeRate's response schema is an unexpanded bare `string` in the
+    // Swagger doc — guard against it not actually being the array we expect,
+    // rather than trusting the type and letting `.map`/`.length` blow up
+    // downstream on something else (e.g. a JSON-encoded string needing a
+    // second parse).
+    if (!Array.isArray(response.data)) {
+      setServiceChargesError(
+        "GetSeRate returned an unexpected shape (not an array) — confirm the real response format with backend."
+      );
+      return;
+    }
+    setServiceCharges(response.data);
   }, [isLive]);
 
   const saveServiceChargeEntry = useCallback(
-    async (payload: ServiceChargeUpsertPayload) => {
+    async (payload: ServiceChargeUpsertPayload, isNew: boolean) => {
       if (!isLive) {
         await new Promise((resolve) => setTimeout(resolve, 300));
         setServiceCharges((prev) => {
@@ -348,7 +389,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
         return true;
       }
-      const response = await saveServiceCharge(payload);
+      // New rows go through Service_Charges_Insert; existing ones (a real
+      // id from the row being edited) go through Service_Charges_save —
+      // these are two distinct endpoints, not one shared upsert.
+      const response = isNew ? await insertServiceCharge(payload) : await saveServiceCharge(payload);
       if (!response.success) {
         setServiceChargesError(response.message || "Could not save the service charge.");
         return false;
@@ -360,30 +404,60 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
     [isLive, notify, refreshServiceCharges]
   );
 
-  const saveCountryCurrency = useCallback(
-    async (payload: CountryCurrencyUpsertPayload) => {
+  // UpdateCsvfileForCountries upserts ONE row per call and has no
+  // "list all" endpoint, so importing is a batched loop and the table is
+  // built from successfully-imported rows, not a fetch. Batched (not fully
+  // parallel) so a large file doesn't fire dozens of requests at once.
+  const COUNTRY_CURRENCY_IMPORT_BATCH_SIZE = 5;
+
+  const importCountryCurrencyCsv = useCallback(
+    async (rows: CountryCurrencyUpsertPayload[]): Promise<CountryCurrencyImportRowResult[]> => {
+      setCountryCurrencyImporting(true);
+      const results: CountryCurrencyImportRowResult[] = [];
+
       if (!isLive) {
         await new Promise((resolve) => setTimeout(resolve, 300));
-        setCountryCurrencies((prev) => {
-          const existing = prev.find((r) => r.isoAlpha2 === payload.isoAlpha2);
-          const record: CountryCurrencyRecord = { ...payload, id: existing?.id ?? ++localIdCounter };
-          return existing
-            ? prev.map((r) => (r.isoAlpha2 === payload.isoAlpha2 ? record : r))
-            : [record, ...prev];
+        for (const row of rows) results.push({ row, success: true, message: "Imported (demo mode)." });
+        setCountryCurrencies((prev) => [...rows.map((row) => ({ ...row, id: ++localIdCounter })), ...prev]);
+        setCountryCurrencyImporting(false);
+        notify({
+          title: "Country/currency rows imported",
+          message: `${rows.length} of ${rows.length} row(s) imported.`,
         });
-        notify({ title: "Country/currency saved", message: `${payload.countryName} (${payload.currencyCode}) was updated.` });
-        return true;
+        return results;
       }
-      const response = await upsertCountryCurrency(payload);
-      if (!response.success || !response.data) return false;
-      setCountryCurrencies((prev) => {
-        const exists = prev.some((r) => r.id === response.data!.id);
-        return exists
-          ? prev.map((r) => (r.id === response.data!.id ? response.data! : r))
-          : [response.data!, ...prev];
+
+      for (let i = 0; i < rows.length; i += COUNTRY_CURRENCY_IMPORT_BATCH_SIZE) {
+        const batch = rows.slice(i, i + COUNTRY_CURRENCY_IMPORT_BATCH_SIZE);
+        const batchResults = await Promise.all(
+          batch.map(async (row): Promise<CountryCurrencyImportRowResult & { record?: CountryCurrencyRecord }> => {
+            const response = await upsertCountryCurrency(row);
+            return {
+              row,
+              success: response.success && !!response.data,
+              message: response.success ? "Imported." : response.message || "Import failed.",
+              record: response.data ?? undefined,
+            };
+          })
+        );
+        results.push(...batchResults.map(({ row, success, message }) => ({ row, success, message })));
+        // Use the server-assigned id from the response rather than a local
+        // counter — this is a real upsert now, not a fire-and-forget call.
+        const succeededRows = batchResults
+          .filter((r): r is typeof r & { record: CountryCurrencyRecord } => r.success && !!r.record)
+          .map((r) => r.record);
+        if (succeededRows.length) setCountryCurrencies((prev) => [...succeededRows, ...prev]);
+      }
+
+      setCountryCurrencyImporting(false);
+      const succeeded = results.filter((r) => r.success).length;
+      notify({
+        title: "Country/currency rows imported",
+        message: `${succeeded} of ${rows.length} row(s) imported${
+          succeeded < rows.length ? `, ${rows.length - succeeded} failed` : ""
+        }.`,
       });
-      notify({ title: "Country/currency saved", message: `${payload.countryName} (${payload.currencyCode}) was updated.` });
-      return true;
+      return results;
     },
     [isLive, notify]
   );
@@ -415,17 +489,45 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
       const response = await upsertPartnerCommission(payload);
-      if (!response.success) return false;
-      const lookup = await getPartnerCommissions({
-        userName: payload.userName,
-        destinationCountry: payload.destinationCountry,
-        sendCurrency: payload.sendCurrency,
+      if (!response.success || !response.data) return false;
+      // The upsert response already IS the saved record — merge it straight
+      // in rather than re-querying and replacing the whole list, which would
+      // wipe out any other partner/currency/country combo already searched
+      // for this session.
+      const saved = response.data;
+      setCommissions((prev) => {
+        const exists = prev.some((r) => r.id === saved.id);
+        return exists ? prev.map((r) => (r.id === saved.id ? saved : r)) : [saved, ...prev];
       });
-      if (lookup.success) setCommissions(lookup.data ?? []);
       notify({ title: "Partner commission saved", message: `${payload.userName} → ${payload.destinationCountry} commission was updated.` });
       return true;
     },
     [isLive, notify]
+  );
+
+  const searchCommissions = useCallback(
+    async (payload: CommissionLookupPayload) => {
+      setCommissionsError(null);
+      if (!isLive) {
+        // Demo mode already holds everything locally — nothing to fetch.
+        return true;
+      }
+      setCommissionsLoading(true);
+      const response = await getPartnerCommissions(payload);
+      setCommissionsLoading(false);
+      if (!response.success) {
+        setCommissionsError(response.message || "Could not search partner commissions.");
+        return false;
+      }
+      const results = response.data ?? [];
+      setCommissions((prev) => {
+        const byId = new Map(prev.map((r) => [r.id, r]));
+        for (const r of results) byId.set(r.id, r);
+        return Array.from(byId.values());
+      });
+      return true;
+    },
+    [isLive]
   );
 
   const saveMargin = useCallback(
@@ -470,43 +572,41 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   }, [isLive]);
 
   const insertOfferRate = useCallback(
-    async (payload: PartnerOfferRateInsertPayload) => {
+    async (payload: PartnerOfferRateInsertPayload): Promise<PartnerOfferRateRecord | null> => {
       setPartnerOfferRateActionError(null);
       if (!isLive) {
         await new Promise((resolve) => setTimeout(resolve, 300));
         const now = new Date().toISOString();
-        setPartnerOfferRates((prev) => [
-          {
-            id: ++localIdCounter,
-            uniqueId: `POR-LOCAL-${++localOfferRateSeq}`,
-            remittancePartner: payload.remittancePartner,
-            sendCurrency: payload.sendCurrency,
-            receiveCurrency: payload.receiveCurrency,
-            destCountry: payload.destCountry,
-            sendCurrencyPerUsd: payload.sendCurrencyPerUsd,
-            receiveCurrencyPerUsd: payload.receiveCurrencyPerUsd,
-            directQuote: payload.directQuote,
-            rate: payload.directQuote,
-            quoteType: payload.quoteType,
-            status: "PENDING",
-            makerUser: payload.makerUser,
-            checkerUser: "",
-            createdDateTime: now,
-            updatedDateTime: now,
-          },
-          ...prev,
-        ]);
+        const record: PartnerOfferRateRecord = {
+          id: ++localIdCounter,
+          uniqueId: `POR-LOCAL-${++localOfferRateSeq}`,
+          remittancePartner: payload.remittancePartner,
+          sendCurrency: payload.sendCurrency,
+          receiveCurrency: payload.receiveCurrency,
+          destCountry: payload.destCountry,
+          sendCurrencyPerUsd: payload.sendCurrencyPerUsd,
+          receiveCurrencyPerUsd: payload.receiveCurrencyPerUsd,
+          directQuote: payload.directQuote,
+          rate: payload.directQuote,
+          quoteType: payload.quoteType,
+          status: "PENDING",
+          makerUser: payload.makerUser,
+          checkerUser: null,
+          createdDateTime: now,
+          updatedDateTime: now,
+        };
+        setPartnerOfferRates((prev) => [record, ...prev]);
         notify({ title: "Offer rate submitted", message: `${payload.remittancePartner} quote is pending approval.` });
-        return true;
+        return record;
       }
       const response = await insertPartnerOfferRate(payload);
-      if (!response.success) {
+      if (!response.success || !response.data) {
         setPartnerOfferRateActionError(response.message || "Could not submit the offer rate.");
-        return false;
+        return null;
       }
       await refreshPartnerOfferRates();
       notify({ title: "Offer rate submitted", message: `${payload.remittancePartner} quote is pending approval.` });
-      return true;
+      return response.data;
     },
     [isLive, notify, refreshPartnerOfferRates]
   );
@@ -524,9 +624,23 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
+  // Maker-checker separation of duties: whoever proposed a rate must not be
+  // the one who approves/rejects it, even if the backend doesn't enforce
+  // this itself — checked client-side against the rate we already hold.
+  function blocksSelfApproval(uniqueId: string, checkerUser: string): boolean {
+    const rate = partnerOfferRates.find((r) => r.uniqueId === uniqueId);
+    return !!rate && rate.makerUser.trim().toLowerCase() === checkerUser.trim().toLowerCase();
+  }
+
   const confirmOfferRate = useCallback(
-    async (payload: PartnerOfferRateActionPayload) => {
+    async (payload: PartnerOfferRateActionPayload, options?: { allowSelfApproval?: boolean }) => {
       setPartnerOfferRateActionError(null);
+      if (!options?.allowSelfApproval && blocksSelfApproval(payload.uniqueId, payload.checkerUser)) {
+        setPartnerOfferRateActionError(
+          "You proposed this rate — a different user must confirm it."
+        );
+        return false;
+      }
       if (!isLive) {
         await new Promise((resolve) => setTimeout(resolve, 300));
         resolveOfferRate(payload.uniqueId, payload.checkerUser, "CONFIRMED");
@@ -542,12 +656,18 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       notify({ title: "Offer rate confirmed", message: `${payload.uniqueId} was approved.` });
       return true;
     },
-    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate]
+    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate, partnerOfferRates]
   );
 
   const cancelOfferRate = useCallback(
-    async (payload: PartnerOfferRateActionPayload) => {
+    async (payload: PartnerOfferRateActionPayload, options?: { allowSelfApproval?: boolean }) => {
       setPartnerOfferRateActionError(null);
+      if (!options?.allowSelfApproval && blocksSelfApproval(payload.uniqueId, payload.checkerUser)) {
+        setPartnerOfferRateActionError(
+          "You proposed this rate — a different user must reject it."
+        );
+        return false;
+      }
       if (!isLive) {
         await new Promise((resolve) => setTimeout(resolve, 300));
         resolveOfferRate(payload.uniqueId, payload.checkerUser, "CANCELLED");
@@ -563,7 +683,44 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       notify({ title: "Offer rate cancelled", message: `${payload.uniqueId} was cancelled.` });
       return true;
     },
-    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate]
+    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate, partnerOfferRates]
+  );
+
+  // View C (Current) and View D (History) — on-demand lookups, not
+  // persistent list state. Current returns a single latest-confirmed rate;
+  // History returns everything matching the filters.
+  const lookupCurrentPartnerOfferRate = useCallback(
+    async (payload: PartnerOfferRateLookupPayload): Promise<PartnerOfferRateRecord | null> => {
+      if (!isLive) {
+        const match = partnerOfferRates.find(
+          (r) =>
+            r.remittancePartner.toLowerCase() === payload.userName.toLowerCase() &&
+            r.sendCurrency.toUpperCase() === payload.sendCurrency.toUpperCase() &&
+            r.destCountry.toLowerCase() === payload.destCountry.toLowerCase() &&
+            r.status === "CONFIRMED"
+        );
+        return match ?? null;
+      }
+      const response = await getLatestConfirmedPartnerRate(payload);
+      return response.success ? response.data : null;
+    },
+    [isLive, partnerOfferRates]
+  );
+
+  const lookupPartnerOfferRateHistory = useCallback(
+    async (payload: PartnerOfferRateLookupPayload): Promise<PartnerOfferRateRecord[]> => {
+      if (!isLive) {
+        return partnerOfferRates.filter(
+          (r) =>
+            r.remittancePartner.toLowerCase() === payload.userName.toLowerCase() &&
+            r.sendCurrency.toUpperCase() === payload.sendCurrency.toUpperCase() &&
+            r.destCountry.toLowerCase() === payload.destCountry.toLowerCase()
+        );
+      }
+      const response = await getPartnerRateHistory(payload);
+      return response.success ? response.data ?? [] : [];
+    },
+    [isLive, partnerOfferRates]
   );
 
   const value = useMemo(
@@ -581,8 +738,12 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       refreshServiceCharges,
       saveServiceChargeEntry,
       countryCurrencies,
-      saveCountryCurrency,
+      countryCurrencyImporting,
+      importCountryCurrencyCsv,
       commissions,
+      commissionsLoading,
+      commissionsError,
+      searchCommissions,
       saveCommission,
       partnerOfferRates,
       partnerOfferRatesLoading,
@@ -591,6 +752,8 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       insertOfferRate,
       confirmOfferRate,
       cancelOfferRate,
+      lookupCurrentPartnerOfferRate,
+      lookupPartnerOfferRateHistory,
       margins,
       saveMargin,
     }),
@@ -608,8 +771,12 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       refreshServiceCharges,
       saveServiceChargeEntry,
       countryCurrencies,
-      saveCountryCurrency,
+      countryCurrencyImporting,
+      importCountryCurrencyCsv,
       commissions,
+      commissionsLoading,
+      commissionsError,
+      searchCommissions,
       saveCommission,
       partnerOfferRates,
       partnerOfferRatesLoading,
@@ -618,6 +785,8 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       insertOfferRate,
       confirmOfferRate,
       cancelOfferRate,
+      lookupCurrentPartnerOfferRate,
+      lookupPartnerOfferRateHistory,
       margins,
       saveMargin,
     ]

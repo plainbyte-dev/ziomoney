@@ -1,4 +1,9 @@
-// Fields accepted by POST /UpdateCsvfileForCountries
+// POST /UpdateCsvfileForCountries — "Upsert a country/currency row from a
+// CSV import." Despite the name, the request body is a structured JSON
+// object per row (confirmed against Swagger), not a raw CSV string, and the
+// response is the standard { success, message, data, errorCode, timestamp }
+// envelope wrapping the saved row — not an opaque string. (An earlier build
+// pass wrongly assumed a raw-string request/response; this replaces that.)
 export interface CountryCurrencyUpsertPayload {
   countryName: string;
   isoAlpha2: string;
@@ -12,16 +17,26 @@ export interface CountryCurrencyRecord extends CountryCurrencyUpsertPayload {
   id: number;
 }
 
-export function emptyCountryCurrencyPayload(): CountryCurrencyUpsertPayload {
-  return {
-    countryName: "",
-    isoAlpha2: "",
-    isoAlpha3: "",
-    isoNumeric: 0,
-    currencyCode: "",
-    fjdate: "",
-  };
+export interface CountryCurrencyField {
+  key: keyof CountryCurrencyUpsertPayload;
+  label: string;
+  required: boolean;
 }
+
+export interface CountryCurrencyImportRowResult {
+  row: CountryCurrencyUpsertPayload;
+  success: boolean;
+  message: string;
+}
+
+export const countryCurrencyFields: CountryCurrencyField[] = [
+  { key: "countryName", label: "Country Name", required: true },
+  { key: "isoAlpha2", label: "Alpha-2", required: true },
+  { key: "isoAlpha3", label: "Alpha-3", required: true },
+  { key: "isoNumeric", label: "Numeric", required: false },
+  { key: "currencyCode", label: "Currency Code", required: true },
+  { key: "fjdate", label: "FJ Date", required: false },
+];
 
 export const countryCurrencyRecords: CountryCurrencyRecord[] = [
   { id: 1, countryName: "India", isoAlpha2: "IN", isoAlpha3: "IND", isoNumeric: 356, currencyCode: "INR", fjdate: "2026-01-01" },

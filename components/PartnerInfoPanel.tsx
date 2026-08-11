@@ -1,20 +1,28 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2, FileBarChart2, RefreshCw } from "lucide-react";
+import { Plus, Trash2, FileBarChart2, RefreshCw, Settings, UserPlus } from "lucide-react";
 import Logo from "./Logo";
 import Button from "./Button";
 import PartnerInfoTable from "./PartnerInfoTable";
+import PartnerManageModal from "./PartnerManageModal";
 import { usePartners } from "@/contexts/PartnersContext";
 import { useTabs } from "@/contexts/TabsContext";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { useNotifications } from "@/contexts/NotificationsContext";
+import { insertAgentPartner } from "@/lib/partnersApi";
 
 export default function PartnerInfoPanel() {
-  const { entries, entriesLoading, entriesError, refreshEntries, removeEntry } = usePartners();
+  const { entries, entriesLoading, entriesError, refreshEntries, addEntry, removeEntry } = usePartners();
   const { isLive } = useDataMode();
   const { openTab } = useTabs();
+  const { notify } = useNotifications();
   const [countryFilter, setCountryFilter] = useState("ALL");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [registeringAgent, setRegisteringAgent] = useState(false);
+
+  const selectedEntry = entries.find((entry) => entry.id === selectedId) ?? null;
 
   const filteredEntries = useMemo(() => {
     if (countryFilter === "ALL") return entries;
@@ -29,6 +37,56 @@ export default function PartnerInfoPanel() {
 
   function handleSelect(id: string) {
     setSelectedId((prev) => (prev === id ? null : id));
+  }
+
+  async function handleRegisterAgentPartner() {
+    setRegisteringAgent(true);
+
+    if (!isLive) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      addEntry({
+        id: String(11000000 + entries.length + 1),
+        partnerName: "remitteragent",
+        partnerId: "remitteragent",
+        country: "—",
+        partnerType: "Agent",
+        creditLimit: 0,
+        hasBank: false,
+        blocked: false,
+      });
+      setRegisteringAgent(false);
+      return;
+    }
+
+    const response = await insertAgentPartner();
+    setRegisteringAgent(false);
+    if (!response.success || !response.data) {
+      notify({
+        title: "Could not register agent partner",
+        message: response.message || "Please try again.",
+      });
+      return;
+    }
+
+    addEntry({
+      id: String(response.data.id),
+      partnerName: response.data.userName,
+      partnerId: response.data.partnerCode,
+      country: response.data.partnerCountry.toUpperCase(),
+      partnerType: response.data.remitterType,
+      creditLimit: response.data.accountBalance,
+      hasBank: false,
+      blocked: false,
+      email: response.data.email,
+      acceptPartnerPin: response.data.acceptPartnerPin,
+      description: response.data.description,
+      partnerAddress: response.data.partnerAddress,
+      settlementCurrency: response.data.settlementCurrency,
+      apiUser: response.data.apiUser,
+      balance: response.data.balance,
+      registeredDate: response.data.registeredDate,
+      updatedDate: response.data.updatedDate,
+    });
   }
 
   return (
@@ -71,6 +129,22 @@ export default function PartnerInfoPanel() {
           >
             Delete
           </Button>
+          <Button
+            variant="secondary"
+            onClick={() => setManageOpen(true)}
+            disabled={!selectedId}
+            icon={<Settings size={16} />}
+          >
+            Manage
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={handleRegisterAgentPartner}
+            loading={registeringAgent}
+            icon={<UserPlus size={16} />}
+          >
+            Register Agent Partner
+          </Button>
           <Button variant="secondary" icon={<FileBarChart2 size={16} />}>
             Reports
           </Button>
@@ -86,6 +160,10 @@ export default function PartnerInfoPanel() {
           />
         </div>
       </div>
+
+      {manageOpen && (
+        <PartnerManageModal entry={selectedEntry} onClose={() => setManageOpen(false)} />
+      )}
     </div>
   );
 }

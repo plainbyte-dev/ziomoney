@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Plus, Trash2, UserPlus } from "lucide-react";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { useAuth } from "@/contexts/AuthContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
 import Button from "./Button";
@@ -17,7 +18,6 @@ import { beneficiaryCountryOptions } from "@/data/staticData";
 import { addBeneficiary, deleteBeneficiary, listBeneficiaries } from "@/lib/beneficiaryApi";
 
 const emptyForm: AddBeneficiaryPayload = {
-  customerId: "",
   fullName: "",
   accountNumber: "",
   bankName: "",
@@ -32,6 +32,7 @@ let demoIdCounter = 1000;
 
 export default function BeneficiariesPanel() {
   const { isLive } = useDataMode();
+  const { user } = useAuth();
 
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,11 +81,10 @@ export default function BeneficiariesPanel() {
     if (!isLive) {
       await new Promise((resolve) => setTimeout(resolve, 300));
       const now = new Date().toISOString();
-      const { customerId, ...beneficiaryFields } = form;
       const record: Beneficiary = {
         id: ++demoIdCounter,
-        username: customerId,
-        ...beneficiaryFields,
+        username: user?.username ?? "",
+        ...form,
         createdAt: now,
         updatedAt: now,
       };
@@ -135,7 +135,6 @@ export default function BeneficiariesPanel() {
 
         <form onSubmit={handleAdd} className="bg-panel p-6 sm:p-8">
           <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-3">
-            <TextField label="Customer ID:" required value={form.customerId} onChange={(v) => updateField("customerId", v)} />
             <TextField label="Full Name:" required value={form.fullName} onChange={(v) => updateField("fullName", v)} />
             <TextField label="Account Number:" required value={form.accountNumber} onChange={(v) => updateField("accountNumber", v)} />
             <TextField label="Bank Name:" required value={form.bankName} onChange={(v) => updateField("bankName", v)} />
@@ -185,7 +184,7 @@ export default function BeneficiariesPanel() {
               <table className="w-full min-w-[900px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-brand-green-light/50 text-xs font-semibold uppercase tracking-wide text-heading/70">
-                    <th className="px-4 py-3">Customer ID</th>
+                    <th className="px-4 py-3">Username</th>
                     <th className="px-4 py-3">Full Name</th>
                     <th className="px-4 py-3">Bank</th>
                     <th className="px-4 py-3">Account Number</th>

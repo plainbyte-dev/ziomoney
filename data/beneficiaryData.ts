@@ -14,9 +14,10 @@ export interface Beneficiary {
   updatedAt: string;
 }
 
-// POST /api/remittance/beneficiaries
+// POST /api/remittance/beneficiaries — `username` in the response is the
+// owning account (the "my" in "List my beneficiaries"), derived server-side
+// from the caller's auth token — the client never sends it.
 export interface AddBeneficiaryPayload {
-  customerId: string;
   fullName: string;
   accountNumber: string;
   bankName: string;

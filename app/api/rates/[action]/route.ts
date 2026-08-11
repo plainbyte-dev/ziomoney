@@ -9,6 +9,7 @@ const ACTIONS: Record<string, { path: string; method: "GET" | "POST" }> = {
   "get-service-charge": { path: "/getServiceCharge", method: "GET" },
   "get-se-rate": { path: "/GetSeRate", method: "GET" },
   "service-charges-save": { path: "/Service_Charges_save", method: "POST" },
+  "service-charges-insert": { path: "/Service_Charges_Insert", method: "POST" },
   "update-csv-file-for-countries": { path: "/UpdateCsvfileForCountries", method: "POST" },
   "obtain-partner-commission": { path: "/obtainRemittancePartnerCommission", method: "POST" },
   "insert-or-update-partner-commission": { path: "/insertOrUpdateRemittancePartnerCommission", method: "POST" },

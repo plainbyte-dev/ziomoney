@@ -1,23 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { useRates } from "@/contexts/RatesContext";
+import { usePartners } from "@/contexts/PartnersContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
 import Button from "./Button";
-import { commissionTypeValues, emptyCommissionPayload, type CommissionUpsertPayload } from "@/data/partnerCommissionData";
+import {
+  commissionTypeValues,
+  emptyCommissionPayload,
+  type CommissionLookupPayload,
+  type CommissionUpsertPayload,
+} from "@/data/partnerCommissionData";
+import { settlementCurrencyOptions, partnerCountrySelectOptions } from "@/data/partnerData";
+
+function emptyLookupPayload(): CommissionLookupPayload {
+  return {
+    userName: "",
+    destinationCountry: partnerCountrySelectOptions[0],
+    sendCurrency: settlementCurrencyOptions[0],
+  };
+}
 
 export default function PartnerCommissionPanel() {
   const { isLive } = useDataMode();
-  const { commissions, saveCommission } = useRates();
+  const { commissions, commissionsLoading, commissionsError, searchCommissions, saveCommission } = useRates();
+  const { entries: partners } = usePartners();
 
+  const partnerOptions = partners.map((p) => p.partnerName);
+
+  const [searchForm, setSearchForm] = useState<CommissionLookupPayload>(emptyLookupPayload());
   const [form, setForm] = useState<CommissionUpsertPayload>(emptyCommissionPayload());
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Both forms reference the same partner dropdown, whose options load
+  // asynchronously — backfill once they arrive rather than leaving a select
+  // visually showing an option neither form's state agrees with.
+  useEffect(() => {
+    if (partnerOptions.length === 0) return;
+    setSearchForm((prev) => (prev.userName ? prev : { ...prev, userName: partnerOptions[0] }));
+    setForm((prev) => (prev.userName ? prev : { ...prev, userName: partnerOptions[0] }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partnerOptions.length]);
+
+  function updateSearchField<K extends keyof CommissionLookupPayload>(field: K, value: CommissionLookupPayload[K]) {
+    setSearchForm((prev) => ({ ...prev, [field]: value }));
+  }
+
   function updateField<K extends keyof CommissionUpsertPayload>(field: K, value: CommissionUpsertPayload[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  async function handleSearch(event: React.FormEvent) {
+    event.preventDefault();
+    await searchCommissions(searchForm);
   }
 
   async function handleSave(event: React.FormEvent) {
@@ -44,6 +83,51 @@ export default function PartnerCommissionPanel() {
         </div>
 
         <div className="bg-panel p-6 sm:p-8">
+          <form onSubmit={handleSearch} className="mb-6 grid grid-cols-1 gap-x-6 gap-y-5 border-b border-border pb-6 sm:grid-cols-4">
+            {partnerOptions.length > 0 ? (
+              <SelectField
+                label="Partner:"
+                required
+                options={partnerOptions}
+                defaultValue={partnerOptions[0]}
+                value={searchForm.userName}
+                onChange={(v) => updateSearchField("userName", v)}
+              />
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm text-heading/70">Partner:</label>
+                <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+                  No partners found — create one under Partner Info first.
+                </p>
+              </div>
+            )}
+            <SelectField
+              label="Destination Country:"
+              required
+              options={partnerCountrySelectOptions}
+              defaultValue={partnerCountrySelectOptions[0]}
+              value={searchForm.destinationCountry}
+              onChange={(v) => updateSearchField("destinationCountry", v)}
+            />
+            <SelectField
+              label="Send Currency:"
+              required
+              options={settlementCurrencyOptions}
+              defaultValue={settlementCurrencyOptions[0]}
+              value={searchForm.sendCurrency}
+              onChange={(v) => updateSearchField("sendCurrency", v)}
+            />
+            <div className="flex items-end pb-2.5">
+              <Button type="submit" loading={commissionsLoading} icon={<Search size={14} />}>
+                {commissionsLoading ? "Searching..." : "Search"}
+              </Button>
+            </div>
+          </form>
+
+          {commissionsError && (
+            <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{commissionsError}</p>
+          )}
+
           <div className="overflow-hidden rounded-xl border border-border">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
@@ -78,7 +162,7 @@ export default function PartnerCommissionPanel() {
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted">
                         {isLive
-                          ? "The remittance API has no \"list all\" endpoint for this data — save or look up a commission below to see it here."
+                          ? "The remittance API has no \"list all\" endpoint for this data — search above, or save a commission below, to see rows here."
                           : "No partner commissions configured yet."}
                       </td>
                     </tr>
@@ -95,12 +179,23 @@ export default function PartnerCommissionPanel() {
           <h2 className="text-base font-bold text-heading">Insert / Update Commission</h2>
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
-          <TextField
-            label="Partner User Name:"
-            required
-            value={form.userName}
-            onChange={(v) => updateField("userName", v)}
-          />
+          {partnerOptions.length > 0 ? (
+            <SelectField
+              label="Partner:"
+              required
+              options={partnerOptions}
+              defaultValue={partnerOptions[0]}
+              value={form.userName}
+              onChange={(v) => updateField("userName", v)}
+            />
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm text-heading/70">Partner:</label>
+              <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+                No partners found — create one under Partner Info first.
+              </p>
+            </div>
+          )}
           <TextField
             label="Commission Rate:"
             value={String(form.commissionRate)}
@@ -114,15 +209,19 @@ export default function PartnerCommissionPanel() {
             onChange={(v) => updateField("commissionType", v as CommissionUpsertPayload["commissionType"])}
           />
           <TextField label="Service:" value={form.service} onChange={(v) => updateField("service", v)} />
-          <TextField
+          <SelectField
             label="Send Currency:"
             required
+            options={settlementCurrencyOptions}
+            defaultValue={settlementCurrencyOptions[0]}
             value={form.sendCurrency}
-            onChange={(v) => updateField("sendCurrency", v.toUpperCase())}
+            onChange={(v) => updateField("sendCurrency", v)}
           />
-          <TextField
+          <SelectField
             label="Destination Country:"
             required
+            options={partnerCountrySelectOptions}
+            defaultValue={partnerCountrySelectOptions[0]}
             value={form.destinationCountry}
             onChange={(v) => updateField("destinationCountry", v)}
           />

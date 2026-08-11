@@ -8,7 +8,6 @@ import {
   Lock,
   UserCog,
   Send,
-  Search,
   type LucideIcon,
 } from "lucide-react";
 
@@ -126,7 +125,16 @@ export const navGroups: NavGroup[] = [
           { label: "Service Charges", tabKey: "service-charges" },
           { label: "Margin Setup", tabKey: "margin-setup" },
           { label: "Country / Currency", tabKey: "country-currency" },
-          { label: "Partner Offer Rates", tabKey: "partner-offer-rates" },
+          {
+            label: "Partner Offer Rates",
+            submenuTitle: "Partner Offer Rates",
+            submenu: [
+              { label: "Propose", tabKey: "partner-offer-rates-propose" },
+              { label: "Approvals", tabKey: "partner-offer-rates-approvals" },
+              { label: "Current", tabKey: "partner-offer-rates-current" },
+              { label: "History", tabKey: "partner-offer-rates-history" },
+            ],
+          },
           { label: "Partner Commission", tabKey: "partner-commission" },
         ],
       },
@@ -145,6 +153,9 @@ export const navGroups: NavGroup[] = [
         submenu: [
           { label: "Partner Info", tabKey: "partner-info" },
           { label: "Create New Partner", tabKey: "partner-create" },
+          { label: "Balance & Credit Adjustments", tabKey: "partner-balance-credit" },
+          { label: "Payout Configuration", tabKey: "payout-configuration" },
+          { label: "Payout Banks", tabKey: "payout-banks" },
         ],
       },
       {
@@ -174,17 +185,9 @@ export const navGroups: NavGroup[] = [
         hasSubmenu: true,
         submenuTitle: "Compliance",
         submenu: [
-          { label: "Block List Entry" },
-          { label: "Compliance Rules Setup" },
-          { label: "Import OFAC" },
-          { label: "OFAC/Block List Search" },
-          { label: "Pep Database" },
-          { label: "Receiving Transaction Rules" },
-          { label: "Suspicious - Income Mismatched" },
-          { label: "Suspicious Customer" },
-          { label: "Suspicious Hold List" },
-          { label: "Suspicious Report" },
-          { label: "TXN Analysis" },
+          { label: "Compliance Rules Setup", tabKey: "compliance-rules-setup" },
+          { label: "Compliance Rule Values", tabKey: "compliance-rule-values" },
+          { label: "Transaction Compliance Holds", tabKey: "compliance-txn-holds" },
           {
             label: "Risk Profiling",
             submenuTitle: "Risk Profiling",
@@ -209,11 +212,22 @@ export const navGroups: NavGroup[] = [
         submenu: [
           { label: "Send Transaction", tabKey: "transaction-send" },
           { label: "Un-Confirmed List", tabKey: "unconfirmed-list" },
+          { label: "Un-Confirmed List (Partner API)", tabKey: "unconfirmed-list-partner-api" },
           { label: "Unpaid Transactions", tabKey: "unpaid-transactions" },
           { label: "Pending Transaction", tabKey: "pending-transaction" },
         ],
       },
-      { label: "Transaction Query", icon: Search, href: "#", tabKey: "transaction-query" },
+      {
+        label: "Agent",
+        icon: UserCircle,
+        href: "#",
+        hasSubmenu: true,
+        submenuTitle: "Agent",
+        submenu: [
+          { label: "Transaction Query", tabKey: "transaction-query" },
+          { label: "Upload Files", tabKey: "agent-file-upload" },
+        ],
+      },
     ],
   },
   {
