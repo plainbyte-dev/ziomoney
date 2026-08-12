@@ -4,14 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useDataMode } from "./DataModeContext";
 import { useNotifications } from "./NotificationsContext";
 import { loadState, saveState } from "@/lib/persist";
-import {
-  updateCustomer,
-  approveKyc,
-  complianceApproveKyc,
-  getApprovedKycs,
-  getPendingKycs,
-  getComplianceHoldKycs,
-} from "@/lib/kycApi";
+import { approveKyc, complianceApproveKyc, getApprovedKycs, getPendingKycs, getComplianceHoldKycs } from "@/lib/kycApi";
 import {
   emptyCustomerRecord,
   mapKycApiRecord,
@@ -20,6 +13,7 @@ import {
   approvedKycRecords,
   type ApproveKycPayload,
   type CustomerRecord,
+  type KycApiRecord,
   type KycApprovalFields,
   type KycRecord,
 } from "@/data/kycData";
@@ -37,7 +31,7 @@ interface KycContextValue {
   saving: boolean;
   saveError: string | null;
   saveSuccess: boolean;
-  saveCustomer: () => Promise<void>;
+  saveCustomer: (fields: KycApprovalFields) => Promise<void>;
 
   pendingList: KycRecord[];
   complianceHoldList: KycRecord[];
@@ -117,52 +111,62 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const saveCustomer = useCallback(async () => {
-    setSaving(true);
-    setSaveError(null);
-    setSaveSuccess(false);
+  // Inserts the customer already-approved via InsertApprovedKYC (which runs
+  // OFAC screening first) rather than the two-step updateCustomer-then-approve
+  // flow — this is the direct "Add Customer" path, so it needs the same
+  // registrant/KYC-mode fields the approval modal collects.
+  const saveCustomer = useCallback(
+    async (fields: KycApprovalFields) => {
+      setSaving(true);
+      setSaveError(null);
+      setSaveSuccess(false);
 
-    // fullName is always derived from the name parts rather than tracked
-    // separately, so it can never drift out of sync with what's on screen.
-    const payload: CustomerRecord = {
-      ...record,
-      fullName: [record.firstName, record.middleName, record.lastName]
-        .filter(Boolean)
-        .join(" "),
-    };
+      // fullName is always derived from the name parts rather than tracked
+      // separately, so it can never drift out of sync with what's on screen.
+      // fields.remarks supersedes the record's own remarks, same convention
+      // as the KYC approval modal.
+      const { remarks: _recordRemarks, ...customerFields } = record;
+      const payload: ApproveKycPayload = {
+        ...customerFields,
+        fullName: [record.firstName, record.middleName, record.lastName].filter(Boolean).join(" "),
+        ...fields,
+      };
 
-    if (!isLive) {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      setPendingList((prev) => [
-        {
-          ...payload,
-          id: `KYC-LOCAL-${++localIdCounter}`,
-          status: "NOT_VERIFIED",
-          submittedDate: new Date().toISOString().slice(0, 10),
-        },
-        ...prev,
-      ]);
+      if (!isLive) {
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        setApprovedList((prev) => [
+          {
+            ...payload,
+            id: `KYC-LOCAL-${++localIdCounter}`,
+            status: "VERIFIED",
+            submittedDate: new Date().toISOString().slice(0, 10),
+          },
+          ...prev,
+        ]);
+        setSaving(false);
+        setSaveSuccess(true);
+        notify({
+          title: "Customer added",
+          message: `${payload.fullName || payload.userName} was added as a verified customer.`,
+        });
+        return;
+      }
+
+      const response = await approveKyc(payload);
       setSaving(false);
+      if (!response.success || !response.data) {
+        setSaveError(response.message || "Could not insert the KYC.");
+        return;
+      }
+      setApprovedList((prev) => [mapKycApiRecord(response.data as KycApiRecord), ...prev]);
       setSaveSuccess(true);
       notify({
-        title: "KYC submitted",
-        message: `${payload.fullName || payload.userName} was added to the approval queue.`,
+        title: "Customer added",
+        message: `${payload.fullName || payload.userName} was added as a verified customer.`,
       });
-      return;
-    }
-
-    const response = await updateCustomer(payload);
-    setSaving(false);
-    if (!response.success) {
-      setSaveError(response.message || "Could not update the customer.");
-      return;
-    }
-    setSaveSuccess(true);
-    notify({
-      title: "KYC submitted",
-      message: `${payload.fullName || payload.userName} was submitted for review.`,
-    });
-  }, [isLive, notify, record]);
+    },
+    [isLive, notify, record]
+  );
 
   const refreshLists = useCallback(async () => {
     // In static/demo mode there's no backend to refresh from — the lists

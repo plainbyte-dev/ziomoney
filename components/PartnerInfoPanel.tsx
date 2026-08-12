@@ -137,14 +137,14 @@ export default function PartnerInfoPanel() {
           >
             Manage
           </Button>
-          <Button
+          {/* <Button
             variant="secondary"
             onClick={handleRegisterAgentPartner}
             loading={registeringAgent}
             icon={<UserPlus size={16} />}
           >
             Register Agent Partner
-          </Button>
+          </Button> */}
           <Button variant="secondary" icon={<FileBarChart2 size={16} />}>
             Reports
           </Button>

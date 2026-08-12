@@ -1,16 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, CheckCircle2, Send } from "lucide-react";
+import { CheckCircle2, Send } from "lucide-react";
 import Button from "./Button";
 import SelectField from "./SelectField";
 import TextField from "./TextField";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { usePartners } from "@/contexts/PartnersContext";
+import { useRates } from "@/contexts/RatesContext";
 import { listBeneficiaries } from "@/lib/beneficiaryApi";
 import { getCountryWiseExRate } from "@/lib/rateApi";
 import { insertTransfer } from "@/lib/transferApi";
 import { beneficiaryRecords, type Beneficiary } from "@/data/beneficiaryData";
-import { partnerEntries, settlementCurrencyOptions, partnerCountrySelectOptions } from "@/data/partnerData";
+import { partnerCountrySelectOptions } from "@/data/partnerData";
 import {
   emptyTransferInsertPayload,
   transferPurposeOptions,
@@ -19,10 +21,10 @@ import {
 } from "@/data/transferData";
 import { formatAccounting } from "@/lib/format";
 
-type Stage = "selectPartner" | "restrictions" | "form" | "confirm" | "done";
+type Stage = "form" | "done";
 
 const branchNameOptions = ["Head Office"];
-const partnerNameOptions = partnerEntries.map((p) => p.partnerName);
+const partnerMethodOptions = ["Bank", "Wallet", "Cash"];
 
 type YesNo = "NA" | "YES";
 
@@ -42,10 +44,10 @@ type TradeRestrictions = {
 
 function emptyPartnerSelection(): PartnerSelection {
   return {
-    partnerId: partnerNameOptions[0],
+    partnerId: "",
     branchName: branchNameOptions[0],
     country: partnerCountrySelectOptions[0],
-    method: partnerNameOptions[0],
+    method: partnerMethodOptions[0],
   };
 }
 
@@ -58,8 +60,19 @@ function emptyTradeRestrictions(): TradeRestrictions {
   };
 }
 
+// Ascending, numeric-aware where possible (e.g. "P2" before "P10") rather
+// than a plain lexicographic sort.
+function comparePartnerIds(a: string, b: string): number {
+  return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+}
+
 export default function TransactionSendPanel() {
   const { isLive } = useDataMode();
+  const { entries: partners } = usePartners();
+  const { countryCurrencies } = useRates();
+
+  const partnerIdOptions = [...new Set(partners.map((p) => p.partnerId).filter(Boolean))].sort(comparePartnerIds);
+  const currencyOptions = [...new Set(countryCurrencies.map((c) => c.currencyCode).filter(Boolean))].sort();
 
   const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
   const [beneficiariesLoading, setBeneficiariesLoading] = useState(true);
@@ -67,7 +80,7 @@ export default function TransactionSendPanel() {
   const [form, setForm] = useState<TransferInsertPayload>(emptyTransferInsertPayload());
   const [partnerSelection, setPartnerSelection] = useState<PartnerSelection>(emptyPartnerSelection());
   const [tradeRestrictions, setTradeRestrictions] = useState<TradeRestrictions>(emptyTradeRestrictions());
-  const [stage, setStage] = useState<Stage>("selectPartner");
+  const [stage, setStage] = useState<Stage>("form");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [result, setResult] = useState<TransferRecord | null>(null);
@@ -103,6 +116,32 @@ export default function TransactionSendPanel() {
     if (beneficiaries.length === 0) return;
     setForm((prev) => (prev.beneficiaryId ? prev : { ...prev, beneficiaryId: beneficiaries[0].id }));
   }, [beneficiaries]);
+
+  // Partner list also loads asynchronously — backfill the Partner ID
+  // selection once it arrives, same reasoning as the beneficiary backfill above.
+  useEffect(() => {
+    if (partnerIdOptions.length === 0) return;
+    setPartnerSelection((prev) => ({
+      ...prev,
+      partnerId: prev.partnerId || partnerIdOptions[0],
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [partnerIdOptions.join("|")]);
+
+  // Currency options come from the uploaded Country/Currency list, which also
+  // loads asynchronously — repoint the source/destination selections once
+  // it's available so they don't sit on a value the dropdown doesn't offer.
+  useEffect(() => {
+    if (currencyOptions.length === 0) return;
+    setForm((prev) => ({
+      ...prev,
+      sourceCurrency: currencyOptions.includes(prev.sourceCurrency) ? prev.sourceCurrency : currencyOptions[0],
+      destinationCurrency: currencyOptions.includes(prev.destinationCurrency)
+        ? prev.destinationCurrency
+        : currencyOptions[0],
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currencyOptions.join("|")]);
 
   function updateField<K extends keyof TransferInsertPayload>(field: K, value: TransferInsertPayload[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -184,108 +223,7 @@ export default function TransactionSendPanel() {
     setResult(null);
     setSubmitError(null);
     setEstimatedRate(null);
-    setStage("selectPartner");
-  }
-
-  if (stage === "selectPartner") {
-    return (
-      <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="border-b border-border px-6 py-4">
-          <h1 className="text-lg font-bold text-heading">Select Partner to Send Transaction</h1>
-        </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            setStage("restrictions");
-          }}
-          className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-2 sm:p-8"
-        >
-          <SelectField
-            label="Partner ID:"
-            required
-            options={partnerNameOptions}
-            defaultValue={partnerNameOptions[0]}
-            value={partnerSelection.partnerId}
-            onChange={(v) => setPartnerSelection((prev) => ({ ...prev, partnerId: v }))}
-          />
-          <SelectField
-            label="Branch Name:"
-            required
-            options={branchNameOptions}
-            defaultValue={branchNameOptions[0]}
-            value={partnerSelection.branchName}
-            onChange={(v) => setPartnerSelection((prev) => ({ ...prev, branchName: v }))}
-          />
-          <SelectField
-            label="Country:"
-            required
-            options={partnerCountrySelectOptions}
-            defaultValue={partnerCountrySelectOptions[0]}
-            value={partnerSelection.country}
-            onChange={(v) => setPartnerSelection((prev) => ({ ...prev, country: v }))}
-          />
-          <SelectField
-            label="Method:"
-            required
-            options={partnerNameOptions}
-            defaultValue={partnerNameOptions[0]}
-            value={partnerSelection.method}
-            onChange={(v) => setPartnerSelection((prev) => ({ ...prev, method: v }))}
-          />
-          <div className="sm:col-span-2">
-            <Button type="submit" icon={<ArrowRight size={15} />}>
-              Continue
-            </Button>
-          </div>
-        </form>
-      </div>
-    );
-  }
-
-  if (stage === "restrictions") {
-    return (
-      <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="border-b border-border px-6 py-4">
-          <h1 className="text-lg font-bold text-heading">
-            Trade Restrictions and Use of Funds Restrictions must be cleared prior to the client before the
-            declaration.
-          </h1>
-        </div>
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            setStage("form");
-          }}
-          className="flex flex-col gap-4 bg-panel p-6 sm:p-8"
-        >
-          <TradeRestrictionRow
-            label="Non-Relevant to North Korea and Iran Restrictions:"
-            value={tradeRestrictions.northKoreaIran}
-            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, northKoreaIran: v }))}
-          />
-          <TradeRestrictionRow
-            label="Government Permit Approval is not required for this transaction:"
-            value={tradeRestrictions.governmentPermit}
-            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, governmentPermit: v }))}
-          />
-          <TradeRestrictionRow
-            label="Not a Name-lending transaction :"
-            value={tradeRestrictions.nameLending}
-            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, nameLending: v }))}
-          />
-          <TradeRestrictionRow
-            label="Importing goods or merchandising trade transaction :"
-            value={tradeRestrictions.importingGoods}
-            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, importingGoods: v }))}
-          />
-          <div className="pt-1">
-            <Button type="submit" icon={<ArrowRight size={15} />}>
-              Continue
-            </Button>
-          </div>
-        </form>
-      </div>
-    );
+    setStage("form");
   }
 
   if (stage === "done" && result) {
@@ -312,50 +250,6 @@ export default function TransactionSendPanel() {
     );
   }
 
-  if (stage === "confirm") {
-    return (
-      <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="border-b border-border px-6 py-4">
-          <h1 className="text-lg font-bold text-heading">Confirm Transaction</h1>
-          <p className="mt-0.5 text-sm text-muted">
-            This moves real money — review before submitting. Values below marked "estimated" are not
-            authoritative; the real rate/fee/payout are only known once this succeeds.
-          </p>
-        </div>
-        <div className="grid grid-cols-1 gap-x-6 gap-y-4 bg-panel p-6 sm:grid-cols-2 sm:p-8">
-          <ConfirmField label="Beneficiary" value={beneficiaryLabel(String(form.beneficiaryId))} />
-          <ConfirmField label="Amount" value={`${formatAccounting(form.amount)} ${form.sourceCurrency}`} />
-          <ConfirmField label="Destination" value={`${form.destinationCountry} (${form.destinationCurrency})`} />
-          <ConfirmField label="Purpose" value={form.purpose} />
-          <ConfirmField
-            label="Estimated Payout"
-            value={
-              estimating
-                ? "Calculating..."
-                : estimatedPayout !== null
-                  ? `≈ ${formatAccounting(estimatedPayout)} ${form.destinationCurrency} (estimate)`
-                  : "Unavailable"
-            }
-          />
-          <ConfirmField label="Remarks" value={form.remarks || "-"} />
-
-          {submitError && (
-            <p className="sm:col-span-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
-          )}
-
-          <div className="sm:col-span-2 flex items-center gap-3 border-t border-border pt-5">
-            <Button onClick={handleConfirmSubmit} loading={submitting} icon={<Send size={15} />}>
-              {submitting ? "Submitting..." : "Confirm & Send"}
-            </Button>
-            <Button variant="secondary" onClick={() => setStage("form")} disabled={submitting}>
-              Back to Edit
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
       <div className="border-b border-border px-6 py-4">
@@ -368,10 +262,87 @@ export default function TransactionSendPanel() {
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          setStage("confirm");
+          handleConfirmSubmit();
         }}
-        className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-2 sm:p-8"
+        className="flex flex-col gap-8 bg-panel p-6 sm:p-8"
       >
+        <section className="flex flex-col gap-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Partner</h2>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
+            {partnerIdOptions.length > 0 ? (
+              <SelectField
+                label="Partner ID:"
+                required
+                options={partnerIdOptions}
+                defaultValue={partnerIdOptions[0]}
+                value={partnerSelection.partnerId}
+                onChange={(v) => setPartnerSelection((prev) => ({ ...prev, partnerId: v }))}
+              />
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm text-heading/70">Partner ID:</label>
+                <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+                  No partners found — register one first.
+                </p>
+              </div>
+            )}
+            <SelectField
+              label="Branch Name:"
+              required
+              options={branchNameOptions}
+              defaultValue={branchNameOptions[0]}
+              value={partnerSelection.branchName}
+              onChange={(v) => setPartnerSelection((prev) => ({ ...prev, branchName: v }))}
+            />
+            <SelectField
+              label="Country:"
+              required
+              options={partnerCountrySelectOptions}
+              defaultValue={partnerCountrySelectOptions[0]}
+              value={partnerSelection.country}
+              onChange={(v) => setPartnerSelection((prev) => ({ ...prev, country: v }))}
+            />
+            <SelectField
+              label="Method:"
+              required
+              options={partnerMethodOptions}
+              defaultValue={partnerMethodOptions[0]}
+              value={partnerSelection.method}
+              onChange={(v) => setPartnerSelection((prev) => ({ ...prev, method: v }))}
+            />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-4 border-t border-border pt-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+            Trade Restrictions and Use of Funds Declaration
+          </h2>
+          <TradeRestrictionRow
+            label="Non-Relevant to North Korea and Iran Restrictions:"
+            value={tradeRestrictions.northKoreaIran}
+            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, northKoreaIran: v }))}
+          />
+          <TradeRestrictionRow
+            label="Government Permit Approval is not required for this transaction:"
+            value={tradeRestrictions.governmentPermit}
+            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, governmentPermit: v }))}
+          />
+          <TradeRestrictionRow
+            label="Not a Name-lending transaction :"
+            value={tradeRestrictions.nameLending}
+            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, nameLending: v }))}
+          />
+          <TradeRestrictionRow
+            label="Importing goods or merchandising trade transaction :"
+            value={tradeRestrictions.importingGoods}
+            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, importingGoods: v }))}
+          />
+        </section>
+
+        <section className="grid grid-cols-1 gap-x-6 gap-y-5 border-t border-border pt-6 sm:grid-cols-2">
+          <h2 className="sm:col-span-2 text-sm font-semibold uppercase tracking-wide text-muted">
+            Transaction Details
+          </h2>
         {beneficiaryOptions.length > 0 ? (
           <SelectField
             label="Beneficiary:"
@@ -401,14 +372,23 @@ export default function TransactionSendPanel() {
           value={form.amount ? String(form.amount) : ""}
           onChange={(v) => updateField("amount", Number(v) || 0)}
         />
-        <SelectField
-          label="Source Currency:"
-          required
-          options={settlementCurrencyOptions}
-          defaultValue={settlementCurrencyOptions[0]}
-          value={form.sourceCurrency}
-          onChange={(v) => updateField("sourceCurrency", v)}
-        />
+        {currencyOptions.length > 0 ? (
+          <SelectField
+            label="Source Currency:"
+            required
+            options={currencyOptions}
+            defaultValue={currencyOptions[0]}
+            value={form.sourceCurrency}
+            onChange={(v) => updateField("sourceCurrency", v)}
+          />
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm text-heading/70">Source Currency:</label>
+            <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+              No currencies uploaded — add rows on the Country/Currency tab first.
+            </p>
+          </div>
+        )}
         <SelectField
           label="Destination Country:"
           required
@@ -417,14 +397,23 @@ export default function TransactionSendPanel() {
           value={form.destinationCountry}
           onChange={(v) => updateField("destinationCountry", v)}
         />
-        <SelectField
-          label="Destination Currency:"
-          required
-          options={settlementCurrencyOptions}
-          defaultValue={settlementCurrencyOptions[0]}
-          value={form.destinationCurrency}
-          onChange={(v) => updateField("destinationCurrency", v)}
-        />
+        {currencyOptions.length > 0 ? (
+          <SelectField
+            label="Destination Currency:"
+            required
+            options={currencyOptions}
+            defaultValue={currencyOptions[0]}
+            value={form.destinationCurrency}
+            onChange={(v) => updateField("destinationCurrency", v)}
+          />
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm text-heading/70">Destination Currency:</label>
+            <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+              No currencies uploaded — add rows on the Country/Currency tab first.
+            </p>
+          </div>
+        )}
         <SelectField
           label="Purpose:"
           required
@@ -450,22 +439,18 @@ export default function TransactionSendPanel() {
               ? `Estimated payout: ≈ ${formatAccounting(estimatedPayout)} ${form.destinationCurrency} — estimate only, not authoritative until submitted.`
               : "Enter an amount and destination currency to see an estimated payout."}
         </div>
+        </section>
 
-        <div className="sm:col-span-2 border-t border-border pt-5">
-          <Button type="submit" disabled={!formValid} icon={<ArrowRight size={15} />}>
-            Review & Send
+        {submitError && (
+          <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{submitError}</p>
+        )}
+
+        <div className="border-t border-border pt-5">
+          <Button type="submit" disabled={!formValid} loading={submitting} icon={<Send size={15} />}>
+            {submitting ? "Submitting..." : "Save & Send Transaction"}
           </Button>
         </div>
       </form>
-    </div>
-  );
-}
-
-function ConfirmField({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-wide text-muted">{label}</p>
-      <p className="mt-1 font-medium text-heading">{value}</p>
     </div>
   );
 }
