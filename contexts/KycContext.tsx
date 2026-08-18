@@ -1,10 +1,20 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, useEffect } from "react";
 import { useDataMode } from "./DataModeContext";
 import { useNotifications } from "./NotificationsContext";
 import { loadState, saveState } from "@/lib/persist";
-import { approveKyc, complianceApproveKyc, getApprovedKycs, getPendingKycs, getComplianceHoldKycs } from "@/lib/kycApi";
+import type { ApiResponse } from "@/lib/apiClient";
+import { useAsyncMutation } from "@/lib/useAsyncMutation";
+import { useAsyncQuery } from "@/lib/useAsyncQuery";
+import {
+  approveKyc,
+  complianceApproveKyc,
+  getApprovedKycs,
+  getPendingKycs,
+  getComplianceHoldKycs,
+  updateCustomer as updateCustomerApi,
+} from "@/lib/kycApi";
 import {
   emptyCustomerRecord,
   mapKycApiRecord,
@@ -44,6 +54,10 @@ interface KycContextValue {
   approveError: string | null;
   approve: (target: KycRecord, fields: KycApprovalFields) => Promise<boolean>;
   complianceApprove: (target: KycRecord, fields: KycApprovalFields) => Promise<boolean>;
+
+  updatingCustomer: boolean;
+  updateCustomerError: string | null;
+  updateCustomerRecord: (target: KycRecord, payload: CustomerRecord) => Promise<boolean>;
 }
 
 const KycContext = createContext<KycContextValue | null>(null);
@@ -63,9 +77,11 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
   const { notify } = useNotifications();
 
   const [record, setRecord] = useState<CustomerRecord>(emptyCustomerRecord());
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const saveMutation = useAsyncMutation();
+  const listsQuery = useAsyncQuery();
+  const approveMutation = useAsyncMutation();
+  const updateMutation = useAsyncMutation();
 
   // Seed data is demo-only — a live session must never render it, not even
   // for the instant before the first live fetch resolves.
@@ -74,11 +90,6 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
     isLive ? [] : complianceHoldKycRecords
   );
   const [approvedList, setApprovedList] = useState<KycRecord[]>(() => (isLive ? [] : approvedKycRecords));
-  const [listsLoading, setListsLoading] = useState(false);
-  const [listsError, setListsError] = useState<string | null>(null);
-
-  const [approving, setApproving] = useState(false);
-  const [approveError, setApproveError] = useState<string | null>(null);
 
   // Restore any admin-made changes (submissions/approvals) from a previous
   // session so a page refresh doesn't silently drop them back to the seed data.
@@ -117,8 +128,6 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
   // registrant/KYC-mode fields the approval modal collects.
   const saveCustomer = useCallback(
     async (fields: KycApprovalFields) => {
-      setSaving(true);
-      setSaveError(null);
       setSaveSuccess(false);
 
       // fullName is always derived from the name parts rather than tracked
@@ -132,75 +141,78 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
         ...fields,
       };
 
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        setApprovedList((prev) => [
-          {
-            ...payload,
-            id: `KYC-LOCAL-${++localIdCounter}`,
-            status: "VERIFIED",
-            submittedDate: new Date().toISOString().slice(0, 10),
-          },
-          ...prev,
-        ]);
-        setSaving(false);
-        setSaveSuccess(true);
-        notify({
-          title: "Customer added",
-          message: `${payload.fullName || payload.userName} was added as a verified customer.`,
-        });
-        return;
-      }
-
-      const response = await approveKyc(payload);
-      setSaving(false);
-      if (!response.success || !response.data) {
-        setSaveError(response.message || "Could not insert the KYC.");
-        return;
-      }
-      setApprovedList((prev) => [mapKycApiRecord(response.data as KycApiRecord), ...prev]);
-      setSaveSuccess(true);
-      notify({
-        title: "Customer added",
-        message: `${payload.fullName || payload.userName} was added as a verified customer.`,
+      await saveMutation.run<void>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          setApprovedList((prev) => [
+            {
+              ...payload,
+              id: `KYC-LOCAL-${++localIdCounter}`,
+              status: "VERIFIED",
+              submittedDate: new Date().toISOString().slice(0, 10),
+            },
+            ...prev,
+          ]);
+          setSaveSuccess(true);
+          notify({
+            title: "Customer added",
+            message: `${payload.fullName || payload.userName} was added as a verified customer.`,
+          });
+        },
+        live: () => approveKyc(payload),
+        onLiveSuccess: (response) => {
+          setApprovedList((prev) => [mapKycApiRecord(response.data as KycApiRecord), ...prev]);
+          setSaveSuccess(true);
+          notify({
+            title: "Customer added",
+            message: `${payload.fullName || payload.userName} was added as a verified customer.`,
+          });
+        },
+        failValue: undefined,
+        fallbackErrorMessage: "Could not insert the KYC.",
       });
     },
-    [isLive, notify, record]
+    [isLive, notify, record, saveMutation]
   );
 
   const refreshLists = useCallback(async () => {
-    // In static/demo mode there's no backend to refresh from — the lists
-    // already reflect whatever the admin has done locally, restored from
-    // localStorage on load, so refreshing is a no-op rather than a reset.
-    if (!isLive) return;
-
-    // Wipe out whatever was there (e.g. demo-mode records, if this refresh
-    // was triggered by just switching into live mode) before fetching —
-    // demo data must never linger on screen while Live API is active.
-    setPendingList([]);
-    setComplianceHoldList([]);
-    setApprovedList([]);
-    setListsLoading(true);
-    setListsError(null);
-
-    const [pending, hold, approved] = await Promise.all([
-      getPendingKycs(),
-      getComplianceHoldKycs(),
-      getApprovedKycs(),
-    ]);
-
-    setListsLoading(false);
-
-    const firstError = [pending, hold, approved].find((r) => !r.success);
-    if (firstError) {
-      setListsError(firstError.message || "Could not load KYC records.");
-      return;
-    }
-
-    setPendingList((pending.data ?? []).map(mapKycApiRecord));
-    setComplianceHoldList((hold.data ?? []).map(mapKycApiRecord));
-    setApprovedList((approved.data ?? []).map(mapKycApiRecord));
-  }, [isLive]);
+    await listsQuery.run<[KycApiRecord[], KycApiRecord[], KycApiRecord[]]>({
+      isLive,
+      // Wipe out whatever was there (e.g. demo-mode records, if this refresh
+      // was triggered by just switching into live mode) before fetching —
+      // demo data must never linger on screen while Live API is active.
+      clear: () => {
+        setPendingList([]);
+        setComplianceHoldList([]);
+        setApprovedList([]);
+      },
+      fetch: async () => {
+        const [pending, hold, approved] = await Promise.all([
+          getPendingKycs(),
+          getComplianceHoldKycs(),
+          getApprovedKycs(),
+        ]);
+        const firstError = [pending, hold, approved].find((r) => !r.success);
+        if (firstError) {
+          return firstError as unknown as ApiResponse<[KycApiRecord[], KycApiRecord[], KycApiRecord[]]>;
+        }
+        return {
+          success: true,
+          message: "",
+          errorCode: null,
+          timestamp: new Date().toISOString(),
+          data: [pending.data ?? [], hold.data ?? [], approved.data ?? []],
+        };
+      },
+      onSuccess: ([pending, hold, approved]) => {
+        setPendingList(pending.map(mapKycApiRecord));
+        setComplianceHoldList(hold.map(mapKycApiRecord));
+        setApprovedList(approved.map(mapKycApiRecord));
+      },
+      fallbackErrorMessage: "Could not load KYC records.",
+    });
+  }, [isLive, listsQuery]);
 
   const moveToApproved = useCallback((target: KycRecord, fields: KycApprovalFields) => {
     setPendingList((prev) => prev.filter((r) => r.id !== target.id));
@@ -220,99 +232,133 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const approve = useCallback(
-    async (target: KycRecord, fields: KycApprovalFields) => {
-      setApproving(true);
-      setApproveError(null);
-
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        moveToApproved(target, fields);
-        setApproving(false);
-        notify({ title: "KYC approved", message: `${target.fullName || target.userName} is now verified.` });
-        return true;
-      }
-
-      const response = await approveKyc(buildApprovePayload(target, fields));
-      setApproving(false);
-      if (!response.success || !response.data) {
-        setApproveError(response.message || "Could not approve this KYC.");
-        return false;
-      }
-      moveToApprovedRecord(target.id, mapKycApiRecord(response.data));
-      notify({ title: "KYC approved", message: `${target.fullName || target.userName} is now verified.` });
-      return true;
-    },
-    [isLive, moveToApproved, moveToApprovedRecord, notify]
+    async (target: KycRecord, fields: KycApprovalFields) =>
+      approveMutation.run<boolean>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          moveToApproved(target, fields);
+          notify({ title: "KYC approved", message: `${target.fullName || target.userName} is now verified.` });
+          return true;
+        },
+        live: () => approveKyc(buildApprovePayload(target, fields)),
+        onLiveSuccess: (response) => {
+          moveToApprovedRecord(target.id, mapKycApiRecord(response.data as KycApiRecord));
+          notify({ title: "KYC approved", message: `${target.fullName || target.userName} is now verified.` });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not approve this KYC.",
+      }),
+    [isLive, moveToApproved, moveToApprovedRecord, notify, approveMutation]
   );
 
   const complianceApprove = useCallback(
-    async (target: KycRecord, fields: KycApprovalFields) => {
-      setApproving(true);
-      setApproveError(null);
+    async (target: KycRecord, fields: KycApprovalFields) =>
+      approveMutation.run<boolean>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          moveToApproved(target, fields);
+          notify({
+            title: "KYC approved (compliance)",
+            message: `${target.fullName || target.userName} cleared compliance review.`,
+          });
+          return true;
+        },
+        live: () => complianceApproveKyc(buildApprovePayload(target, fields)),
+        onLiveSuccess: (response) => {
+          moveToApprovedRecord(target.id, mapKycApiRecord(response.data as KycApiRecord));
+          notify({
+            title: "KYC approved (compliance)",
+            message: `${target.fullName || target.userName} cleared compliance review.`,
+          });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not complete compliance approval.",
+      }),
+    [isLive, moveToApproved, moveToApprovedRecord, notify, approveMutation]
+  );
 
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 400));
-        moveToApproved(target, fields);
-        setApproving(false);
-        notify({
-          title: "KYC approved (compliance)",
-          message: `${target.fullName || target.userName} cleared compliance review.`,
-        });
-        return true;
-      }
-
-      const response = await complianceApproveKyc(buildApprovePayload(target, fields));
-      setApproving(false);
-      if (!response.success || !response.data) {
-        setApproveError(response.message || "Could not complete compliance approval.");
-        return false;
-      }
-      moveToApprovedRecord(target.id, mapKycApiRecord(response.data));
-      notify({
-        title: "KYC approved (compliance)",
-        message: `${target.fullName || target.userName} cleared compliance review.`,
-      });
-      return true;
-    },
-    [isLive, moveToApproved, moveToApprovedRecord, notify]
+  // Partial update keyed on userName — target's id/status/audit fields are
+  // preserved locally since /updateCustomer only echoes back the profile
+  // fields it was given, same shape gap as the approve endpoints.
+  const updateCustomerRecord = useCallback(
+    async (target: KycRecord, payload: CustomerRecord) =>
+      updateMutation.run<boolean>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 400));
+          setApprovedList((prev) =>
+            prev.map((entry) => (entry.id === target.id ? { ...entry, ...payload } : entry))
+          );
+          notify({
+            title: "Customer updated",
+            message: `${payload.fullName || payload.userName} was updated.`,
+          });
+          return true;
+        },
+        live: () => updateCustomerApi(payload),
+        onLiveSuccess: (response) => {
+          const updated = mapKycApiRecord(response.data as KycApiRecord);
+          setApprovedList((prev) =>
+            prev.map((entry) => (entry.id === target.id ? { ...updated, id: target.id } : entry))
+          );
+          notify({
+            title: "Customer updated",
+            message: `${updated.fullName || updated.userName} was updated.`,
+          });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not update this customer.",
+      }),
+    [isLive, notify, updateMutation]
   );
 
   const value = useMemo(
     () => ({
       record,
       updateField,
-      saving,
-      saveError,
+      saving: saveMutation.loading,
+      saveError: saveMutation.error,
       saveSuccess,
       saveCustomer,
       pendingList,
       complianceHoldList,
       approvedList,
-      listsLoading,
-      listsError,
+      listsLoading: listsQuery.loading,
+      listsError: listsQuery.error,
       refreshLists,
-      approving,
-      approveError,
+      approving: approveMutation.loading,
+      approveError: approveMutation.error,
       approve,
       complianceApprove,
+      updatingCustomer: updateMutation.loading,
+      updateCustomerError: updateMutation.error,
+      updateCustomerRecord,
     }),
     [
       record,
       updateField,
-      saving,
-      saveError,
+      saveMutation.loading,
+      saveMutation.error,
       saveSuccess,
       saveCustomer,
       pendingList,
       complianceHoldList,
       approvedList,
-      listsLoading,
-      listsError,
+      listsQuery.loading,
+      listsQuery.error,
       refreshLists,
-      approving,
-      approveError,
+      approveMutation.loading,
+      approveMutation.error,
       approve,
       complianceApprove,
+      updateMutation.loading,
+      updateMutation.error,
+      updateCustomerRecord,
     ]
   );
 

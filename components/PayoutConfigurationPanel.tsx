@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import Button from "./Button";
 import SelectField from "./SelectField";
 import TextField from "./TextField";
-import Checkbox from "./Checkbox";
+import RadioPill from "./RadioPill";
 import { usePartners } from "@/contexts/PartnersContext";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { useDataMode } from "@/contexts/DataModeContext";
@@ -66,6 +66,15 @@ export default function PayoutConfigurationPanel() {
 
   function updateField<K extends keyof PayoutPartnerConfigPayload>(field: K, value: PayoutPartnerConfigPayload[K]) {
     setForm((prev) => (prev ? { ...prev, [field]: value } : prev));
+  }
+
+  // Payout method is exclusive — a partner is configured for cash OR
+  // account credit, never both — so selecting one clears the other rather
+  // than toggling independently.
+  function selectPayoutMethod(method: "cash" | "account") {
+    setForm((prev) =>
+      prev ? { ...prev, allowCash: method === "cash", allowAccountCredit: method === "account" } : prev
+    );
   }
 
   async function handleSave(event: React.FormEvent) {
@@ -140,12 +149,9 @@ export default function PayoutConfigurationPanel() {
           </div>
           <form onSubmit={handleSave} className="flex flex-col gap-6 bg-panel p-6 sm:p-8">
             <div className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-xl border border-border p-4 sm:grid-cols-3">
-              <Checkbox
-                checked={form.allowCash}
-                onToggle={() => updateField("allowCash", !form.allowCash)}
-                label="Allow Cash Payout"
-                className="sm:col-span-3"
-              />
+              <div className="sm:col-span-3">
+                <RadioPill checked={form.allowCash} onSelect={() => selectPayoutMethod("cash")} label="Allow Cash Payout" />
+              </div>
               <TextField
                 label="Cash Commission Rate:"
                 value={String(form.cashPayoutCommissionRate)}
@@ -159,12 +165,13 @@ export default function PayoutConfigurationPanel() {
             </div>
 
             <div className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-xl border border-border p-4 sm:grid-cols-3">
-              <Checkbox
-                checked={form.allowAccountCredit}
-                onToggle={() => updateField("allowAccountCredit", !form.allowAccountCredit)}
-                label="Allow Account Credit Payout"
-                className="sm:col-span-3"
-              />
+              <div className="sm:col-span-3">
+                <RadioPill
+                  checked={form.allowAccountCredit}
+                  onSelect={() => selectPayoutMethod("account")}
+                  label="Allow Account Credit Payout"
+                />
+              </div>
               <TextField
                 label="Account Commission Rate:"
                 value={String(form.accountPayoutCommissionRate)}

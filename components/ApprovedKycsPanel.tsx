@@ -1,19 +1,47 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import Button from "./Button";
+import EditCustomerModal from "./EditCustomerModal";
 import { useKyc } from "@/contexts/KycContext";
 import { useDataMode } from "@/contexts/DataModeContext";
+import type { CustomerRecord, KycRecord } from "@/data/kycData";
 
 export default function ApprovedKycsPanel() {
   const { isLive } = useDataMode();
-  const { approvedList, listsLoading, listsError, refreshLists } = useKyc();
+  const {
+    approvedList,
+    listsLoading,
+    listsError,
+    refreshLists,
+    updatingCustomer,
+    updateCustomerError,
+    updateCustomerRecord,
+  } = useKyc();
+
+  const [selected, setSelected] = useState<KycRecord | null>(null);
 
   useEffect(() => {
     refreshLists();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLive]);
+
+  // Keep the open modal in sync with the underlying list (e.g. right after
+  // a save updates the record in place) instead of showing stale data.
+  useEffect(() => {
+    if (!selected) return;
+    const fresh = approvedList.find((entry) => entry.id === selected.id);
+    if (fresh && fresh !== selected) setSelected(fresh);
+    if (!fresh) setSelected(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approvedList]);
+
+  async function handleSave(payload: CustomerRecord) {
+    if (!selected) return;
+    const success = await updateCustomerRecord(selected, payload);
+    if (success) setSelected(null);
+  }
 
   return (
     <div className="overflow-hidden rounded-2xl border border-border shadow-card">
@@ -56,7 +84,11 @@ export default function ApprovedKycsPanel() {
               </thead>
               <tbody>
                 {approvedList.map((entry) => (
-                  <tr key={entry.id} className="border-b border-border bg-panel last:border-b-0">
+                  <tr
+                    key={entry.id}
+                    onClick={() => setSelected(entry)}
+                    className="cursor-pointer border-b border-border bg-panel last:border-b-0 hover:bg-brand-green-light/30"
+                  >
                     <td className="px-4 py-3 font-medium text-heading">{entry.userName}</td>
                     <td className="px-4 py-3 text-heading/80">{entry.fullName}</td>
                     <td className="px-4 py-3 text-heading/80">{entry.nationality}</td>
@@ -81,6 +113,14 @@ export default function ApprovedKycsPanel() {
           </div>
         </div>
       </div>
+
+      <EditCustomerModal
+        target={selected}
+        submitting={updatingCustomer}
+        error={updateCustomerError}
+        onClose={() => setSelected(null)}
+        onSave={handleSave}
+      />
     </div>
   );
 }

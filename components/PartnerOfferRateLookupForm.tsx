@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePartners } from "@/contexts/PartnersContext";
 import SelectField from "./SelectField";
+import CurrencySelect from "./CurrencySelect";
 import Button from "./Button";
 import { type PartnerOfferRateLookupPayload } from "@/data/partnerOfferRateData";
 import { settlementCurrencyOptions, partnerCountrySelectOptions } from "@/data/partnerData";
@@ -68,11 +69,10 @@ export default function PartnerOfferRateLookupForm({
           </p>
         </div>
       )}
-      <SelectField
+      <CurrencySelect
         label="Send Currency:"
         required
         options={settlementCurrencyOptions}
-        defaultValue={settlementCurrencyOptions[0]}
         value={form.sendCurrency}
         onChange={(v) => updateField("sendCurrency", v)}
       />

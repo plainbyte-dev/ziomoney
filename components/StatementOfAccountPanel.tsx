@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Check, FileText } from "lucide-react";
 import SelectField from "./SelectField";
 import DateField from "./DateField";
+import CurrencySelect from "./CurrencySelect";
 import RadioPill from "./RadioPill";
 import Button from "./Button";
 import StatementOfAccountLogTable from "./StatementOfAccountLogTable";
@@ -90,19 +91,11 @@ export default function StatementOfAccountPanel() {
             defaultValue={soaLedgerHeadOptions[0]}
           />
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-heading/70">Currency</label>
-            <div className="flex items-center gap-6 py-2.5">
-              {soaCurrencyOptions.map((option) => (
-                <RadioPill
-                  key={option}
-                  label={option}
-                  checked={currency === option}
-                  onSelect={() => setCurrency(option)}
-                />
-              ))}
-            </div>
-          </div>
+          <CurrencySelect
+            options={[...soaCurrencyOptions]}
+            value={currency}
+            onChange={(value) => setCurrency(value as SoaCurrency)}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <DateField label="From" defaultValue={soaDefaults.fromDate} />

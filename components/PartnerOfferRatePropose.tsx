@@ -6,6 +6,7 @@ import { usePartners } from "@/contexts/PartnersContext";
 import { useAuth } from "@/contexts/AuthContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import CurrencySelect from "./CurrencySelect";
 import Button from "./Button";
 import {
   emptyPartnerOfferRateInsertPayload,
@@ -87,19 +88,17 @@ export default function PartnerOfferRatePropose() {
             </p>
           </div>
         )}
-        <SelectField
+        <CurrencySelect
           label="Send Currency:"
           required
           options={settlementCurrencyOptions}
-          defaultValue={settlementCurrencyOptions[0]}
           value={form.sendCurrency}
           onChange={(v) => updateField("sendCurrency", v)}
         />
-        <SelectField
+        <CurrencySelect
           label="Receive Currency:"
           required
           options={settlementCurrencyOptions}
-          defaultValue={settlementCurrencyOptions[0]}
           value={form.receiveCurrency}
           onChange={(v) => updateField("receiveCurrency", v)}
         />

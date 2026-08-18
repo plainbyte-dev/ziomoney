@@ -7,13 +7,7 @@ import { useDataMode } from "@/contexts/DataModeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import Button from "./Button";
 import { formatDate } from "@/lib/format";
-
-// TEMPORARY — real roles aren't confirmed against the live auth service yet,
-// so the maker-checker self-approval block is loosened for testing: anyone
-// can approve/cancel their own proposal, not just admins. Flip this back to
-// true once roles are confirmed to restore the real restriction (the isAdmin
-// exception below stays as the permanent, narrower bypass at that point).
-const SELF_APPROVAL_RESTRICTION_ENABLED = false;
+import { SELF_APPROVAL_RESTRICTION_ENABLED } from "@/config/businessRules";
 
 export default function PartnerOfferRateApprovals() {
   const { isLive } = useDataMode();

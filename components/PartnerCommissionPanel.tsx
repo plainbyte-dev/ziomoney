@@ -7,6 +7,7 @@ import { usePartners } from "@/contexts/PartnersContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import CurrencySelect from "./CurrencySelect";
 import Button from "./Button";
 import {
   commissionTypeValues,
@@ -109,11 +110,10 @@ export default function PartnerCommissionPanel() {
               value={searchForm.destinationCountry}
               onChange={(v) => updateSearchField("destinationCountry", v)}
             />
-            <SelectField
+            <CurrencySelect
               label="Send Currency:"
               required
               options={settlementCurrencyOptions}
-              defaultValue={settlementCurrencyOptions[0]}
               value={searchForm.sendCurrency}
               onChange={(v) => updateSearchField("sendCurrency", v)}
             />
@@ -209,11 +209,10 @@ export default function PartnerCommissionPanel() {
             onChange={(v) => updateField("commissionType", v as CommissionUpsertPayload["commissionType"])}
           />
           <TextField label="Service:" value={form.service} onChange={(v) => updateField("service", v)} />
-          <SelectField
+          <CurrencySelect
             label="Send Currency:"
             required
             options={settlementCurrencyOptions}
-            defaultValue={settlementCurrencyOptions[0]}
             value={form.sendCurrency}
             onChange={(v) => updateField("sendCurrency", v)}
           />

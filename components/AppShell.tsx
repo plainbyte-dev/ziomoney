@@ -12,6 +12,7 @@ import { PartnersProvider } from "@/contexts/PartnersContext";
 import { KycProvider } from "@/contexts/KycContext";
 import { RatesProvider } from "@/contexts/RatesContext";
 import { ComplianceRuleProvider } from "@/contexts/ComplianceRuleContext";
+import { BeneficiariesProvider } from "@/contexts/BeneficiariesContext";
 import { NotificationsProvider } from "@/contexts/NotificationsContext";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,18 +46,20 @@ export default function AppShell() {
           <VouchersProvider>
             <PartnersProvider>
               <KycProvider>
-                <RatesProvider>
-                  <ComplianceRuleProvider>
-                    <div className="flex h-screen bg-surface">
-                      <Sidebar mobileOpen={mobileSidebarOpen} onCloseMobile={closeMobileSidebar} />
-                      <div className="flex flex-1 flex-col overflow-hidden">
-                        <Topbar onOpenMobileMenu={openMobileSidebar} />
-                        <TabbedWorkspace />
+                <BeneficiariesProvider>
+                  <RatesProvider>
+                    <ComplianceRuleProvider>
+                      <div className="flex h-screen bg-surface">
+                        <Sidebar mobileOpen={mobileSidebarOpen} onCloseMobile={closeMobileSidebar} />
+                        <div className="flex flex-1 flex-col overflow-hidden">
+                          <Topbar onOpenMobileMenu={openMobileSidebar} />
+                          <TabbedWorkspace />
+                        </div>
                       </div>
-                    </div>
-                    <ToastHost />
-                  </ComplianceRuleProvider>
-                </RatesProvider>
+                      <ToastHost />
+                    </ComplianceRuleProvider>
+                  </RatesProvider>
+                </BeneficiariesProvider>
               </KycProvider>
             </PartnersProvider>
           </VouchersProvider>

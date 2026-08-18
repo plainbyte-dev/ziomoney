@@ -43,4 +43,5 @@ export const countryCurrencyRecords: CountryCurrencyRecord[] = [
   { id: 2, countryName: "Nepal", isoAlpha2: "NP", isoAlpha3: "NPL", isoNumeric: 524, currencyCode: "NPR", fjdate: "2026-01-01" },
   { id: 3, countryName: "Indonesia", isoAlpha2: "ID", isoAlpha3: "IDN", isoNumeric: 360, currencyCode: "IDR", fjdate: "2026-01-01" },
   { id: 4, countryName: "Japan", isoAlpha2: "JP", isoAlpha3: "JPN", isoNumeric: 392, currencyCode: "JPY", fjdate: "2026-01-01" },
+  { id: 5, countryName: "United States", isoAlpha2: "US", isoAlpha3: "USA", isoNumeric: 840, currencyCode: "USD", fjdate: "2026-01-01" },
 ];

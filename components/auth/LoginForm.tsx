@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AuthField from "./AuthField";
 import Button from "../Button";
 import { useAuth } from "@/contexts/AuthContext";
+import { consumeSessionExpiredFlag } from "@/lib/apiClient";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -12,12 +13,20 @@ export default function LoginForm() {
   const [rememberMe, setRememberMe] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   useEffect(() => {
     if (hydrated && user) {
       router.replace("/");
     }
   }, [hydrated, user, router]);
+
+  // Set by lib/apiClient.ts when a token refresh fails and the session gets
+  // force-ended — a one-shot flag so this notice only shows immediately
+  // after landing here from that redirect, not on every future visit.
+  useEffect(() => {
+    setSessionExpired(consumeSessionExpiredFlag());
+  }, []);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -43,6 +52,12 @@ export default function LoginForm() {
       <p className="mt-1 text-sm text-muted">
         Sign in to your Zio Money admin account.
       </p>
+
+      {sessionExpired && (
+        <p className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Your session expired. Please sign in again.
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
         <AuthField

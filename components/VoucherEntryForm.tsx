@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import RadioPill from "./RadioPill";
 import DateInput from "./DateInput";
+import CurrencySelect from "./CurrencySelect";
 import Button from "./Button";
+import { useRates } from "@/contexts/RatesContext";
 import { formatAmount } from "@/lib/format";
 import {
   voucherLedgerOptions,
@@ -25,6 +27,9 @@ function todayIso(): string {
 }
 
 export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
+  const { countryCurrencies } = useRates();
+  const localCurrencyOptions = [...new Set(countryCurrencies.map((c) => c.currencyCode).filter(Boolean))].sort();
+
   const [voucherDate, setVoucherDate] = useState(todayIso());
   const [ledger, setLedger] = useState(voucherLedgerOptions[0]);
   const [drCr, setDrCr] = useState<DrCr>("DR");
@@ -175,13 +180,13 @@ export default function VoucherEntryForm({ onSave }: VoucherEntryFormProps) {
                 disabled={usingUsd}
                 className="w-full rounded-lg border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
               />
-              <input
-                type="text"
+              <CurrencySelect
+                bare
+                label="Local Currency"
+                options={localCurrencyOptions}
                 value={localCurrency}
-                onChange={(event) => setLocalCurrency(event.target.value)}
+                onChange={setLocalCurrency}
                 disabled={usingUsd}
-                placeholder="CCY"
-                className="w-20 rounded-lg border border-border bg-panel px-2 py-2.5 text-center text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
               />
             </div>
           </div>

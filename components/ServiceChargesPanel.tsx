@@ -6,6 +6,7 @@ import { useRates } from "@/contexts/RatesContext";
 import { usePartners } from "@/contexts/PartnersContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import SelectField from "./SelectField";
+import CurrencySelect from "./CurrencySelect";
 import Checkbox from "./Checkbox";
 import Button from "./Button";
 import {
@@ -30,7 +31,7 @@ export default function ServiceChargesPanel() {
   const countrySymbolOptions = Array.from(new Set(countryCurrencies.map((c) => c.currencyCode))).filter(
     Boolean
   );
-  const agentOptions = partners.map((p) => p.partnerName);
+  const agentOptions = partners.filter((p) => p.partnerType === "Agent").map((p) => p.partnerName);
 
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ServiceChargeUpsertPayload>(emptyServiceChargePayload());
@@ -176,23 +177,14 @@ export default function ServiceChargesPanel() {
           </h2>
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-2 sm:p-8">
-          {countrySymbolOptions.length > 0 ? (
-            <SelectField
-              label="Country:"
-              required
-              options={countrySymbolOptions}
-              defaultValue={countrySymbolOptions[0]}
-              value={form.countrySymbol}
-              onChange={(v) => updateField("countrySymbol", v)}
-            />
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-heading/70">Country:</label>
-              <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
-                No currencies found — import one under Country / Currency first.
-              </p>
-            </div>
-          )}
+          <CurrencySelect
+            label="Country:"
+            required
+            options={countrySymbolOptions}
+            value={form.countrySymbol}
+            onChange={(v) => updateField("countrySymbol", v)}
+            emptyMessage="No currencies found — import one under Country / Currency first."
+          />
           {agentOptions.length > 0 ? (
             <SelectField
               label="Agent:"
@@ -206,7 +198,7 @@ export default function ServiceChargesPanel() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm text-heading/70">Agent:</label>
               <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
-                No partners found — create one under Partner Info first.
+                No Agent-type partners found — create one under Partner Info first.
               </p>
             </div>
           )}

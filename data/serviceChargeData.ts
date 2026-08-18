@@ -11,6 +11,14 @@ export interface ServiceChargeUpsertPayload {
 export interface ServiceChargeRecord extends ServiceChargeUpsertPayload {
   createdDate: string;
   updatedDate: string;
+  // MOCK-ONLY — does not exist in the real ServiceChargeResponse schema.
+  // The documented schema has no fee-amount field at all. This is a
+  // stand-in so the UI can show a live number during frontend development;
+  // read only by lib/transferMath.ts's resolveFee when
+  // SERVICE_FEE_SOURCE_CONFIRMED is false (config/businessRules.ts).
+  // DELETE this field and replace every read site once backend confirms
+  // where the real fee amount lives.
+  feeAmountMOCKONLY: number;
 }
 
 // UNCONFIRMED with backend — deliveryOption has no enum in the schema (it's
@@ -36,6 +44,7 @@ export const serviceChargeRecords: ServiceChargeRecord[] = [
     agentName: "TRANS CASH INTERNATIONAL",
     deliveryOption: "Cash Pickup",
     active: true,
+    feeAmountMOCKONLY: 5,
     createdDate: "2026-05-01",
     updatedDate: "2026-07-15",
   },
@@ -45,6 +54,7 @@ export const serviceChargeRecords: ServiceChargeRecord[] = [
     agentName: "remitteragent",
     deliveryOption: "Bank Deposit",
     active: true,
+    feeAmountMOCKONLY: 5,
     createdDate: "2026-05-12",
     updatedDate: "2026-06-30",
   },
@@ -54,6 +64,7 @@ export const serviceChargeRecords: ServiceChargeRecord[] = [
     agentName: "KOPERASI SINEMI BERDIKARI UTAMA",
     deliveryOption: "Mobile Wallet",
     active: false,
+    feeAmountMOCKONLY: 4,
     createdDate: "2026-04-20",
     updatedDate: "2026-06-01",
   },

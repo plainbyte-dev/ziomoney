@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import Button from "./Button";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import CurrencySelect from "./CurrencySelect";
 import Checkbox from "./Checkbox";
 import { usePartners } from "@/contexts/PartnersContext";
 import { useNotifications } from "@/contexts/NotificationsContext";
@@ -204,10 +205,9 @@ export default function PartnerManageModal({
             )}
             <div className="flex items-end gap-3">
               <div className="flex-1">
-                <SelectField
+                <CurrencySelect
                   label="Currency:"
                   options={settlementCurrencyOptions}
-                  defaultValue={settlementCurrencyOptions[0]}
                   value={currency}
                   onChange={setCurrency}
                 />

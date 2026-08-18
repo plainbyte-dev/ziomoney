@@ -1,23 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
-import RadioPill from "./RadioPill";
+import CurrencySelect from "./CurrencySelect";
 import Button from "./Button";
-import { ledgerCountryOptions, ledgerCurrencyOptions } from "@/data/ledgerData";
 import { useTabs } from "@/contexts/TabsContext";
 import { useToast } from "@/contexts/ToastContext";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { useRates } from "@/contexts/RatesContext";
 
 export default function CreateLedgerForm() {
   const { openTab } = useTabs();
   const { showToast } = useToast();
   const { isLive } = useDataMode();
-  const [currency, setCurrency] = useState<(typeof ledgerCurrencyOptions)[number]>(
-    "NPR"
-  );
+  const { countryCurrencies } = useRates();
+
+  const countryOptions = [...new Set(countryCurrencies.map((c) => c.countryName).filter(Boolean))].sort();
+  const currencyOptions = [...new Set(countryCurrencies.map((c) => c.currencyCode).filter(Boolean))].sort();
+
+  const [country, setCountry] = useState("");
+  const [currency, setCurrency] = useState("");
   const [saving, setSaving] = useState(false);
+
+  function currencyForCountry(countryName: string): string {
+    return countryCurrencies.find((c) => c.countryName === countryName)?.currencyCode ?? "";
+  }
+
+  function handleCountryChange(value: string) {
+    setCountry(value);
+    setCurrency(currencyForCountry(value) || currencyOptions[0] || "");
+  }
+
+  // Country/currency load asynchronously (imported via the Country/Currency
+  // tab) — once the list is available, default to its first country and the
+  // currency that goes with it, re-pointing if the previous selection no
+  // longer exists in the list.
+  useEffect(() => {
+    if (countryOptions.length === 0) return;
+    const next = countryOptions.includes(country) ? country : countryOptions[0];
+    if (next !== country) setCountry(next);
+    const matchedCurrency = currencyForCountry(next) || currencyOptions[0] || "";
+    if (matchedCurrency !== currency) setCurrency(matchedCurrency);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countryOptions.join("|")]);
 
   function handleSave(event: React.FormEvent) {
     event.preventDefault();
@@ -51,30 +77,33 @@ export default function CreateLedgerForm() {
         onSubmit={handleSave}
         className="rounded-2xl bg-panel p-6 sm:p-8"
       >
-        
+
         <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
           <TextField label="Ledger Name" placeholder="e.g. TEST PRIVATE LIMITED" required />
           <TextField label="Ledger Short Code" placeholder="e.g. 905789" required />
           <TextField label="Description" placeholder="e.g. NOORULLAH ROAD" />
-          <SelectField
-            label="Country"
-            options={ledgerCountryOptions}
-            defaultValue={ledgerCountryOptions[0]}
-          />
+
+          {countryOptions.length > 0 ? (
+            <SelectField
+              label="Country"
+              options={countryOptions}
+              defaultValue={countryOptions[0]}
+              value={country}
+              onChange={handleCountryChange}
+            />
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm text-heading/70">Country</label>
+              <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+                No countries uploaded — add rows on the Country/Currency tab first.
+              </p>
+            </div>
+          )}
+
+          <CurrencySelect options={currencyOptions} value={currency} onChange={setCurrency} />
         </div>
 
-        <div className="mt-6 flex items-center justify-between border-t border-border pt-5">
-          <div className="flex items-center gap-6">
-            {ledgerCurrencyOptions.map((option) => (
-              <RadioPill
-                key={option}
-                label={option}
-                checked={currency === option}
-                onSelect={() => setCurrency(option)}
-              />
-            ))}
-          </div>
-
+        <div className="mt-6 flex items-center justify-end border-t border-border pt-5">
           <Button type="submit" loading={saving}>
             {saving ? "Saving..." : "Save"}
           </Button>

@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useDataMode } from "./DataModeContext";
 import { useNotifications } from "./NotificationsContext";
 import { loadState, saveState } from "@/lib/persist";
+import { useAsyncMutation } from "@/lib/useAsyncMutation";
+import { useAsyncQuery } from "@/lib/useAsyncQuery";
 import {
   getAllCountries,
   getCountryWiseExRate,
@@ -125,14 +127,14 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   const [exchangeRates, setExchangeRates] = useState<ExchangeRateRecord[]>(() =>
     isLive ? [] : exchangeRateRecords
   );
-  const [exchangeRatesLoading, setExchangeRatesLoading] = useState(false);
-  const [exchangeRatesError, setExchangeRatesError] = useState<string | null>(null);
+  const exchangeRatesQuery = useAsyncQuery();
+  const saveExchangeRateMutation = useAsyncMutation();
 
   const [serviceCharges, setServiceCharges] = useState<ServiceChargeRecord[]>(() =>
     isLive ? [] : serviceChargeRecords
   );
-  const [serviceChargesLoading, setServiceChargesLoading] = useState(false);
-  const [serviceChargesError, setServiceChargesError] = useState<string | null>(null);
+  const serviceChargesQuery = useAsyncQuery();
+  const saveServiceChargeMutation = useAsyncMutation();
 
   // countryCurrencies has no "list all" endpoint at all — the only backend
   // call is UpdateCsvfileForCountries, which takes one raw CSV row string per
@@ -153,17 +155,21 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   const [commissions, setCommissions] = useState<CommissionRecord[]>(() =>
     isLive ? [] : commissionRecords
   );
-  const [commissionsLoading, setCommissionsLoading] = useState(false);
-  const [commissionsError, setCommissionsError] = useState<string | null>(null);
+  // searchCommissions merges results into existing state rather than
+  // replacing it, so it's a mutation (no wipe-before-fetch), not a query.
+  const commissionsMutation = useAsyncMutation();
+  const saveCommissionMutation = useAsyncMutation();
 
   const [partnerOfferRates, setPartnerOfferRates] = useState<PartnerOfferRateRecord[]>(() =>
     isLive ? [] : partnerOfferRateRecords
   );
-  const [partnerOfferRatesLoading, setPartnerOfferRatesLoading] = useState(false);
-  const [partnerOfferRateActionError, setPartnerOfferRateActionError] = useState<string | null>(null);
+  const partnerOfferRatesQuery = useAsyncQuery();
+  // Shared by insert/confirm/cancel — same single error slot as before.
+  const offerRateActionMutation = useAsyncMutation();
 
   // No "list all" endpoint for margins either — same as countryCurrencies/commissions above.
   const [margins, setMargins] = useState<MarginRecord[]>(() => (isLive ? [] : marginRecords));
+  const saveMarginMutation = useAsyncMutation();
 
   // Restore any admin-made changes from a previous session so a page refresh
   // doesn't silently drop them back to the seed data. Only meaningful in demo
@@ -209,71 +215,67 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   }, [exchangeRates, serviceCharges, countryCurrencies, commissions, partnerOfferRates, margins]);
 
   const refreshExchangeRates = useCallback(async () => {
-    // In static/demo mode there's no backend to refresh from — state already
-    // reflects local admin actions, restored from localStorage on load.
-    if (!isLive) return;
-
-    // Wipe any demo data left over from before switching into live mode —
-    // it must never linger on screen while Live API is active.
-    setExchangeRates([]);
-    setExchangeRatesLoading(true);
-    setExchangeRatesError(null);
-    const response = await getAllCountries();
-    setExchangeRatesLoading(false);
-    if (!response.success) {
-      setExchangeRatesError(response.message || "Could not load exchange rates.");
-      return;
-    }
-    // /getAllCountries returns the lighter ExchangeRateItem shape; map it onto
-    // the fuller record shape the table renders (missing fields default out).
-    setExchangeRates(
-      (response.data ?? []).map((item, index) => ({
-        id: index + 1,
-        symbol: item.symbol,
-        countryName: item.countryName,
-        currencyName: item.currency,
-        countryIsoCode: item.currencyAcro,
-        unit: item.unit,
-        buying: item.buying,
-        selling: item.selling,
-        flag: item.flag,
-        priority: index,
-        active: true,
-        createdDate: "",
-        updatedDate: "",
-      }))
-    );
-  }, [isLive]);
+    await exchangeRatesQuery.run<ExchangeRateItem[]>({
+      isLive,
+      clear: () => setExchangeRates([]),
+      fetch: () => getAllCountries(),
+      // /getAllCountries returns the lighter ExchangeRateItem shape; map it
+      // onto the fuller record shape the table renders (missing fields
+      // default out).
+      onSuccess: (data) => {
+        setExchangeRates(
+          (data ?? []).map((item, index) => ({
+            id: index + 1,
+            symbol: item.symbol,
+            countryName: item.countryName,
+            currencyName: item.currency,
+            countryIsoCode: item.currencyAcro,
+            unit: item.unit,
+            buying: item.buying,
+            selling: item.selling,
+            flag: item.flag,
+            priority: index,
+            active: true,
+            createdDate: "",
+            updatedDate: "",
+          }))
+        );
+      },
+      fallbackErrorMessage: "Could not load exchange rates.",
+    });
+  }, [isLive, exchangeRatesQuery]);
 
   const saveExchangeRate = useCallback(
-    async (payload: ExchangeRateUpsertPayload) => {
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setExchangeRates((prev) => {
-          const existing = prev.find((r) => r.symbol === payload.symbol);
-          const record: ExchangeRateRecord = {
-            ...payload,
-            id: existing?.id ?? ++localIdCounter,
-            createdDate: existing?.createdDate ?? new Date().toISOString().slice(0, 10),
-            updatedDate: new Date().toISOString().slice(0, 10),
-          };
-          return existing
-            ? prev.map((r) => (r.symbol === payload.symbol ? record : r))
-            : [record, ...prev];
-        });
-        notify({ title: "Exchange rate updated", message: `${payload.symbol} rate was saved.` });
-        return true;
-      }
-      const response = await updateExchangeRate(payload);
-      if (!response.success) {
-        setExchangeRatesError(response.message || "Could not save the exchange rate.");
-        return false;
-      }
-      await refreshExchangeRates();
-      notify({ title: "Exchange rate updated", message: `${payload.symbol} rate was saved.` });
-      return true;
-    },
-    [isLive, notify, refreshExchangeRates]
+    (payload: ExchangeRateUpsertPayload) =>
+      saveExchangeRateMutation.run<boolean>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          setExchangeRates((prev) => {
+            const existing = prev.find((r) => r.symbol === payload.symbol);
+            const record: ExchangeRateRecord = {
+              ...payload,
+              id: existing?.id ?? ++localIdCounter,
+              createdDate: existing?.createdDate ?? new Date().toISOString().slice(0, 10),
+              updatedDate: new Date().toISOString().slice(0, 10),
+            };
+            return existing
+              ? prev.map((r) => (r.symbol === payload.symbol ? record : r))
+              : [record, ...prev];
+          });
+          notify({ title: "Exchange rate updated", message: `${payload.symbol} rate was saved.` });
+          return true;
+        },
+        live: () => updateExchangeRate(payload),
+        onLiveSuccess: async () => {
+          await refreshExchangeRates();
+          notify({ title: "Exchange rate updated", message: `${payload.symbol} rate was saved.` });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not save the exchange rate.",
+      }),
+    [isLive, notify, refreshExchangeRates, saveExchangeRateMutation]
   );
 
   const lookupExchangeRate = useCallback(
@@ -346,62 +348,67 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   );
 
   const refreshServiceCharges = useCallback(async () => {
-    if (!isLive) return;
-
-    setServiceCharges([]);
-    setServiceChargesLoading(true);
-    setServiceChargesError(null);
-    const response = await getAllServiceCharges();
-    setServiceChargesLoading(false);
-    if (!response.success) {
-      setServiceChargesError(response.message || "Could not load service charges.");
-      return;
-    }
-    // GetSeRate's response schema is an unexpanded bare `string` in the
-    // Swagger doc — guard against it not actually being the array we expect,
-    // rather than trusting the type and letting `.map`/`.length` blow up
-    // downstream on something else (e.g. a JSON-encoded string needing a
-    // second parse).
-    if (!Array.isArray(response.data)) {
-      setServiceChargesError(
-        "GetSeRate returned an unexpected shape (not an array) — confirm the real response format with backend."
-      );
-      return;
-    }
-    setServiceCharges(response.data);
-  }, [isLive]);
+    await serviceChargesQuery.run<ServiceChargeRecord[]>({
+      isLive,
+      clear: () => setServiceCharges([]),
+      // GetSeRate's response schema is an unexpanded bare `string` in the
+      // Swagger doc — guard against it not actually being the array we
+      // expect, rather than trusting the type and letting `.map`/`.length`
+      // blow up downstream on something else (e.g. a JSON-encoded string
+      // needing a second parse).
+      fetch: async () => {
+        const response = await getAllServiceCharges();
+        if (response.success && !Array.isArray(response.data)) {
+          return {
+            ...response,
+            success: false,
+            message: "GetSeRate returned an unexpected shape (not an array) — confirm the real response format with backend.",
+          };
+        }
+        return response;
+      },
+      onSuccess: (data) => setServiceCharges(data),
+      fallbackErrorMessage: "Could not load service charges.",
+    });
+  }, [isLive, serviceChargesQuery]);
 
   const saveServiceChargeEntry = useCallback(
-    async (payload: ServiceChargeUpsertPayload, isNew: boolean) => {
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setServiceCharges((prev) => {
-          const id = payload.id || ++localIdCounter;
-          const record: ServiceChargeRecord = {
-            ...payload,
-            id,
-            createdDate: prev.find((r) => r.id === id)?.createdDate ?? new Date().toISOString().slice(0, 10),
-            updatedDate: new Date().toISOString().slice(0, 10),
-          };
-          const exists = prev.some((r) => r.id === id);
-          return exists ? prev.map((r) => (r.id === id ? record : r)) : [record, ...prev];
-        });
-        notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
-        return true;
-      }
-      // New rows go through Service_Charges_Insert; existing ones (a real
-      // id from the row being edited) go through Service_Charges_save —
-      // these are two distinct endpoints, not one shared upsert.
-      const response = isNew ? await insertServiceCharge(payload) : await saveServiceCharge(payload);
-      if (!response.success) {
-        setServiceChargesError(response.message || "Could not save the service charge.");
-        return false;
-      }
-      await refreshServiceCharges();
-      notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
-      return true;
-    },
-    [isLive, notify, refreshServiceCharges]
+    (payload: ServiceChargeUpsertPayload, isNew: boolean) =>
+      saveServiceChargeMutation.run<boolean>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          setServiceCharges((prev) => {
+            const id = payload.id || ++localIdCounter;
+            const existing = prev.find((r) => r.id === id);
+            const record: ServiceChargeRecord = {
+              ...payload,
+              id,
+              // MOCK-ONLY field, not part of the save payload — carry the
+              // existing value forward on edit, default on a genuinely new row.
+              feeAmountMOCKONLY: existing?.feeAmountMOCKONLY ?? 0,
+              createdDate: existing?.createdDate ?? new Date().toISOString().slice(0, 10),
+              updatedDate: new Date().toISOString().slice(0, 10),
+            };
+            const exists = prev.some((r) => r.id === id);
+            return exists ? prev.map((r) => (r.id === id ? record : r)) : [record, ...prev];
+          });
+          notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
+          return true;
+        },
+        // New rows go through Service_Charges_Insert; existing ones (a real
+        // id from the row being edited) go through Service_Charges_save —
+        // these are two distinct endpoints, not one shared upsert.
+        live: () => (isNew ? insertServiceCharge(payload) : saveServiceCharge(payload)),
+        onLiveSuccess: async () => {
+          await refreshServiceCharges();
+          notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not save the service charge.",
+      }),
+    [isLive, notify, refreshServiceCharges, saveServiceChargeMutation]
   );
 
   // UpdateCsvfileForCountries upserts ONE row per call and has no
@@ -463,152 +470,163 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   );
 
   const saveCommission = useCallback(
-    async (payload: CommissionUpsertPayload) => {
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setCommissions((prev) => {
-          const existing = prev.find(
-            (r) =>
-              r.remittancePartner === payload.userName &&
-              r.destinationCountry === payload.destinationCountry &&
-              r.sendCurrency === payload.sendCurrency
-          );
-          const record: CommissionRecord = {
-            id: existing?.id ?? ++localIdCounter,
-            remittancePartner: payload.userName,
-            commissionRate: payload.commissionRate,
-            commissionType: payload.commissionType,
-            service: payload.service,
-            sendCurrency: payload.sendCurrency,
-            destinationCountry: payload.destinationCountry,
-            remittanceType: payload.remittanceType,
-          };
-          return existing ? prev.map((r) => (r.id === record.id ? record : r)) : [record, ...prev];
-        });
-        notify({ title: "Partner commission saved", message: `${payload.userName} → ${payload.destinationCountry} commission was updated.` });
-        return true;
-      }
-      const response = await upsertPartnerCommission(payload);
-      if (!response.success || !response.data) return false;
-      // The upsert response already IS the saved record — merge it straight
-      // in rather than re-querying and replacing the whole list, which would
-      // wipe out any other partner/currency/country combo already searched
-      // for this session.
-      const saved = response.data;
-      setCommissions((prev) => {
-        const exists = prev.some((r) => r.id === saved.id);
-        return exists ? prev.map((r) => (r.id === saved.id ? saved : r)) : [saved, ...prev];
-      });
-      notify({ title: "Partner commission saved", message: `${payload.userName} → ${payload.destinationCountry} commission was updated.` });
-      return true;
-    },
-    [isLive, notify]
+    (payload: CommissionUpsertPayload) =>
+      saveCommissionMutation.run<boolean>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          setCommissions((prev) => {
+            const existing = prev.find(
+              (r) =>
+                r.remittancePartner === payload.userName &&
+                r.destinationCountry === payload.destinationCountry &&
+                r.sendCurrency === payload.sendCurrency
+            );
+            const record: CommissionRecord = {
+              id: existing?.id ?? ++localIdCounter,
+              remittancePartner: payload.userName,
+              commissionRate: payload.commissionRate,
+              commissionType: payload.commissionType,
+              service: payload.service,
+              sendCurrency: payload.sendCurrency,
+              destinationCountry: payload.destinationCountry,
+              remittanceType: payload.remittanceType,
+            };
+            return existing ? prev.map((r) => (r.id === record.id ? record : r)) : [record, ...prev];
+          });
+          notify({ title: "Partner commission saved", message: `${payload.userName} → ${payload.destinationCountry} commission was updated.` });
+          return true;
+        },
+        live: () => upsertPartnerCommission(payload),
+        // Original never surfaced a save failure via commissionsError, just
+        // the boolean return — requireData: true still gives us that (a
+        // missing `data` falls into the generic failValue path below).
+        onLiveSuccess: (response) => {
+          const saved = response.data as CommissionRecord;
+          // The upsert response already IS the saved record — merge it
+          // straight in rather than re-querying and replacing the whole
+          // list, which would wipe out any other partner/currency/country
+          // combo already searched for this session.
+          setCommissions((prev) => {
+            const exists = prev.some((r) => r.id === saved.id);
+            return exists ? prev.map((r) => (r.id === saved.id ? saved : r)) : [saved, ...prev];
+          });
+          notify({ title: "Partner commission saved", message: `${payload.userName} → ${payload.destinationCountry} commission was updated.` });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not save the partner commission.",
+      }),
+    [isLive, notify, saveCommissionMutation]
   );
 
   const searchCommissions = useCallback(
-    async (payload: CommissionLookupPayload) => {
-      setCommissionsError(null);
-      if (!isLive) {
+    (payload: CommissionLookupPayload) =>
+      commissionsMutation.run<boolean>({
+        isLive,
         // Demo mode already holds everything locally — nothing to fetch.
-        return true;
-      }
-      setCommissionsLoading(true);
-      const response = await getPartnerCommissions(payload);
-      setCommissionsLoading(false);
-      if (!response.success) {
-        setCommissionsError(response.message || "Could not search partner commissions.");
-        return false;
-      }
-      const results = response.data ?? [];
-      setCommissions((prev) => {
-        const byId = new Map(prev.map((r) => [r.id, r]));
-        for (const r of results) byId.set(r.id, r);
-        return Array.from(byId.values());
-      });
-      return true;
-    },
-    [isLive]
+        demo: () => true,
+        live: () => getPartnerCommissions(payload),
+        onLiveSuccess: (response) => {
+          const results = (response.data as CommissionRecord[] | null) ?? [];
+          setCommissions((prev) => {
+            const byId = new Map(prev.map((r) => [r.id, r]));
+            for (const r of results) byId.set(r.id, r);
+            return Array.from(byId.values());
+          });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not search partner commissions.",
+        requireData: false,
+      }),
+    [isLive, commissionsMutation]
   );
 
   const saveMargin = useCallback(
-    async (payload: MarginUpsertPayload) => {
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        setMargins((prev) => {
-          const id = payload.id || ++localIdCounter;
-          const record: MarginRecord = {
-            ...payload,
-            id,
-            createdDate: prev.find((r) => r.id === id)?.createdDate ?? new Date().toISOString().slice(0, 10),
-          };
-          const exists = prev.some((r) => r.id === id);
-          return exists ? prev.map((r) => (r.id === id ? record : r)) : [record, ...prev];
-        });
-        notify({ title: "Margin setup saved", message: `Margin for ${payload.targetPartner} was updated.` });
-        return true;
-      }
-      const response = await addOrUpdateMargin(payload);
-      if (!response.success || !response.data) return false;
-      setMargins((prev) => {
-        const exists = prev.some((r) => r.id === response.data!.id);
-        return exists
-          ? prev.map((r) => (r.id === response.data!.id ? response.data! : r))
-          : [response.data!, ...prev];
-      });
-      notify({ title: "Margin setup saved", message: `Margin for ${payload.targetPartner} was updated.` });
-      return true;
-    },
-    [isLive, notify]
+    (payload: MarginUpsertPayload) =>
+      saveMarginMutation.run<boolean>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          setMargins((prev) => {
+            const id = payload.id || ++localIdCounter;
+            const record: MarginRecord = {
+              ...payload,
+              id,
+              createdDate: prev.find((r) => r.id === id)?.createdDate ?? new Date().toISOString().slice(0, 10),
+            };
+            const exists = prev.some((r) => r.id === id);
+            return exists ? prev.map((r) => (r.id === id ? record : r)) : [record, ...prev];
+          });
+          notify({ title: "Margin setup saved", message: `Margin for ${payload.targetPartner} was updated.` });
+          return true;
+        },
+        live: () => addOrUpdateMargin(payload),
+        onLiveSuccess: (response) => {
+          const saved = response.data as MarginRecord;
+          setMargins((prev) => {
+            const exists = prev.some((r) => r.id === saved.id);
+            return exists ? prev.map((r) => (r.id === saved.id ? saved : r)) : [saved, ...prev];
+          });
+          notify({ title: "Margin setup saved", message: `Margin for ${payload.targetPartner} was updated.` });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not save the margin.",
+      }),
+    [isLive, notify, saveMarginMutation]
   );
 
   const refreshPartnerOfferRates = useCallback(async () => {
-    if (!isLive) return;
-
-    setPartnerOfferRates([]);
-    setPartnerOfferRatesLoading(true);
-    const response = await getAllPendingPartnerOfferRates();
-    setPartnerOfferRatesLoading(false);
-    if (response.success) setPartnerOfferRates(response.data ?? []);
-  }, [isLive]);
+    await partnerOfferRatesQuery.run<PartnerOfferRateRecord[]>({
+      isLive,
+      clear: () => setPartnerOfferRates([]),
+      fetch: () => getAllPendingPartnerOfferRates(),
+      onSuccess: (data) => setPartnerOfferRates(data ?? []),
+      fallbackErrorMessage: "Could not load partner offer rates.",
+    });
+  }, [isLive, partnerOfferRatesQuery]);
 
   const insertOfferRate = useCallback(
-    async (payload: PartnerOfferRateInsertPayload): Promise<PartnerOfferRateRecord | null> => {
-      setPartnerOfferRateActionError(null);
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const now = new Date().toISOString();
-        const record: PartnerOfferRateRecord = {
-          id: ++localIdCounter,
-          uniqueId: `POR-LOCAL-${++localOfferRateSeq}`,
-          remittancePartner: payload.remittancePartner,
-          sendCurrency: payload.sendCurrency,
-          receiveCurrency: payload.receiveCurrency,
-          destCountry: payload.destCountry,
-          sendCurrencyPerUsd: payload.sendCurrencyPerUsd,
-          receiveCurrencyPerUsd: payload.receiveCurrencyPerUsd,
-          directQuote: payload.directQuote,
-          rate: payload.directQuote,
-          quoteType: payload.quoteType,
-          status: "PENDING",
-          makerUser: payload.makerUser,
-          checkerUser: null,
-          createdDateTime: now,
-          updatedDateTime: now,
-        };
-        setPartnerOfferRates((prev) => [record, ...prev]);
-        notify({ title: "Offer rate submitted", message: `${payload.remittancePartner} quote is pending approval.` });
-        return record;
-      }
-      const response = await insertPartnerOfferRate(payload);
-      if (!response.success || !response.data) {
-        setPartnerOfferRateActionError(response.message || "Could not submit the offer rate.");
-        return null;
-      }
-      await refreshPartnerOfferRates();
-      notify({ title: "Offer rate submitted", message: `${payload.remittancePartner} quote is pending approval.` });
-      return response.data;
-    },
-    [isLive, notify, refreshPartnerOfferRates]
+    (payload: PartnerOfferRateInsertPayload) =>
+      offerRateActionMutation.run<PartnerOfferRateRecord | null>({
+        isLive,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          const now = new Date().toISOString();
+          const record: PartnerOfferRateRecord = {
+            id: ++localIdCounter,
+            uniqueId: `POR-LOCAL-${++localOfferRateSeq}`,
+            remittancePartner: payload.remittancePartner,
+            sendCurrency: payload.sendCurrency,
+            receiveCurrency: payload.receiveCurrency,
+            destCountry: payload.destCountry,
+            sendCurrencyPerUsd: payload.sendCurrencyPerUsd,
+            receiveCurrencyPerUsd: payload.receiveCurrencyPerUsd,
+            directQuote: payload.directQuote,
+            rate: payload.directQuote,
+            quoteType: payload.quoteType,
+            status: "PENDING",
+            makerUser: payload.makerUser,
+            checkerUser: null,
+            createdDateTime: now,
+            updatedDateTime: now,
+          };
+          setPartnerOfferRates((prev) => [record, ...prev]);
+          notify({ title: "Offer rate submitted", message: `${payload.remittancePartner} quote is pending approval.` });
+          return record;
+        },
+        live: () => insertPartnerOfferRate(payload),
+        onLiveSuccess: async (response) => {
+          await refreshPartnerOfferRates();
+          notify({ title: "Offer rate submitted", message: `${payload.remittancePartner} quote is pending approval.` });
+          return response.data as PartnerOfferRateRecord;
+        },
+        failValue: null,
+        fallbackErrorMessage: "Could not submit the offer rate.",
+      }),
+    [isLive, notify, refreshPartnerOfferRates, offerRateActionMutation]
   );
 
   const resolveOfferRate = useCallback(
@@ -633,57 +651,57 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   }
 
   const confirmOfferRate = useCallback(
-    async (payload: PartnerOfferRateActionPayload, options?: { allowSelfApproval?: boolean }) => {
-      setPartnerOfferRateActionError(null);
-      if (!options?.allowSelfApproval && blocksSelfApproval(payload.uniqueId, payload.checkerUser)) {
-        setPartnerOfferRateActionError(
-          "You proposed this rate — a different user must confirm it."
-        );
-        return false;
-      }
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        resolveOfferRate(payload.uniqueId, payload.checkerUser, "CONFIRMED");
-        notify({ title: "Offer rate confirmed", message: `${payload.uniqueId} was approved.` });
-        return true;
-      }
-      const response = await confirmPartnerOfferRate(payload);
-      if (!response.success) {
-        setPartnerOfferRateActionError(response.message || "Could not confirm the offer rate.");
-        return false;
-      }
-      await refreshPartnerOfferRates();
-      notify({ title: "Offer rate confirmed", message: `${payload.uniqueId} was approved.` });
-      return true;
-    },
-    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate, partnerOfferRates]
+    (payload: PartnerOfferRateActionPayload, options?: { allowSelfApproval?: boolean }) =>
+      offerRateActionMutation.run<boolean>({
+        isLive,
+        guard: () =>
+          !options?.allowSelfApproval && blocksSelfApproval(payload.uniqueId, payload.checkerUser)
+            ? "You proposed this rate — a different user must confirm it."
+            : null,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          resolveOfferRate(payload.uniqueId, payload.checkerUser, "CONFIRMED");
+          notify({ title: "Offer rate confirmed", message: `${payload.uniqueId} was approved.` });
+          return true;
+        },
+        live: () => confirmPartnerOfferRate(payload),
+        onLiveSuccess: async () => {
+          await refreshPartnerOfferRates();
+          notify({ title: "Offer rate confirmed", message: `${payload.uniqueId} was approved.` });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not confirm the offer rate.",
+        requireData: false,
+      }),
+    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate, offerRateActionMutation, partnerOfferRates]
   );
 
   const cancelOfferRate = useCallback(
-    async (payload: PartnerOfferRateActionPayload, options?: { allowSelfApproval?: boolean }) => {
-      setPartnerOfferRateActionError(null);
-      if (!options?.allowSelfApproval && blocksSelfApproval(payload.uniqueId, payload.checkerUser)) {
-        setPartnerOfferRateActionError(
-          "You proposed this rate — a different user must reject it."
-        );
-        return false;
-      }
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        resolveOfferRate(payload.uniqueId, payload.checkerUser, "CANCELLED");
-        notify({ title: "Offer rate cancelled", message: `${payload.uniqueId} was cancelled.` });
-        return true;
-      }
-      const response = await cancelPartnerOfferRate(payload);
-      if (!response.success) {
-        setPartnerOfferRateActionError(response.message || "Could not cancel the offer rate.");
-        return false;
-      }
-      await refreshPartnerOfferRates();
-      notify({ title: "Offer rate cancelled", message: `${payload.uniqueId} was cancelled.` });
-      return true;
-    },
-    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate, partnerOfferRates]
+    (payload: PartnerOfferRateActionPayload, options?: { allowSelfApproval?: boolean }) =>
+      offerRateActionMutation.run<boolean>({
+        isLive,
+        guard: () =>
+          !options?.allowSelfApproval && blocksSelfApproval(payload.uniqueId, payload.checkerUser)
+            ? "You proposed this rate — a different user must reject it."
+            : null,
+        demo: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          resolveOfferRate(payload.uniqueId, payload.checkerUser, "CANCELLED");
+          notify({ title: "Offer rate cancelled", message: `${payload.uniqueId} was cancelled.` });
+          return true;
+        },
+        live: () => cancelPartnerOfferRate(payload),
+        onLiveSuccess: async () => {
+          await refreshPartnerOfferRates();
+          notify({ title: "Offer rate cancelled", message: `${payload.uniqueId} was cancelled.` });
+          return true;
+        },
+        failValue: false,
+        fallbackErrorMessage: "Could not cancel the offer rate.",
+        requireData: false,
+      }),
+    [isLive, notify, refreshPartnerOfferRates, resolveOfferRate, offerRateActionMutation, partnerOfferRates]
   );
 
   // View C (Current) and View D (History) — on-demand lookups, not
@@ -726,28 +744,28 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo(
     () => ({
       exchangeRates,
-      exchangeRatesLoading,
-      exchangeRatesError,
+      exchangeRatesLoading: exchangeRatesQuery.loading,
+      exchangeRatesError: saveExchangeRateMutation.error ?? exchangeRatesQuery.error,
       refreshExchangeRates,
       saveExchangeRate,
       lookupExchangeRate,
       importExchangeRatesFromCsv,
       serviceCharges,
-      serviceChargesLoading,
-      serviceChargesError,
+      serviceChargesLoading: serviceChargesQuery.loading,
+      serviceChargesError: saveServiceChargeMutation.error ?? serviceChargesQuery.error,
       refreshServiceCharges,
       saveServiceChargeEntry,
       countryCurrencies,
       countryCurrencyImporting,
       importCountryCurrencyCsv,
       commissions,
-      commissionsLoading,
-      commissionsError,
+      commissionsLoading: commissionsMutation.loading,
+      commissionsError: commissionsMutation.error,
       searchCommissions,
       saveCommission,
       partnerOfferRates,
-      partnerOfferRatesLoading,
-      partnerOfferRateActionError,
+      partnerOfferRatesLoading: partnerOfferRatesQuery.loading,
+      partnerOfferRateActionError: offerRateActionMutation.error,
       refreshPartnerOfferRates,
       insertOfferRate,
       confirmOfferRate,
@@ -759,28 +777,30 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       exchangeRates,
-      exchangeRatesLoading,
-      exchangeRatesError,
+      exchangeRatesQuery.loading,
+      exchangeRatesQuery.error,
+      saveExchangeRateMutation.error,
       refreshExchangeRates,
       saveExchangeRate,
       lookupExchangeRate,
       importExchangeRatesFromCsv,
       serviceCharges,
-      serviceChargesLoading,
-      serviceChargesError,
+      serviceChargesQuery.loading,
+      serviceChargesQuery.error,
+      saveServiceChargeMutation.error,
       refreshServiceCharges,
       saveServiceChargeEntry,
       countryCurrencies,
       countryCurrencyImporting,
       importCountryCurrencyCsv,
       commissions,
-      commissionsLoading,
-      commissionsError,
+      commissionsMutation.loading,
+      commissionsMutation.error,
       searchCommissions,
       saveCommission,
       partnerOfferRates,
-      partnerOfferRatesLoading,
-      partnerOfferRateActionError,
+      partnerOfferRatesQuery.loading,
+      offerRateActionMutation.error,
       refreshPartnerOfferRates,
       insertOfferRate,
       confirmOfferRate,

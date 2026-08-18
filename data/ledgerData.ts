@@ -21,17 +21,6 @@ export function getCurrencyOptions(country: string): string[] {
   return local === "USD" ? ["USD"] : [local, "USD"];
 }
 
-// Flat list of all supported currency codes, e.g. for a currency picker
-// that isn't scoped to a single country's options.
-export const ledgerCurrencyOptions = [
-  "NPR",
-  "USD",
-  "JPY",
-  "AUD",
-  "INR",
-  "GBP",
-] as const;
-
 export const PAGE_SIZE = 8;
 
 export const ledgerAccountTypeOptions = [

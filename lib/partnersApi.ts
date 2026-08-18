@@ -1,4 +1,4 @@
-import { getAccessToken } from "./authToken";
+import { createActionApi } from "./apiResource";
 import type { PayoutPartnerConfigPayload, PayoutPartnerConfigRecord } from "@/data/payoutConfigData";
 import type { PayoutBankUpdatePayload, PayoutBankRecord } from "@/data/payoutBankData";
 
@@ -23,51 +23,7 @@ export interface RemittancePartnerRecord extends InsertRemittancePartnerPayload 
   updatedDate: string;
 }
 
-export interface PartnerApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T | null;
-  errorCode: string | null;
-  timestamp: string;
-}
-
-async function callPartnerAction<T>(
-  action: string,
-  options: { method: "GET" | "POST"; body?: unknown }
-): Promise<PartnerApiResponse<T>> {
-  try {
-    const token = getAccessToken();
-    const headers: Record<string, string> = {};
-    if (options.method === "POST") headers["Content-Type"] = "application/json";
-    if (token) headers.Authorization = `Bearer ${token}`;
-
-    const res = await fetch(`/api/partners/${action}`, {
-      method: options.method,
-      headers,
-      body: options.method === "POST" ? JSON.stringify(options.body ?? {}) : undefined,
-    });
-
-    const data = await res.json().catch(() => null);
-    if (!data) {
-      return {
-        success: false,
-        message: `Unexpected response from server (HTTP ${res.status}).`,
-        data: null,
-        errorCode: null,
-        timestamp: new Date().toISOString(),
-      };
-    }
-    return data as PartnerApiResponse<T>;
-  } catch {
-    return {
-      success: false,
-      message: "Network error while calling the remittance API.",
-      data: null,
-      errorCode: null,
-      timestamp: new Date().toISOString(),
-    };
-  }
-}
+const callPartnerAction = createActionApi("/api/partners", "Network error while calling the remittance API.");
 
 export function insertRemittancePartner(payload: InsertRemittancePartnerPayload) {
   return callPartnerAction<RemittancePartnerRecord>("register", { method: "POST", body: payload });

@@ -4,7 +4,8 @@ import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import RadioPill from "./RadioPill";
 import Button from "./Button";
-import { agentOptions, branchOptions, kycModeOptions, type KycMode } from "@/data/corporateCustomerData";
+import { usePartners } from "@/contexts/PartnersContext";
+import { kycModeOptions, type KycMode } from "@/data/corporateCustomerData";
 import type { KycApprovalFields, KycRecord } from "@/data/kycData";
 
 interface KycApprovalModalProps {
@@ -24,6 +25,12 @@ export default function KycApprovalModal({
   onCancel,
   onConfirm,
 }: KycApprovalModalProps) {
+  const { entries: partners } = usePartners();
+
+  // Registrant Agent is sourced from the actual registered partners, not a
+  // static placeholder list — only partners registered as an "Agent" apply.
+  const agentOptions = partners.filter((p) => p.partnerType === "Agent").map((p) => p.partnerName);
+
   const [registrantAgent, setRegistrantAgent] = useState("");
   const [registrantBranch, setRegistrantBranch] = useState("");
   const [kycMode, setKycMode] = useState<KycMode | null>(null);
@@ -79,19 +86,13 @@ export default function KycApprovalModal({
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm text-heading/70">Registrant Branch</label>
-            <select
+            <input
+              type="text"
               value={registrantBranch}
               onChange={(event) => setRegistrantBranch(event.target.value)}
               required
               className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
-            >
-              <option value="">--Select--</option>
-              {branchOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">

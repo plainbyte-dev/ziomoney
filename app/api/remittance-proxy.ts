@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 interface ProxyOptions {
-  method: "GET" | "POST" | "DELETE";
+  method: "GET" | "POST" | "PUT" | "DELETE";
   body?: string;
   // The signed-in user's own bearer token, forwarded as-is — the remittance
   // API validates Bearer JWTs issued by the auth service on every route.

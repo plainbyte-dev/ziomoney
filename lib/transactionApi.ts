@@ -5,78 +5,22 @@ import type {
   TransactionByRefPayload,
   ViewTransactionPayload,
 } from "@/data/transactionData";
-import { getAccessToken } from "./authToken";
+import { createActionApi } from "./apiResource";
+import type { ApiResponse } from "./apiClient";
 
-export interface TransactionApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T | null;
-  errorCode: string | null;
-  timestamp: string;
+// Kept as an alias (rather than dropped like the other 8 resources' local
+// envelope types) because components/UnconfirmedQueuePanel.tsx imports this
+// name directly.
+export type TransactionApiResponse<T> = ApiResponse<T>;
+
+const callAction = createActionApi("/api/transactions", "Network error while calling the remittance API.");
+
+function callTransactionAction<T>(action: string, body: unknown) {
+  return callAction<T>(action, { method: "POST", body });
 }
 
-async function callTransactionAction<T>(action: string, body: unknown): Promise<TransactionApiResponse<T>> {
-  try {
-    const token = getAccessToken();
-    const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (token) headers.Authorization = `Bearer ${token}`;
-
-    const res = await fetch(`/api/transactions/${action}`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(body ?? {}),
-    });
-
-    const data = await res.json().catch(() => null);
-    if (!data) {
-      return {
-        success: false,
-        message: `Unexpected response from server (HTTP ${res.status}).`,
-        data: null,
-        errorCode: null,
-        timestamp: new Date().toISOString(),
-      };
-    }
-    return data as TransactionApiResponse<T>;
-  } catch {
-    return {
-      success: false,
-      message: "Network error while calling the remittance API.",
-      data: null,
-      errorCode: null,
-      timestamp: new Date().toISOString(),
-    };
-  }
-}
-
-async function callTransactionGetAction<T>(action: string): Promise<TransactionApiResponse<T>> {
-  try {
-    const token = getAccessToken();
-    const headers: Record<string, string> = {};
-    if (token) headers.Authorization = `Bearer ${token}`;
-
-    const res = await fetch(`/api/transactions/${action}`, { method: "GET", headers });
-
-    const data = await res.json().catch(() => null);
-    if (!data) {
-      return {
-        success: false,
-        message: `Unexpected response from server (HTTP ${res.status}).`,
-        data: null,
-        errorCode: null,
-        timestamp: new Date().toISOString(),
-      };
-    }
-    return data as TransactionApiResponse<T>;
-  } catch {
-    return {
-      success: false,
-      message: "Network error while calling the remittance API.",
-      data: null,
-      errorCode: null,
-      timestamp: new Date().toISOString(),
-    };
-  }
+function callTransactionGetAction<T>(action: string) {
+  return callAction<T>(action, { method: "GET" });
 }
 
 export function viewTransaction(payload: ViewTransactionPayload) {

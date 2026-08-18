@@ -6,7 +6,8 @@ import AdditionalInformationForm from "./AdditionalInformationForm";
 import RadioPill from "./RadioPill";
 import Button from "./Button";
 import { useKyc } from "@/contexts/KycContext";
-import { agentOptions, branchOptions, kycModeOptions, type KycMode } from "@/data/corporateCustomerData";
+import { usePartners } from "@/contexts/PartnersContext";
+import { kycModeOptions, type KycMode } from "@/data/corporateCustomerData";
 
 // Add Customer inserts already-approved via InsertApprovedKYC (OFAC
 // screening runs as part of that call) rather than the separate
@@ -14,6 +15,11 @@ import { agentOptions, branchOptions, kycModeOptions, type KycMode } from "@/dat
 // registrant/KYC-mode fields the KYC Approval Queue's modal does.
 export default function CustomerDetailsPanel() {
   const { record, updateField, saving, saveError, saveSuccess, saveCustomer } = useKyc();
+  const { entries: partners } = usePartners();
+
+  // Registrant Agent is sourced from the actual registered partners, not a
+  // static placeholder list — only partners registered as an "Agent" apply.
+  const agentOptions = partners.filter((p) => p.partnerType === "Agent").map((p) => p.partnerName);
 
   const [registrantAgent, setRegistrantAgent] = useState("");
   const [registrantBranch, setRegistrantBranch] = useState("");
@@ -62,19 +68,13 @@ export default function CustomerDetailsPanel() {
               <label className="text-sm text-heading/70">
                 Registrant Branch <span className="text-red-500">*</span>
               </label>
-              <select
+              <input
+                type="text"
                 value={registrantBranch}
                 onChange={(event) => setRegistrantBranch(event.target.value)}
                 required
                 className="w-full rounded-lg border border-border bg-panel px-3 py-2 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
-              >
-                <option value="">--Select--</option>
-                {branchOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
           </div>
 

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import TextField from "./TextField";
 import SelectField from "./SelectField";
+import CurrencySelect from "./CurrencySelect";
 import Checkbox from "./Checkbox";
+import RadioPill from "./RadioPill";
 import Button from "./Button";
 import { useTabs } from "@/contexts/TabsContext";
 import { usePartners } from "@/contexts/PartnersContext";
@@ -183,6 +185,13 @@ export default function CreatePartnerForm() {
     setPayoutConfig((prev) => ({ ...prev, [field]: value }));
   }
 
+  // Payout method is exclusive — a partner is configured for cash OR
+  // account credit, never both — so selecting one clears the other rather
+  // than toggling independently.
+  function selectPayoutMethod(method: "cash" | "account") {
+    setPayoutConfig((prev) => ({ ...prev, allowCash: method === "cash", allowAccountCredit: method === "account" }));
+  }
+
   async function handleStep3Submit(event: React.FormEvent) {
     event.preventDefault();
     if (!createdEntry) return;
@@ -253,10 +262,9 @@ export default function CreatePartnerForm() {
               value={remitterType}
               onChange={setRemitterType}
             />
-            <SelectField
+            <CurrencySelect
               label="Settlement Currency:"
-              options={settlementCurrencyOptions}
-              defaultValue={settlementCurrencyOptions[0]}
+              options={[...settlementCurrencyOptions]}
               value={settlementCurrency}
               onChange={setSettlementCurrency}
             />
@@ -310,12 +318,9 @@ export default function CreatePartnerForm() {
       {step === 3 && createdEntry && (
         <form onSubmit={handleStep3Submit} className="flex flex-col gap-6 bg-panel p-6 sm:p-8">
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-xl border border-border p-4 sm:grid-cols-3">
-            <Checkbox
-              checked={payoutConfig.allowCash}
-              onToggle={() => updatePayoutField("allowCash", !payoutConfig.allowCash)}
-              label="Allow Cash Payout"
-              className="sm:col-span-3"
-            />
+            <div className="sm:col-span-3">
+              <RadioPill checked={payoutConfig.allowCash} onSelect={() => selectPayoutMethod("cash")} label="Allow Cash Payout" />
+            </div>
             <TextField
               label="Cash Commission Rate:"
               value={String(payoutConfig.cashPayoutCommissionRate)}
@@ -329,12 +334,13 @@ export default function CreatePartnerForm() {
           </div>
 
           <div className="grid grid-cols-1 gap-x-6 gap-y-4 rounded-xl border border-border p-4 sm:grid-cols-3">
-            <Checkbox
-              checked={payoutConfig.allowAccountCredit}
-              onToggle={() => updatePayoutField("allowAccountCredit", !payoutConfig.allowAccountCredit)}
-              label="Allow Account Credit Payout"
-              className="sm:col-span-3"
-            />
+            <div className="sm:col-span-3">
+              <RadioPill
+                checked={payoutConfig.allowAccountCredit}
+                onSelect={() => selectPayoutMethod("account")}
+                label="Allow Account Credit Payout"
+              />
+            </div>
             <TextField
               label="Account Commission Rate:"
               value={String(payoutConfig.accountPayoutCommissionRate)}

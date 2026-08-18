@@ -211,6 +211,8 @@ export const navGroups: NavGroup[] = [
         submenuTitle: "Remittances",
         submenu: [
           { label: "Send Transaction", tabKey: "transaction-send" },
+          { label: "Transfers", tabKey: "transfers" },
+          { label: "Transaction Rate Report", tabKey: "transaction-rate-report" },
           { label: "Un-Confirmed List", tabKey: "unconfirmed-list" },
           { label: "Un-Confirmed List (Partner API)", tabKey: "unconfirmed-list-partner-api" },
           { label: "Unpaid Transactions", tabKey: "unpaid-transactions" },

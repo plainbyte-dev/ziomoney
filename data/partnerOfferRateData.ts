@@ -8,6 +8,9 @@ export type QuoteType = "DIRECT";
 // against a real confirm/cancel response before trusting status badges.
 export type OfferRateStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 
+// Only consulted by lib/transferMath.ts when
+// WHOLESALE_RETAIL_SPLIT_CONFIRMED is true — see config/businessRules.ts.
+
 export const quoteTypeValues: QuoteType[] = ["DIRECT"];
 
 // Response data shared by insert / confirm / cancel / lookup endpoints
@@ -112,5 +115,23 @@ export const partnerOfferRateRecords: PartnerOfferRateRecord[] = [
     checkerUser: null,
     createdDateTime: "2026-08-03T11:40:00Z",
     updatedDateTime: "2026-08-03T11:40:00Z",
+  },
+  {
+    id: 3,
+    uniqueId: "POR-2026-0003",
+    remittancePartner: "AISA CO. LTD",
+    sendCurrency: "USD",
+    receiveCurrency: "NPR",
+    destCountry: "Nepal",
+    sendCurrencyPerUsd: 1,
+    receiveCurrencyPerUsd: 141,
+    directQuote: 141,
+    rate: 141,
+    quoteType: "DIRECT",
+    status: "CONFIRMED",
+    makerUser: "rgurung",
+    checkerUser: "l.brown",
+    createdDateTime: "2026-08-10T10:00:00Z",
+    updatedDateTime: "2026-08-11T09:30:00Z",
   },
 ];

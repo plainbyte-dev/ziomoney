@@ -10,6 +10,7 @@ export const nationalityOptions = [
   "Indonesian",
   "Filipino",
   "Vietnamese",
+  "American",
   "Other",
 ];
 

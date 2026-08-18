@@ -49,6 +49,8 @@ import ComplianceRuleValuesPanel from "@/components/ComplianceRuleValuesPanel";
 import AgentFileUploadPanel from "@/components/AgentFileUploadPanel";
 import TransactionFrequencyPanel from "@/components/TransactionFrequencyPanel";
 import TransactionSendPanel from "@/components/TransactionSendPanel";
+import TransfersPanel from "@/components/TransfersPanel";
+import TransactionRateReportPanel from "@/components/TransactionRateReportPanel";
 import UnconfirmedListPanel from "@/components/UnconfirmedListPanel";
 import UnconfirmedListPartnerApiPanel from "@/components/UnconfirmedListPartnerApiPanel";
 import UnpaidTransactionsPanel from "@/components/UnpaidTransactionsPanel";
@@ -551,6 +553,26 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     ],
     closable: true,
     component: TransactionSendPanel,
+  },
+  transfers: {
+    title: "Transfers",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Remittances", href: "#" },
+      { label: "Transfers", href: "#", active: true },
+    ],
+    closable: true,
+    component: TransfersPanel,
+  },
+  "transaction-rate-report": {
+    title: "Transaction Rate Report",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Remittances", href: "#" },
+      { label: "Transaction Rate Report", href: "#", active: true },
+    ],
+    closable: true,
+    component: TransactionRateReportPanel,
   },
   "unconfirmed-list": {
     title: "Un-Confirmed List",

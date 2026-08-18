@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import KycQueueTable from "./KycQueueTable";
 import KycApprovalModal from "./KycApprovalModal";
+import EditCustomerModal from "./EditCustomerModal";
 import Button from "./Button";
 import { useKyc } from "@/contexts/KycContext";
 import { useDataMode } from "@/contexts/DataModeContext";
-import type { KycApprovalFields, KycRecord } from "@/data/kycData";
+import type { CustomerRecord, KycApprovalFields, KycRecord } from "@/data/kycData";
 
 type PendingAction = { target: KycRecord; action: "approve" | "compliance" } | null;
 
@@ -16,6 +17,7 @@ export default function KycApprovalQueuePanel() {
   const {
     pendingList,
     complianceHoldList,
+    approvedList,
     listsLoading,
     listsError,
     refreshLists,
@@ -23,22 +25,64 @@ export default function KycApprovalQueuePanel() {
     approveError,
     approve,
     complianceApprove,
+    updatingCustomer,
+    updateCustomerError,
+    updateCustomerRecord,
   } = useKyc();
 
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  // Opened right after an approval succeeds, so a beneficiary can be added
+  // for that customer immediately — without navigating to Approved KYCs.
+  // Tracked by userName rather than the record itself: `approve()`/
+  // `complianceApprove()` resolve before the setState inside them has
+  // flushed, so `approvedList` here is still stale the instant they return —
+  // this gets resolved to the real record once the list actually updates.
+  const [pendingApprovedUserName, setPendingApprovedUserName] = useState<string | null>(null);
+  const [justApproved, setJustApproved] = useState<KycRecord | null>(null);
 
   useEffect(() => {
     refreshLists();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLive]);
 
+  // Resolve the pending userName to its real approved record once it
+  // actually shows up in approvedList.
+  useEffect(() => {
+    if (!pendingApprovedUserName) return;
+    const approved = approvedList.find((entry) => entry.userName === pendingApprovedUserName);
+    if (approved) {
+      setJustApproved(approved);
+      setPendingApprovedUserName(null);
+    }
+  }, [approvedList, pendingApprovedUserName]);
+
+  // Keep the just-approved modal in sync with the underlying list, same
+  // convention as ApprovedKycsPanel.
+  useEffect(() => {
+    if (!justApproved) return;
+    const fresh = approvedList.find((entry) => entry.id === justApproved.id);
+    if (fresh && fresh !== justApproved) setJustApproved(fresh);
+    if (!fresh) setJustApproved(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approvedList]);
+
   async function handleConfirm(fields: KycApprovalFields) {
     if (!pendingAction) return;
+    const targetUserName = pendingAction.target.userName;
     const success =
       pendingAction.action === "approve"
         ? await approve(pendingAction.target, fields)
         : await complianceApprove(pendingAction.target, fields);
-    if (success) setPendingAction(null);
+    if (success) {
+      setPendingAction(null);
+      setPendingApprovedUserName(targetUserName);
+    }
+  }
+
+  async function handleSaveJustApproved(payload: CustomerRecord) {
+    if (!justApproved) return;
+    const success = await updateCustomerRecord(justApproved, payload);
+    if (success) setJustApproved(null);
   }
 
   return (
@@ -92,6 +136,14 @@ export default function KycApprovalQueuePanel() {
         error={approveError}
         onCancel={() => setPendingAction(null)}
         onConfirm={handleConfirm}
+      />
+
+      <EditCustomerModal
+        target={justApproved}
+        submitting={updatingCustomer}
+        error={updateCustomerError}
+        onClose={() => setJustApproved(null)}
+        onSave={handleSaveJustApproved}
       />
     </div>
   );

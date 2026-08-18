@@ -1,10 +1,8 @@
-export interface ApiEnvelope<T> {
-  success: boolean;
-  message: string;
-  data: T | null;
-  errorCode: string | null;
-  timestamp: string;
-}
+import type { ApiResponse } from "./apiClient";
+
+// Kept as an alias — this file can't import fetchWithAuth/apiResource's
+// helpers, since login/refresh run before any access token exists.
+export type ApiEnvelope<T> = ApiResponse<T>;
 
 function envelopeError<T>(status: number): ApiEnvelope<T> {
   return {
