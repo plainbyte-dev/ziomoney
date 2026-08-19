@@ -14,6 +14,8 @@ import { useBeneficiaries } from "@/contexts/BeneficiariesContext";
 import { useKyc } from "@/contexts/KycContext";
 import { insertTransfer } from "@/lib/transferApi";
 import { partnerCountrySelectOptions } from "@/data/partnerData";
+import { banksForCountryMOCKONLY } from "@/data/payoutBankOptionsData";
+import { walletsForCountryMOCKONLY } from "@/data/payoutWalletOptionsData";
 import {
   emptyTransferInsertPayload,
   transferPurposeOptions,
@@ -44,7 +46,6 @@ type PartnerSelection = {
   partnerId: string;
   branchName: string;
   country: string;
-  method: string;
 };
 
 // Only remittance partners of type "Agent" send transactions — the Partner
@@ -65,7 +66,6 @@ function emptyPartnerSelection(): PartnerSelection {
     partnerId: "",
     branchName: branchNameOptions[0],
     country: partnerCountrySelectOptions[0],
-    method: partnerMethodOptions[0],
   };
 }
 
@@ -87,14 +87,31 @@ function emptyTradeRestrictions(): TradeRestrictions {
 export default function TransactionSendPanel() {
   const { isLive } = useDataMode();
   const { entries: partners } = usePartners();
-  const { countryCurrencies, lookupExchangeRate, serviceCharges, commissions, margins, partnerOfferRates } =
-    useRates();
+  const {
+    exchangeRates,
+    refreshExchangeRates,
+    lookupExchangeRate,
+    serviceCharges,
+    commissions,
+    margins,
+    partnerOfferRates,
+  } = useRates();
+
+  // Exchange-rate rows are the live source of which currencies (and their
+  // country pairing) are actually tradeable — unlike countryCurrencies,
+  // which has no "list all" endpoint and stays empty in live mode until
+  // someone happens to CSV-import it. Refresh on mount so destination
+  // currency resolution below doesn't silently depend on that.
+  useEffect(() => {
+    refreshExchangeRates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLive]);
 
   const agentPartners = partners.filter((p) => p.partnerType === AGENT_PARTNER_TYPE);
   const partnerIdOptions = [...new Set(agentPartners.map((p) => p.partnerId).filter(Boolean))].sort(
     comparePartnerIds
   );
-  const currencyOptions = [...new Set(countryCurrencies.map((c) => c.currencyCode).filter(Boolean))].sort();
+  const currencyOptions = [...new Set(exchangeRates.map((r) => r.symbol).filter(Boolean))].sort();
 
   const { entries: beneficiaries, entriesLoading: beneficiariesLoading } = useBeneficiaries();
   const { approvedList, listsLoading: kycListsLoading, refreshLists: refreshKycLists } = useKyc();
@@ -119,6 +136,21 @@ export default function TransactionSendPanel() {
   // checked (checking 3 beneficiaries at $500 debited $1,500 with no
   // indication to the agent).
   const [amountsByBeneficiary, setAmountsByBeneficiary] = useState<Record<number, number>>({});
+  // Per-beneficiary payout method (Bank/Wallet/Cash), keyed by beneficiary
+  // id. Previously a single Method dropdown lived under Partner and applied
+  // to every beneficiary at once — but the partner only originates the
+  // transaction, it doesn't dictate how each individual beneficiary is
+  // paid out, so this now travels with the beneficiary's own amount/rate
+  // row instead.
+  const [methodByBeneficiary, setMethodByBeneficiary] = useState<Record<number, string>>({});
+  // Which bank the payout goes through, keyed by beneficiary id — only
+  // meaningful while that beneficiary's method is "Bank". Options come from
+  // banksForCountryMOCKONLY (data/payoutBankOptionsData.ts), a local stand-in
+  // until a real "list banks by destination country" endpoint exists.
+  const [bankByBeneficiary, setBankByBeneficiary] = useState<Record<number, string>>({});
+  // Same idea as bankByBeneficiary, for the "Wallet" method — options come
+  // from walletsForCountryMOCKONLY (data/payoutWalletOptionsData.ts).
+  const [walletByBeneficiary, setWalletByBeneficiary] = useState<Record<number, string>>({});
   const [stage, setStage] = useState<Stage>("form");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -158,16 +190,67 @@ export default function TransactionSendPanel() {
       if (prev[id] !== undefined) return prev; // keep existing amount if re-checking
       return { ...prev, [id]: 0 };
     });
+    setDestinationCountryByBeneficiary((prev) => {
+      if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
+      const beneficiary = beneficiaries.find((b) => b.id === id);
+      const suggested = beneficiary ? destinationForBeneficiary(beneficiary).country : "";
+      return { ...prev, [id]: suggested };
+    });
     setDestinationCurrencyByBeneficiary((prev) => {
       if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
       const beneficiary = beneficiaries.find((b) => b.id === id);
       const suggested = beneficiary ? destinationForBeneficiary(beneficiary).currency : "";
       return { ...prev, [id]: suggested };
     });
+    setMethodByBeneficiary((prev) => {
+      if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
+      return { ...prev, [id]: partnerMethodOptions[0] };
+    });
+    setBankByBeneficiary((prev) => {
+      if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
+      const beneficiary = beneficiaries.find((b) => b.id === id);
+      const country = beneficiary ? destinationForBeneficiary(beneficiary).country : "";
+      const options = banksForCountryMOCKONLY(country);
+      // Prefer the beneficiary's own bank-on-file when it happens to be one
+      // of the country's listed banks — otherwise default to the first
+      // option rather than leaving the picker unset.
+      const suggested = beneficiary && options.includes(beneficiary.bankName) ? beneficiary.bankName : options[0] ?? "";
+      return { ...prev, [id]: suggested };
+    });
+    setWalletByBeneficiary((prev) => {
+      if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
+      const beneficiary = beneficiaries.find((b) => b.id === id);
+      const country = beneficiary ? destinationForBeneficiary(beneficiary).country : "";
+      const options = walletsForCountryMOCKONLY(country);
+      return { ...prev, [id]: options[0] ?? "" };
+    });
   }
 
   function updateBeneficiaryAmount(id: number, value: number) {
     setAmountsByBeneficiary((prev) => ({ ...prev, [id]: value }));
+  }
+
+  // The bank options list depends on the destination country, which the
+  // agent can change after the initial seed above — fall back through the
+  // country's current option list rather than trusting a stale stored value
+  // that may no longer belong to it.
+  function bankFor(beneficiaryId: number, country: string): string {
+    const options = banksForCountryMOCKONLY(country);
+    const stored = bankByBeneficiary[beneficiaryId];
+    if (stored && options.includes(stored)) return stored;
+    return options[0] ?? "";
+  }
+
+  // Same reasoning as bankFor above, for the "Wallet" method's options.
+  function walletFor(beneficiaryId: number, country: string): string {
+    const options = walletsForCountryMOCKONLY(country);
+    const stored = walletByBeneficiary[beneficiaryId];
+    if (stored && options.includes(stored)) return stored;
+    return options[0] ?? "";
+  }
+
+  function methodFor(beneficiaryId: number): string {
+    return methodByBeneficiary[beneficiaryId] ?? partnerMethodOptions[0];
   }
 
   // Sender list loads asynchronously — backfill the selection once it
@@ -209,7 +292,7 @@ export default function TransactionSendPanel() {
         : "";
     setForm((prev) => (prev.sourceCurrency === resolved ? prev : { ...prev, sourceCurrency: resolved }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPartner?.settlementCurrency, countryCurrencies]);
+  }, [selectedPartner?.settlementCurrency, exchangeRates]);
 
   // Destination country is still derived from the beneficiary's country, but
   // destination currency is now chosen manually by the agent per
@@ -218,7 +301,7 @@ export default function TransactionSendPanel() {
   // suggestion seeded when a beneficiary is first checked.
   function destinationForBeneficiary(beneficiary: { country: string }) {
     const country = partnerCountrySelectOptions.includes(beneficiary.country) ? beneficiary.country : "";
-    const currencyCode = countryCurrencies.find((c) => c.countryName === beneficiary.country)?.currencyCode ?? "";
+    const currencyCode = exchangeRates.find((r) => r.countryName === beneficiary.country)?.symbol ?? "";
     const currency = currencyOptions.includes(currencyCode) ? currencyCode : "";
     return { country, currency };
   }
@@ -232,16 +315,25 @@ export default function TransactionSendPanel() {
     return destinationCurrencyByBeneficiary[beneficiaryId] ?? destinationForBeneficiary(beneficiary).currency;
   }
 
+  // Per-beneficiary, agent-chosen destination country. Keyed by beneficiary
+  // id, seeded with a suggestion (from the beneficiary's own country, when
+  // it's a recognized one) in toggleBeneficiary, but editable via the
+  // Destination Country field next to each beneficiary row — a beneficiary
+  // whose profile country isn't resolvable, or who's being paid out in a
+  // different country than they're registered under, is no longer stuck.
+  const [destinationCountryByBeneficiary, setDestinationCountryByBeneficiary] = useState<Record<number, string>>({});
+
+  function destinationCountryFor(beneficiaryId: number, beneficiary: { country: string }): string {
+    return destinationCountryByBeneficiary[beneficiaryId] ?? destinationForBeneficiary(beneficiary).country;
+  }
+
   const selectedBeneficiaries = beneficiaryIds
     .map((id) => beneficiaries.find((b) => b.id === id))
     .filter((b): b is (typeof beneficiaries)[number] => Boolean(b));
 
   const allDestinationsResolved =
     selectedBeneficiaries.length > 0 &&
-    selectedBeneficiaries.every((b) => {
-      const country = destinationForBeneficiary(b).country;
-      return country && destinationCurrencyFor(b.id, b);
-    });
+    selectedBeneficiaries.every((b) => destinationCountryFor(b.id, b) && destinationCurrencyFor(b.id, b));
 
   // True if any selected beneficiary would require a foreign-to-foreign
   // conversion that isn't currently allowed (see ALLOW_CROSS_CURRENCY_CONVERSION).
@@ -316,18 +408,46 @@ export default function TransactionSendPanel() {
   // SERVICE_FEE_SOURCE_CONFIRMED is false — see config/businessRules.ts.
   // Matched by destination currency code (serviceChargeData's
   // countrySymbol is a currency code like NPR/INR, not a country name).
-  function estimatedFeeFor(destinationCurrency: string): number {
+  function estimatedFeeFor(beneficiaryId: number, destinationCurrency: string): number {
     return resolveFee({
       destinationCurrency,
       agentName: selectedPartner?.partnerId ?? "",
-      deliveryOption: partnerSelection.method,
+      deliveryOption: methodFor(beneficiaryId),
       serviceCharges,
+    });
+  }
+
+  // Full charge breakdown for one beneficiary's leg — same calculateTransfer
+  // used at submit time (handleConfirmSubmit), so the live estimate shown
+  // here never drifts from what's actually recorded once sent.
+  function chargeBreakdownFor(beneficiary: { id: number; country: string }) {
+    const destinationCountry = destinationCountryFor(beneficiary.id, beneficiary);
+    const destinationCurrency = destinationCurrencyFor(beneficiary.id, beneficiary);
+    const amount = amountsByBeneficiary[beneficiary.id] ?? 0;
+    const commissionRate = resolveCommissionRate(
+      form.sourceCurrency,
+      destinationCountry,
+      amount,
+      commissions
+    );
+    return calculateTransfer({
+      amount,
+      sourceCurrency: form.sourceCurrency,
+      destinationCurrency,
+      destinationCountry,
+      agentName: selectedPartner?.partnerId ?? "",
+      deliveryOption: methodFor(beneficiary.id),
+      commissionRate,
+      rates: estimatedRates,
+      partnerOfferRates,
+      serviceCharges,
+      margins,
     });
   }
 
   const totalToDebit = selectedBeneficiaries.reduce((sum, b) => {
     const amount = amountsByBeneficiary[b.id] ?? 0;
-    const fee = estimatedFeeFor(destinationCurrencyFor(b.id, b));
+    const fee = estimatedFeeFor(b.id, destinationCurrencyFor(b.id, b));
     return sum + amount + fee;
   }, 0);
 
@@ -353,12 +473,12 @@ export default function TransactionSendPanel() {
       const now = new Date().toISOString();
       const agentName = selectedPartner?.partnerId ?? "";
       const demoResults = selectedBeneficiaries.map((beneficiary) => {
-        const destination = destinationForBeneficiary(beneficiary);
+        const destinationCountry = destinationCountryFor(beneficiary.id, beneficiary);
         const destinationCurrency = destinationCurrencyFor(beneficiary.id, beneficiary);
         const amount = amountsByBeneficiary[beneficiary.id] ?? 0;
         const commissionRate = resolveCommissionRate(
           form.sourceCurrency,
-          destination.country,
+          destinationCountry,
           amount,
           commissions
         );
@@ -366,9 +486,9 @@ export default function TransactionSendPanel() {
           amount,
           sourceCurrency: form.sourceCurrency,
           destinationCurrency,
-          destinationCountry: destination.country,
+          destinationCountry,
           agentName,
-          deliveryOption: partnerSelection.method,
+          deliveryOption: methodFor(beneficiary.id),
           commissionRate,
           rates: estimatedRates,
           partnerOfferRates,
@@ -379,7 +499,7 @@ export default function TransactionSendPanel() {
           ...form,
           amount,
           beneficiaryId: beneficiary.id,
-          destinationCountry: destination.country,
+          destinationCountry,
           destinationCurrency,
           id: Math.floor(Math.random() * 900000 + 100000),
           referenceNumber: `REF-DEMO-${Math.floor(Math.random() * 900000 + 100000)}`,
@@ -422,13 +542,12 @@ export default function TransactionSendPanel() {
 
     const submitted: TransferRecord[] = [];
     for (const beneficiary of selectedBeneficiaries) {
-      const destination = destinationForBeneficiary(beneficiary);
       const amount = amountsByBeneficiary[beneficiary.id] ?? 0;
       const response = await insertTransfer({
         ...form,
         amount,
         beneficiaryId: beneficiary.id,
-        destinationCountry: destination.country,
+        destinationCountry: destinationCountryFor(beneficiary.id, beneficiary),
         destinationCurrency: destinationCurrencyFor(beneficiary.id, beneficiary),
       });
       if (!response.success || !response.data) {
@@ -452,7 +571,11 @@ export default function TransactionSendPanel() {
     setTradeRestrictions(emptyTradeRestrictions());
     setBeneficiaryIds([]);
     setAmountsByBeneficiary({});
+    setDestinationCountryByBeneficiary({});
     setDestinationCurrencyByBeneficiary({});
+    setMethodByBeneficiary({});
+    setBankByBeneficiary({});
+    setWalletByBeneficiary({});
     setResults([]);
     setSubmitError(null);
     setEstimatedRates({});
@@ -514,10 +637,50 @@ export default function TransactionSendPanel() {
           event.preventDefault();
           handleConfirmSubmit();
         }}
-        className="flex flex-col gap-8 bg-panel p-6 sm:p-8"
+        className="flex flex-col gap-6 bg-panel p-6 sm:p-8"
       >
-        <section className="flex flex-col gap-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">Partner</h2>
+        <section className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 sm:p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border pb-3">
+            <h2 className="text-base font-bold text-heading">
+              Trade Restrictions and Use of Funds Declaration
+            </h2>
+            <span className="text-xs text-muted">Recorded for this session only — not yet part of the submitted transaction.</span>
+          </div>
+          {/* TODO(product): confirm whether these values map to real
+              fields on POST /transfers (or a related endpoint) — they are
+              currently collected but NOT included in the submitted
+              payload. Either wire them in once the real field names are
+              confirmed, or remove this section; leaving it interactive
+              but silently discarded is misleading to whoever fills it out.
+              The caption above is a stopgap so the UI itself doesn't imply
+              a compliance record is being kept when it isn't — remove it
+              once this is actually wired or the section is removed. */}
+          <div className="flex flex-col gap-4">
+            <TradeRestrictionRow
+              label="Non-Relevant to North Korea and Iran Restrictions:"
+              value={tradeRestrictions.northKoreaIran}
+              onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, northKoreaIran: v }))}
+            />
+            <TradeRestrictionRow
+              label="Government Permit Approval is not required for this transaction:"
+              value={tradeRestrictions.governmentPermit}
+              onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, governmentPermit: v }))}
+            />
+            <TradeRestrictionRow
+              label="Not a Name-lending transaction :"
+              value={tradeRestrictions.nameLending}
+              onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, nameLending: v }))}
+            />
+            <TradeRestrictionRow
+              label="Importing goods or merchandising trade transaction :"
+              value={tradeRestrictions.importingGoods}
+              onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, importingGoods: v }))}
+            />
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-5 rounded-xl border border-border bg-surface p-5 sm:p-6">
+          <h2 className="text-base font-bold text-heading border-b border-border pb-3">Partner</h2>
           <div className="grid grid-cols-1 gap-x-6 gap-y-5 sm:grid-cols-2">
             {partnerIdOptions.length > 0 ? (
               <SelectField
@@ -558,19 +721,11 @@ export default function TransactionSendPanel() {
                 {selectedPartner?.country || "—"}
               </p>
             </div>
-            <SelectField
-              label="Method:"
-              required
-              options={partnerMethodOptions}
-              defaultValue={partnerMethodOptions[0]}
-              value={partnerSelection.method}
-              onChange={(v) => setPartnerSelection((prev) => ({ ...prev, method: v }))}
-            />
           </div>
         </section>
 
-        <section className="grid grid-cols-1 gap-x-6 gap-y-5 border-t border-border pt-6 sm:grid-cols-2">
-          <h2 className="sm:col-span-2 text-sm font-semibold uppercase tracking-wide text-muted">
+        <section className="grid grid-cols-1 gap-x-6 gap-y-5 rounded-xl border border-border bg-surface p-5 sm:grid-cols-2 sm:p-6">
+          <h2 className="sm:col-span-2 text-base font-bold text-heading border-b border-border pb-3">
             Transaction Details
           </h2>
           {verifiedSenders.length > 0 ? (
@@ -589,7 +744,11 @@ export default function TransactionSendPanel() {
                 // the `username` scope.
                 setBeneficiaryIds([]);
                 setAmountsByBeneficiary({});
+                setDestinationCountryByBeneficiary({});
                 setDestinationCurrencyByBeneficiary({});
+                setMethodByBeneficiary({});
+                setBankByBeneficiary({});
+                setWalletByBeneficiary({});
               }}
             />
           ) : (
@@ -610,11 +769,12 @@ export default function TransactionSendPanel() {
             {verifiedBeneficiaries.length > 0 ? (
               <div className="overflow-hidden rounded-xl border border-border">
                 {verifiedBeneficiaries.map((b) => {
-                  const destination = destinationForBeneficiary(b);
                   const checked = beneficiaryIds.includes(b.id);
+                  const destinationCountry = destinationCountryFor(b.id, b);
                   const destinationCurrency = destinationCurrencyFor(b.id, b);
                   const amount = amountsByBeneficiary[b.id] ?? 0;
                   const payout = destinationCurrency ? estimatedPayoutFor(b.id, destinationCurrency) : null;
+                  const breakdown = checked && amount > 0 ? chargeBreakdownFor(b) : null;
                   const blocked =
                     checked && !ALLOW_CROSS_CURRENCY_CONVERSION &&
                     isCrossCurrencyCorridor(form.sourceCurrency, destinationCurrency);
@@ -628,10 +788,29 @@ export default function TransactionSendPanel() {
                       <Checkbox
                         checked={checked}
                         onToggle={() => toggleBeneficiary(b.id)}
-                        label={`${b.fullName}${destination.country ? ` · ${destination.country}` : ""}`}
+                        label={`${b.fullName}${destinationCountry ? ` · ${destinationCountry}` : ""}`}
                       />
                       {checked && (
                         <div className="flex flex-col gap-2 pl-6 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-muted">To</span>
+                            <select
+                              value={destinationCountry}
+                              onChange={(e) =>
+                                setDestinationCountryByBeneficiary((prev) => ({ ...prev, [b.id]: e.target.value }))
+                              }
+                              aria-label={`Destination country for ${b.fullName}`}
+                              className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm font-semibold text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                            >
+                              <option value="">Select country…</option>
+                              {partnerCountrySelectOptions.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
                           <div className="flex items-center gap-2">
                             <span className="text-xs uppercase tracking-wide text-muted">Sends</span>
                             <input
@@ -663,14 +842,157 @@ export default function TransactionSendPanel() {
                             />
                           </div>
 
-                          {!destination.country && (
-                            <span className="text-xs text-red-500">destination country not resolvable</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs uppercase tracking-wide text-muted">via</span>
+                            <select
+                              value={methodFor(b.id)}
+                              onChange={(e) =>
+                                setMethodByBeneficiary((prev) => ({ ...prev, [b.id]: e.target.value }))
+                              }
+                              aria-label={`Payout method for ${b.fullName}`}
+                              className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm font-semibold text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                            >
+                              {partnerMethodOptions.map((option) => (
+                                <option key={option} value={option}>
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          {!destinationCountry && (
+                            <span className="text-xs text-red-500">select a destination country</span>
                           )}
                           {blocked && (
                             <span className="text-xs text-red-500">
                               {form.sourceCurrency} → {destinationCurrency} isn&apos;t supported yet.
                             </span>
                           )}
+                        </div>
+                      )}
+                      {checked && methodFor(b.id) === "Bank" && (
+                        <div className="ml-6 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg bg-surface px-3 py-2 text-xs text-heading/80">
+                          <span className="font-semibold uppercase tracking-wide text-muted">Payout bank:</span>
+                          {(() => {
+                            const bankOptions = banksForCountryMOCKONLY(destinationCountry);
+                            if (bankOptions.length === 0) {
+                              return (
+                                <span className="text-red-500">
+                                  {destinationCountry
+                                    ? `No banks listed for ${destinationCountry} yet.`
+                                    : "Select a destination country to see its banks."}
+                                </span>
+                              );
+                            }
+                            return (
+                              <>
+                                <select
+                                  value={bankFor(b.id, destinationCountry)}
+                                  onChange={(e) =>
+                                    setBankByBeneficiary((prev) => ({ ...prev, [b.id]: e.target.value }))
+                                  }
+                                  aria-label={`Payout bank for ${b.fullName}`}
+                                  className="rounded-lg border border-border bg-panel px-2.5 py-1.5 text-sm font-semibold text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                                >
+                                  {bankOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                                {b.accountNumber && <span className="text-muted">A/C {b.accountNumber}</span>}
+                              </>
+                            );
+                          })()}
+                          <span className="w-full text-[10px] text-muted">
+                            Sample bank list — will be pulled from the country&apos;s payout bank API once available.
+                          </span>
+                        </div>
+                      )}
+                      {checked && methodFor(b.id) === "Wallet" && (
+                        <div className="ml-6 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg bg-surface px-3 py-2 text-xs text-heading/80">
+                          <span className="font-semibold uppercase tracking-wide text-muted">Payout wallet:</span>
+                          {(() => {
+                            const walletOptions = walletsForCountryMOCKONLY(destinationCountry);
+                            if (walletOptions.length === 0) {
+                              return (
+                                <span className="text-red-500">
+                                  {destinationCountry
+                                    ? `No wallets listed for ${destinationCountry} yet.`
+                                    : "Select a destination country to see its wallets."}
+                                </span>
+                              );
+                            }
+                            return (
+                              <select
+                                value={walletFor(b.id, destinationCountry)}
+                                onChange={(e) =>
+                                  setWalletByBeneficiary((prev) => ({ ...prev, [b.id]: e.target.value }))
+                                }
+                                aria-label={`Payout wallet for ${b.fullName}`}
+                                className="rounded-lg border border-border bg-panel px-2.5 py-1.5 text-sm font-semibold text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                              >
+                                {walletOptions.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                            );
+                          })()}
+                          <span className="w-full text-[10px] text-muted">
+                            Sample wallet list — will be pulled from the country&apos;s payout wallet API once available.
+                          </span>
+                        </div>
+                      )}
+                      {checked && methodFor(b.id) === "Cash" && (
+                        <div className="ml-6 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-surface px-3 py-2 text-xs text-heading/80">
+                          <span className="font-semibold uppercase tracking-wide text-muted">Cash details:</span>
+                          <span className="text-muted">Paid out as cash at pickup — no bank account needed.</span>
+                        </div>
+                      )}
+                      {breakdown && (
+                        <div className="ml-6 rounded-lg border border-dashed border-border bg-panel px-3 py-2.5">
+                          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+                            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                              Charges for this beneficiary
+                            </span>
+                            {breakdown.retailRate !== null && (
+                              <span className="text-[11px] tabular-nums text-muted">
+                                Rate: 1 {form.sourceCurrency} = {formatAccounting(breakdown.retailRate)}{" "}
+                                {destinationCurrency}
+                              </span>
+                            )}
+                          </div>
+                          <dl className="mt-2 flex flex-col gap-1 text-xs">
+                            <div className="flex items-center justify-between">
+                              <dt className="text-heading/70">Send amount</dt>
+                              <dd className="tabular-nums font-medium text-heading">
+                                {formatAccounting(amount)} {form.sourceCurrency}
+                              </dd>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <dt className="text-heading/70">Service charge</dt>
+                              <dd className="tabular-nums font-medium text-heading">
+                                {formatAccounting(breakdown.fee)} {form.sourceCurrency}
+                              </dd>
+                            </div>
+                            <div className="flex items-center justify-between border-t border-dashed border-border pt-1">
+                              <dt className="font-semibold text-heading">Total collected</dt>
+                              <dd className="tabular-nums font-bold text-heading">
+                                {formatAccounting(breakdown.totalToPay)} {form.sourceCurrency}
+                              </dd>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <dt className="text-heading/70">Receiver gets</dt>
+                              <dd className="tabular-nums font-semibold text-brand-green-dark">
+                                {breakdown.receiverAmount !== null
+                                  ? formatAccounting(breakdown.receiverAmount)
+                                  : "—"}{" "}
+                                {destinationCurrency}
+                              </dd>
+                            </div>
+                          </dl>
                         </div>
                       )}
                     </div>
@@ -732,44 +1054,6 @@ export default function TransactionSendPanel() {
               className="w-full rounded-xl border border-border bg-panel px-3 py-2.5 text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
             />
           </div>
-        </section>
-
-        <section className="flex flex-col gap-4 border-t border-border pt-6">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-              Trade Restrictions and Use of Funds Declaration
-            </h2>
-            <span className="text-xs text-muted">Recorded for this session only — not yet part of the submitted transaction.</span>
-          </div>
-          {/* TODO(product): confirm whether these values map to real
-              fields on POST /transfers (or a related endpoint) — they are
-              currently collected but NOT included in the submitted
-              payload. Either wire them in once the real field names are
-              confirmed, or remove this section; leaving it interactive
-              but silently discarded is misleading to whoever fills it out.
-              The caption above is a stopgap so the UI itself doesn't imply
-              a compliance record is being kept when it isn't — remove it
-              once this is actually wired or the section is removed. */}
-          <TradeRestrictionRow
-            label="Non-Relevant to North Korea and Iran Restrictions:"
-            value={tradeRestrictions.northKoreaIran}
-            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, northKoreaIran: v }))}
-          />
-          <TradeRestrictionRow
-            label="Government Permit Approval is not required for this transaction:"
-            value={tradeRestrictions.governmentPermit}
-            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, governmentPermit: v }))}
-          />
-          <TradeRestrictionRow
-            label="Not a Name-lending transaction :"
-            value={tradeRestrictions.nameLending}
-            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, nameLending: v }))}
-          />
-          <TradeRestrictionRow
-            label="Importing goods or merchandising trade transaction :"
-            value={tradeRestrictions.importingGoods}
-            onChange={(v) => setTradeRestrictions((prev) => ({ ...prev, importingGoods: v }))}
-          />
         </section>
 
         {hasBlockedCrossCurrencyCorridor && (

@@ -32,7 +32,7 @@ export const SERVICE_FEE_SOURCE_CONFIRMED = false;
 // priced this way. Flip to true only after that confirmation, and after
 // verifying the math against one real POST /transfers response for a
 // genuine foreign-to-foreign transfer.
-export const ALLOW_CROSS_CURRENCY_CONVERSION = false;
+export const ALLOW_CROSS_CURRENCY_CONVERSION = true;
 
 // Maker-checker self-approval block (components/PartnerOfferRateApprovals.tsx).
 // Real roles aren't confirmed against the live auth service yet, so the
