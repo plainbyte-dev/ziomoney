@@ -11,6 +11,13 @@ import { settlementCurrencyOptions, partnerCountrySelectOptions } from "./partne
 // only; do not treat as final.
 export const transferPurposeOptions = ["Family Support", "Education", "Medical", "Business", "Other"];
 
+// Shared payout-method vocabulary — used both when sending a transaction
+// (TransactionSendPanel's per-beneficiary Method field) and when binding a
+// Margin Setup row to a delivery method (MarginSetupPanel's Service field,
+// matched directly against this in lib/transferMath.ts's resolveMargin).
+// Kept as one exported source so the two vocabularies can't drift apart.
+export const payoutMethodOptions = ["Bank", "Wallet", "Cash"];
+
 // Fields accepted by POST /transfers. Server-computed fields (senderName,
 // receiverName, exchangeRate, fee, totalAmount, receiverAmount) are
 // deliberately NOT part of this type — they only ever appear in the

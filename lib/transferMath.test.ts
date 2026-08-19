@@ -98,12 +98,12 @@ describe("calculateTransfer", () => {
     const margin: MarginRecord = {
       id: 1,
       targetPartner: "TEST AGENT",
-      service: "Bank Deposit",
+      service: "Bank",
       remittanceType: "Agent",
       marginRate: 1,
       marginRateWrtParent: 0,
       marginType: "PERCENT",
-      marginBindString: "NPR-BANK",
+      marginBindString: "NPR",
       expiryDate: "2027-01-01",
       status: "ACTIVE",
       createdDate: "2026-08-01",
@@ -115,7 +115,7 @@ describe("calculateTransfer", () => {
       destinationCurrency: "NPR",
       destinationCountry: "Nepal",
       agentName: "TEST AGENT",
-      deliveryOption: "Bank Deposit",
+      deliveryOption: "Bank",
       commissionRate: 0,
       rates: { USD: { unit: 1, buying: 999, selling: 999 } },
       partnerOfferRates: [confirmedOfferRate(100)],
@@ -128,6 +128,57 @@ describe("calculateTransfer", () => {
     // buying rate (999), and receiverAmount follows the same 99 rate.
     expect(result.retailRate).toBe(99);
     expect(result.receiverAmount).toBe(500 * 99);
+  });
+
+  it("applies the same margin regardless of send currency (margin is payout-side only)", () => {
+    const margin: MarginRecord = {
+      id: 1,
+      targetPartner: "TEST AGENT",
+      service: "Bank",
+      remittanceType: "Agent",
+      marginRate: 1,
+      marginRateWrtParent: 0,
+      marginType: "PERCENT",
+      marginBindString: "NPR",
+      expiryDate: "2027-01-01",
+      status: "ACTIVE",
+      createdDate: "2026-08-01",
+    };
+
+    const usdResult = calculateTransfer({
+      amount: 500,
+      sourceCurrency: "USD",
+      destinationCurrency: "NPR",
+      destinationCountry: "Nepal",
+      agentName: "TEST AGENT",
+      deliveryOption: "Bank",
+      commissionRate: 0,
+      rates: { USD: { unit: 1, buying: 999, selling: 999 } },
+      partnerOfferRates: [confirmedOfferRate(100)],
+      serviceCharges: [],
+      margins: [margin],
+      wholesaleRetailSplitConfirmed: true,
+    });
+
+    const audResult = calculateTransfer({
+      amount: 500,
+      sourceCurrency: "AUD",
+      destinationCurrency: "NPR",
+      destinationCountry: "Nepal",
+      agentName: "TEST AGENT",
+      deliveryOption: "Bank",
+      commissionRate: 0,
+      rates: { AUD: { unit: 1, buying: 999, selling: 999 } },
+      partnerOfferRates: [{ ...confirmedOfferRate(100), sendCurrency: "AUD" }],
+      serviceCharges: [],
+      margins: [margin],
+      wholesaleRetailSplitConfirmed: true,
+    });
+
+    // Same destination currency/delivery method/partner -> same margin-adjusted
+    // retail rate, whether the sender sent USD or AUD.
+    expect(usdResult.retailRate).toBe(99);
+    expect(audResult.retailRate).toBe(99);
   });
 });
 
@@ -174,23 +225,23 @@ describe("resolveMargin", () => {
     {
       id: 1,
       targetPartner: "P1",
-      service: "Cash Pickup",
+      service: "Cash",
       remittanceType: "Individual",
       marginRate: 0.25,
       marginRateWrtParent: 0.1,
       marginType: "PERCENT",
-      marginBindString: "INR-CASH",
+      marginBindString: "INR",
       expiryDate: "2027-01-01",
       status: "ACTIVE",
       createdDate: "2026-06-01",
     },
   ];
 
-  it("matches by targetPartner + parsed {CURRENCY}-{CODE} bind string when the split is confirmed", () => {
+  it("matches by targetPartner + destination currency + delivery method when the split is confirmed", () => {
     const match = resolveMargin({
       targetPartner: "P1",
       destinationCurrency: "INR",
-      deliveryOption: "Cash Pickup",
+      deliveryOption: "Cash",
       margins,
       wholesaleRetailSplitConfirmed: true,
     });
@@ -201,18 +252,18 @@ describe("resolveMargin", () => {
     const match = resolveMargin({
       targetPartner: "P1",
       destinationCurrency: "INR",
-      deliveryOption: "Cash Pickup",
+      deliveryOption: "Cash",
       margins,
       wholesaleRetailSplitConfirmed: false,
     });
     expect(match).toBeNull();
   });
 
-  it("returns null when no row matches the partner/currency/delivery-option combination", () => {
+  it("returns null when no row matches the partner/currency/delivery-method combination", () => {
     const match = resolveMargin({
       targetPartner: "P1",
       destinationCurrency: "NPR",
-      deliveryOption: "Bank Deposit",
+      deliveryOption: "Bank",
       margins,
       wholesaleRetailSplitConfirmed: true,
     });

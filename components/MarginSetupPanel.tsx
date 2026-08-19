@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pencil, X } from "lucide-react";
 import { useRates } from "@/contexts/RatesContext";
 import { usePartners } from "@/contexts/PartnersContext";
@@ -15,18 +15,44 @@ import {
   type MarginRecord,
   type MarginUpsertPayload,
 } from "@/data/marginSetupData";
+import { payoutMethodOptions } from "@/data/transferData";
+import { remittanceTypeOptions } from "@/data/partnerCommissionData";
 
 export default function MarginSetupPanel() {
   const { isLive } = useDataMode();
-  const { margins, saveMargin } = useRates();
+  const { margins, saveMargin, marginSaveError, exchangeRates, refreshExchangeRates } = useRates();
   const { entries: partners } = usePartners();
+
+  // Exchange rates may still be empty in live mode if the agent lands here
+  // without having visited the Exchange Rates tab first — same reasoning
+  // as TransactionSendPanel's mount-time refresh.
+  useEffect(() => {
+    refreshExchangeRates();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLive]);
 
   const [form, setForm] = useState<MarginUpsertPayload>(emptyMarginPayload());
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   const isEditing = form.id !== 0;
   const targetPartnerOptions = partners.map((p) => p.partnerName);
+  // A margin row binds to a payout corridor by destination currency +
+  // delivery method (see lib/transferMath.ts's resolveMargin) — sourced
+  // from the same live exchange-rate currency list TransactionSendPanel
+  // uses, so a margin can only ever be set up for a currency that's
+  // actually tradeable.
+  const destinationCurrencyOptions = [...new Set(exchangeRates.map((r) => r.symbol).filter(Boolean))].sort();
+
+  // Exchange rates load asynchronously — backfill the currency selection
+  // once they arrive, same reasoning as the partner-id/sender backfills in
+  // TransactionSendPanel.
+  useEffect(() => {
+    if (destinationCurrencyOptions.length === 0) return;
+    setForm((prev) =>
+      prev.marginBindString || isEditing ? prev : { ...prev, marginBindString: destinationCurrencyOptions[0] }
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [destinationCurrencyOptions.join("|")]);
 
   function updateField<K extends keyof MarginUpsertPayload>(field: K, value: MarginUpsertPayload[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -35,24 +61,18 @@ export default function MarginSetupPanel() {
   function startEdit(entry: MarginRecord) {
     const { createdDate: _createdDate, ...payload } = entry;
     setForm(payload);
-    setSaveError(null);
   }
 
   function cancelEdit() {
     setForm(emptyMarginPayload());
-    setSaveError(null);
   }
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
-    setSaveError(null);
     setSaving(true);
     const ok = await saveMargin(form);
     setSaving(false);
-    if (!ok) {
-      setSaveError("Could not save the margin setup. Please try again.");
-      return;
-    }
+    if (!ok) return;
     setForm(emptyMarginPayload());
   }
 
@@ -78,7 +98,7 @@ export default function MarginSetupPanel() {
                     <th className="px-4 py-3">Remittance Type</th>
                     <th className="px-4 py-3">Margin Rate</th>
                     <th className="px-4 py-3">Vs. Parent</th>
-                    <th className="px-4 py-3">Bind String</th>
+                    <th className="px-4 py-3">Destination Currency</th>
                     <th className="px-4 py-3">Status</th>
                     <th className="px-4 py-3">Expiry</th>
                     <th className="px-4 py-3" />
@@ -158,9 +178,19 @@ export default function MarginSetupPanel() {
               </p>
             </div>
           )}
-          <TextField label="Service:" value={form.service} onChange={(v) => updateField("service", v)} />
-          <TextField
+          <SelectField
+            label="Service (Delivery Method):"
+            required
+            options={payoutMethodOptions}
+            defaultValue={payoutMethodOptions[0]}
+            value={form.service}
+            onChange={(v) => updateField("service", v)}
+          />
+          <SelectField
             label="Remittance Type:"
+            required
+            options={remittanceTypeOptions}
+            defaultValue={remittanceTypeOptions[0]}
             value={form.remittanceType}
             onChange={(v) => updateField("remittanceType", v)}
           />
@@ -181,11 +211,23 @@ export default function MarginSetupPanel() {
             value={form.marginType}
             onChange={(v) => updateField("marginType", v)}
           />
-          <TextField
-            label="Bind String:"
-            value={form.marginBindString}
-            onChange={(v) => updateField("marginBindString", v)}
-          />
+          {destinationCurrencyOptions.length > 0 ? (
+            <SelectField
+              label="Destination Currency:"
+              required
+              options={destinationCurrencyOptions}
+              defaultValue={destinationCurrencyOptions[0]}
+              value={form.marginBindString}
+              onChange={(v) => updateField("marginBindString", v)}
+            />
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm text-heading/70">Destination Currency:</label>
+              <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
+                No exchange rates loaded yet.
+              </p>
+            </div>
+          )}
           <SelectField
             label="Status:"
             options={marginStatusValues}
@@ -201,8 +243,8 @@ export default function MarginSetupPanel() {
           />
 
           <div className="sm:col-span-3 mt-2 border-t border-border pt-5">
-            {saveError && (
-              <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
+            {marginSaveError && (
+              <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{marginSaveError}</p>
             )}
             <div className="flex items-center gap-3">
               <Button type="submit" loading={saving}>

@@ -13,6 +13,8 @@ export interface CustomerRecord {
   emailAddress: string;
   mobileNo: string;
   telephoneNo: string;
+  sourceOfincome: string;
+  occupation: string;
   zipCode: string;
   prefecture: string;
   city: string;
@@ -27,28 +29,31 @@ export interface CustomerRecord {
 
 export function emptyCustomerRecord(): CustomerRecord {
   return {
-    userName: "",
-    fullName: "",
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    gender: "",
-    dob: "",
-    nationality: "",
-    emailAddress: "",
-    mobileNo: "",
-    telephoneNo: "",
-    zipCode: "",
-    prefecture: "",
-    city: "",
-    town: "",
-    streetAddress: "",
-    primaryIdNo: "",
-    primaryIdIssueDate: "",
-    primaryIdExpiryDate: "",
-    secondaryIdNo: "",
-    remarks: "",
-  };
+  userName: "",
+  fullName: "",
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  gender: "",
+  dob: "",
+  nationality: "",
+  emailAddress: "",
+  mobileNo: "",
+  telephoneNo: "",
+  zipCode: "",
+  prefecture: "",
+  city: "",
+  town: "",
+  streetAddress: "",
+  primaryIdNo: "",
+  primaryIdIssueDate: "",
+  primaryIdExpiryDate: "",
+  secondaryIdNo: "",
+  remarks: "",
+  sourceOfincome: "",
+  occupation: "",
+ 
+};
 }
 
 // Fields additionally required by the approve endpoints.
@@ -117,36 +122,39 @@ export interface KycApiRecord {
 // records authored locally in demo mode).
 export function mapKycApiRecord(api: KycApiRecord): KycRecord {
   return {
-    id: String(api.id),
-    userName: api.userName,
-    fullName: api.fullName,
-    firstName: api.firstName,
-    middleName: api.middleName,
-    lastName: api.lastName,
-    gender: api.gender,
-    dob: api.dob,
-    nationality: api.nationality,
-    emailAddress: api.email,
-    mobileNo: api.mobileNo,
-    telephoneNo: api.telephoneNo,
-    zipCode: api.zipCode,
-    prefecture: api.prefecture,
-    city: api.city,
-    town: api.town,
-    streetAddress: api.streetAddress,
-    primaryIdNo: api.primaryIdNo,
-    primaryIdIssueDate: "",
-    primaryIdExpiryDate: api.primaryIdExpiryDate,
-    secondaryIdNo: "",
-    remarks: api.remarks,
-    status: api.kycStatus,
-    kycUniqueCode: api.kycUniqueCode,
-    referCode: api.referCode,
-    registrantAgent: api.registrantAgent,
-    registrantBranch: api.registrantBranch,
-    kycMode: api.kycMode,
-    submittedDate: api.createdAt ? api.createdAt.slice(0, 10) : "",
-  };
+  id: String(api.id),
+  userName: api.userName,
+  fullName: api.fullName,
+  firstName: api.firstName,
+  middleName: api.middleName,
+  lastName: api.lastName,
+  gender: api.gender,
+  dob: api.dob,
+  nationality: api.nationality,
+  emailAddress: api.email,
+  mobileNo: api.mobileNo,
+  telephoneNo: api.telephoneNo,
+  zipCode: api.zipCode,
+  prefecture: api.prefecture,
+  city: api.city,
+  town: api.town,
+  streetAddress: api.streetAddress,
+  primaryIdNo: api.primaryIdNo,
+  primaryIdIssueDate: "",
+  primaryIdExpiryDate: api.primaryIdExpiryDate,
+  secondaryIdNo: "",
+  remarks: api.remarks,
+  status: api.kycStatus,
+  kycUniqueCode: api.kycUniqueCode,
+  referCode: api.referCode,
+  registrantAgent: api.registrantAgent,
+  registrantBranch: api.registrantBranch,
+  kycMode: api.kycMode,
+  submittedDate: api.createdAt ? api.createdAt.slice(0, 10) : "",
+  sourceOfincome: "",
+  occupation: "",
+
+};
 }
 
 export const pendingKycRecords: KycRecord[] = [
@@ -175,6 +183,8 @@ export const pendingKycRecords: KycRecord[] = [
     remarks: "New customer, walk-in registration.",
     status: "NOT_VERIFIED",
     submittedDate: "2026-07-30",
+    sourceOfincome: "",
+    occupation: ""
   },
   {
     id: "KYC-1002",
@@ -201,6 +211,8 @@ export const pendingKycRecords: KycRecord[] = [
     remarks: "",
     status: "NOT_VERIFIED",
     submittedDate: "2026-08-01",
+    sourceOfincome: "",
+    occupation: ""
   },
 ];
 
@@ -230,6 +242,8 @@ export const complianceHoldKycRecords: KycRecord[] = [
     remarks: "Name partially matched a watchlist entry — flagged for manual review.",
     status: "COMPLIANCE_HOLD",
     submittedDate: "2026-07-28",
+    sourceOfincome: "",
+    occupation: ""
   },
 ];
 
@@ -262,6 +276,8 @@ export const approvedKycRecords: KycRecord[] = [
     registrantBranch: "Tokyo Branch",
     kycMode: "Face to Face",
     submittedDate: "2026-07-15",
+    sourceOfincome: "",
+    occupation: ""
   },
   {
     id: "KYC-0999",
@@ -291,6 +307,8 @@ export const approvedKycRecords: KycRecord[] = [
     registrantBranch: "Tokyo Branch",
     kycMode: "Face to Face",
     submittedDate: "2026-07-22",
+    sourceOfincome: "",
+    occupation: ""
   },
   {
     id: "KYC-1000",
@@ -320,5 +338,7 @@ export const approvedKycRecords: KycRecord[] = [
     registrantBranch: "Tokyo Branch",
     kycMode: "Face to Face",
     submittedDate: "2026-08-05",
+    sourceOfincome: "",
+    occupation: ""
   },
 ];

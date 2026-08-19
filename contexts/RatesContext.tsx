@@ -81,6 +81,10 @@ interface RatesContextValue {
   commissionsError: string | null;
   searchCommissions: (payload: CommissionLookupPayload) => Promise<boolean>;
   saveCommission: (payload: CommissionUpsertPayload) => Promise<boolean>;
+  // Separate from commissionsError — that's the search mutation's error
+  // slot, this is save's. Surfaces the real backend rejection message
+  // (e.g. a validation 400) instead of a generic string.
+  commissionSaveError: string | null;
 
   partnerOfferRates: PartnerOfferRateRecord[];
   partnerOfferRatesLoading: boolean;
@@ -100,6 +104,9 @@ interface RatesContextValue {
 
   margins: MarginRecord[];
   saveMargin: (payload: MarginUpsertPayload) => Promise<boolean>;
+  // Surfaces the real backend rejection message on a failed save, same
+  // reasoning as commissionSaveError above.
+  marginSaveError: string | null;
 }
 
 const RatesContext = createContext<RatesContextValue | null>(null);
@@ -763,6 +770,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       commissionsError: commissionsMutation.error,
       searchCommissions,
       saveCommission,
+      commissionSaveError: saveCommissionMutation.error,
       partnerOfferRates,
       partnerOfferRatesLoading: partnerOfferRatesQuery.loading,
       partnerOfferRateActionError: offerRateActionMutation.error,
@@ -774,6 +782,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       lookupPartnerOfferRateHistory,
       margins,
       saveMargin,
+      marginSaveError: saveMarginMutation.error,
     }),
     [
       exchangeRates,
@@ -798,6 +807,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       commissionsMutation.error,
       searchCommissions,
       saveCommission,
+      saveCommissionMutation.error,
       partnerOfferRates,
       partnerOfferRatesQuery.loading,
       offerRateActionMutation.error,
@@ -809,6 +819,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       lookupPartnerOfferRateHistory,
       margins,
       saveMargin,
+      saveMarginMutation.error,
     ]
   );
 

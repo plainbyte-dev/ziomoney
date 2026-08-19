@@ -11,6 +11,7 @@ import CurrencySelect from "./CurrencySelect";
 import Button from "./Button";
 import {
   commissionTypeValues,
+  remittanceTypeOptions,
   emptyCommissionPayload,
   type CommissionLookupPayload,
   type CommissionUpsertPayload,
@@ -27,15 +28,30 @@ function emptyLookupPayload(): CommissionLookupPayload {
 
 export default function PartnerCommissionPanel() {
   const { isLive } = useDataMode();
-  const { commissions, commissionsLoading, commissionsError, searchCommissions, saveCommission } = useRates();
+  const { commissions, commissionsLoading, commissionsError, searchCommissions, saveCommission, commissionSaveError } =
+    useRates();
   const { entries: partners } = usePartners();
 
   const partnerOptions = partners.map((p) => p.partnerName);
 
+  // Destination country is no longer picked independently — it's derived
+  // from the selected partner's own `country` field (set once, when the
+  // partner was created), same reasoning as TransactionSendPanel's
+  // Partner-section Country display. Seed partner records store country
+  // in whatever case the source gave it (e.g. "INDIA"); match
+  // case-insensitively against partnerCountrySelectOptions so the derived
+  // value stays in the same casing used everywhere else in the app.
+  function countryForPartner(partnerName: string): string {
+    const partner = partners.find((p) => p.partnerName === partnerName);
+    if (!partner) return "";
+    return (
+      partnerCountrySelectOptions.find((c) => c.toLowerCase() === partner.country.toLowerCase()) ?? ""
+    );
+  }
+
   const [searchForm, setSearchForm] = useState<CommissionLookupPayload>(emptyLookupPayload());
   const [form, setForm] = useState<CommissionUpsertPayload>(emptyCommissionPayload());
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Both forms reference the same partner dropdown, whose options load
   // asynchronously — backfill once they arrive rather than leaving a select
@@ -46,6 +62,19 @@ export default function PartnerCommissionPanel() {
     setForm((prev) => (prev.userName ? prev : { ...prev, userName: partnerOptions[0] }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [partnerOptions.length]);
+
+  // Keep destinationCountry in lockstep with whichever partner is
+  // currently selected in each form, rather than letting it disagree with
+  // the partner actually chosen.
+  useEffect(() => {
+    setSearchForm((prev) => ({ ...prev, destinationCountry: countryForPartner(prev.userName) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchForm.userName, partners]);
+
+  useEffect(() => {
+    setForm((prev) => ({ ...prev, destinationCountry: countryForPartner(prev.userName) }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.userName, partners]);
 
   function updateSearchField<K extends keyof CommissionLookupPayload>(field: K, value: CommissionLookupPayload[K]) {
     setSearchForm((prev) => ({ ...prev, [field]: value }));
@@ -62,14 +91,10 @@ export default function PartnerCommissionPanel() {
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
-    setSaveError(null);
     setSaving(true);
     const ok = await saveCommission(form);
     setSaving(false);
-    if (!ok) {
-      setSaveError("Could not save the partner commission. Please try again.");
-      return;
-    }
+    if (!ok) return;
     setForm(emptyCommissionPayload());
   }
 
@@ -102,14 +127,12 @@ export default function PartnerCommissionPanel() {
                 </p>
               </div>
             )}
-            <SelectField
-              label="Destination Country:"
-              required
-              options={partnerCountrySelectOptions}
-              defaultValue={partnerCountrySelectOptions[0]}
-              value={searchForm.destinationCountry}
-              onChange={(v) => updateSearchField("destinationCountry", v)}
-            />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm text-heading/70">Destination Country:</label>
+              <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-heading">
+                {searchForm.destinationCountry || "—"}
+              </p>
+            </div>
             <CurrencySelect
               label="Send Currency:"
               required
@@ -216,23 +239,24 @@ export default function PartnerCommissionPanel() {
             value={form.sendCurrency}
             onChange={(v) => updateField("sendCurrency", v)}
           />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm text-heading/70">Destination Country:</label>
+            <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-heading">
+              {form.destinationCountry || "—"}
+            </p>
+          </div>
           <SelectField
-            label="Destination Country:"
-            required
-            options={partnerCountrySelectOptions}
-            defaultValue={partnerCountrySelectOptions[0]}
-            value={form.destinationCountry}
-            onChange={(v) => updateField("destinationCountry", v)}
-          />
-          <TextField
             label="Remittance Type:"
+            required
+            options={remittanceTypeOptions}
+            defaultValue={remittanceTypeOptions[0]}
             value={form.remittanceType}
             onChange={(v) => updateField("remittanceType", v)}
           />
 
           <div className="sm:col-span-3 mt-2 border-t border-border pt-5">
-            {saveError && (
-              <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{saveError}</p>
+            {commissionSaveError && (
+              <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{commissionSaveError}</p>
             )}
             <Button type="submit" loading={saving}>
               {saving ? "Saving..." : "Save Commission"}

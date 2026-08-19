@@ -1,6 +1,11 @@
 export const kycStatusOptions = ["KYC Not Done", "KYC In Progress", "KYC Done"];
 
-export const kycModeOptions = ["Face to Face", "Non Face to Face"] as const;
+// "eKYC" is a placeholder for future self-registration from the mobile app
+// (no agent physically involved) — selectable now, but there's no eKYC
+// verification flow wired up yet behind it. kycMode is sent to the backend
+// as a plain string (see KycInsertPayload in data/kycData.ts), so adding
+// this option here is safe without any schema change.
+export const kycModeOptions = ["Face to Face", "Non Face to Face", "eKYC"] as const;
 export type KycMode = (typeof kycModeOptions)[number];
 
 export const agentOptions = ["Agent A", "Agent B", "Agent C"];

@@ -19,6 +19,7 @@ import { walletsForCountryMOCKONLY } from "@/data/payoutWalletOptionsData";
 import {
   emptyTransferInsertPayload,
   transferPurposeOptions,
+  payoutMethodOptions,
   demoTransferRecords,
   type TransferInsertPayload,
   type TransferRecord,
@@ -38,7 +39,6 @@ import {
 type Stage = "form" | "done";
 
 const branchNameOptions = ["Head Office"];
-const partnerMethodOptions = ["Bank", "Wallet", "Cash"];
 
 type YesNo = "NA" | "YES";
 
@@ -204,7 +204,7 @@ export default function TransactionSendPanel() {
     });
     setMethodByBeneficiary((prev) => {
       if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
-      return { ...prev, [id]: partnerMethodOptions[0] };
+      return { ...prev, [id]: payoutMethodOptions[0] };
     });
     setBankByBeneficiary((prev) => {
       if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
@@ -250,7 +250,7 @@ export default function TransactionSendPanel() {
   }
 
   function methodFor(beneficiaryId: number): string {
-    return methodByBeneficiary[beneficiaryId] ?? partnerMethodOptions[0];
+    return methodByBeneficiary[beneficiaryId] ?? payoutMethodOptions[0];
   }
 
   // Sender list loads asynchronously — backfill the selection once it
@@ -852,7 +852,7 @@ export default function TransactionSendPanel() {
                               aria-label={`Payout method for ${b.fullName}`}
                               className="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm font-semibold text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                             >
-                              {partnerMethodOptions.map((option) => (
+                              {payoutMethodOptions.map((option) => (
                                 <option key={option} value={option}>
                                   {option}
                                 </option>

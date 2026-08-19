@@ -1,0 +1,5 @@
+# License
+
+Complete terms in LICENSE.txt.
+
+This skill is provided for use in Claude/Claude Code and related development workflows.

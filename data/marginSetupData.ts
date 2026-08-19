@@ -1,3 +1,6 @@
+import { payoutMethodOptions } from "./transferData";
+import { remittanceTypeOptions } from "./partnerCommissionData";
+
 // Fields accepted by POST /addOrUpdateMargin
 export interface MarginUpsertPayload {
   id: number;
@@ -23,8 +26,8 @@ export function emptyMarginPayload(): MarginUpsertPayload {
   return {
     id: 0,
     targetPartner: "",
-    service: "",
-    remittanceType: "",
+    service: payoutMethodOptions[0],
+    remittanceType: remittanceTypeOptions[0],
     marginRate: 0,
     marginRateWrtParent: 0,
     marginType: marginTypeValues[0],
@@ -38,12 +41,12 @@ export const marginRecords: MarginRecord[] = [
   {
     id: 1,
     targetPartner: "TRANS CASH INTERNATIONAL",
-    service: "Cash Pickup",
-    remittanceType: "Individual",
+    service: "Cash",
+    remittanceType: "International",
     marginRate: 0.25,
     marginRateWrtParent: 0.1,
     marginType: "PERCENT",
-    marginBindString: "INR-CASH",
+    marginBindString: "INR",
     expiryDate: "2027-01-01",
     status: "ACTIVE",
     createdDate: "2026-06-01",
@@ -51,12 +54,12 @@ export const marginRecords: MarginRecord[] = [
   {
     id: 2,
     targetPartner: "remitteragent",
-    service: "Bank Deposit",
-    remittanceType: "Agent",
+    service: "Bank",
+    remittanceType: "Inward",
     marginRate: 300,
     marginRateWrtParent: 100,
     marginType: "FLAT",
-    marginBindString: "NPR-BANK",
+    marginBindString: "NPR",
     expiryDate: "2027-01-01",
     status: "ACTIVE",
     createdDate: "2026-06-15",

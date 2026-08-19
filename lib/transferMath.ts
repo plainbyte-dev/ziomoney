@@ -90,11 +90,9 @@ interface ResolveRateInput {
  * from exchangeRateData) is NEVER overridden by this — a confirmed Partner
  * Offer Rate only ever *adds* wholesale/spread information for the admin
  * view; it is deliberately not wired to change what the agent sees at quote
- * time until that's confirmed as the intended architecture. Margin Setup is
- * intentionally not consulted here yet either: none of the currently seeded
- * margin rows cleanly map onto a specific offer-rate corridor, so applying
- * one would be a guess rather than a confirmed rule — revisit once backend
- * clarifies how a margin row binds to a rate corridor.
+ * time until that's confirmed as the intended architecture. This function
+ * only resolves the wholesale number itself — see resolveMargin for how the
+ * matching payout-side margin is layered on top by calculateTransfer.
  */
 export function resolveWholesaleRate(
   input: ResolveRateInput
@@ -183,17 +181,14 @@ export function resolveCommissionRate(
   return match.commissionRate / 100;
 }
 
-// Best-effort parse of the marginBindString convention observed in the
-// seeded data ("INR-CASH", "NPR-BANK": {CURRENCY}-{CODE}). UNCONFIRMED with
-// backend — no documented binding rule exists between a Margin Setup row
-// and a specific rate corridor/delivery option. Only consulted when
-// WHOLESALE_RETAIL_SPLIT_CONFIRMED is true; treat any match as a guess.
-const DELIVERY_METHOD_BIND_CODES: Record<string, string> = {
-  "Cash Pickup": "CASH",
-  "Bank Deposit": "BANK",
-  "Mobile Wallet": "WALLET",
-};
-
+// A margin row binds to a payout corridor by (targetPartner, destination
+// currency, delivery method) — it's a payout-side markup, so it applies
+// regardless of which currency the sender sent from. marginBindString
+// carries the destination currency directly (e.g. "INR"); the delivery
+// method is carried by the `service` field, matched against the same
+// deliveryOption vocabulary used for the transaction itself
+// (payoutMethodOptions in data/transferData.ts). Only consulted when
+// WHOLESALE_RETAIL_SPLIT_CONFIRMED is true.
 interface ResolveMarginInput {
   targetPartner: string;
   destinationCurrency: string;
@@ -206,16 +201,13 @@ export function resolveMargin(input: ResolveMarginInput): MarginRecord | null {
   const confirmed = input.wholesaleRetailSplitConfirmed ?? WHOLESALE_RETAIL_SPLIT_CONFIRMED;
   if (!confirmed) return null;
 
-  const code = DELIVERY_METHOD_BIND_CODES[input.deliveryOption];
-  if (!code) return null;
-  const expectedBind = `${input.destinationCurrency.toUpperCase()}-${code}`;
-
   return (
     (input.margins ?? []).find(
       (m) =>
         m.status === "ACTIVE" &&
         m.targetPartner === input.targetPartner &&
-        m.marginBindString.toUpperCase() === expectedBind
+        m.marginBindString.toUpperCase() === input.destinationCurrency.toUpperCase() &&
+        m.service === input.deliveryOption
     ) ?? null
   );
 }
@@ -247,7 +239,8 @@ export interface CalculateTransferResult {
   fxSpread: number | null;
   commission: number;
   // The matched Margin Setup row's rate, when one was found — see
-  // resolveMargin for how (unconfirmed) binding is guessed.
+  // resolveMargin for the (targetPartner, destination currency, delivery
+  // method) binding.
   marginRate: number | null;
   netEarning: number | null;
 }
@@ -292,8 +285,7 @@ export function calculateTransfer(input: CalculateTransferInput): CalculateTrans
 
   // When a wholesale rate and a matching margin are both known, the retail
   // rate is derived from wholesale minus margin rather than read off the
-  // plain exchange-rate table — see resolveMargin for the caveat that this
-  // binding is a best-effort guess, not a confirmed rule.
+  // plain exchange-rate table.
   const marginAdjustedRetailRate =
     wholesaleRate !== null && margin
       ? margin.marginType === "FLAT"

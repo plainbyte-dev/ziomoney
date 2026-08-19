@@ -4,6 +4,12 @@ export type CommissionType = "PERCENT" | "FLAT";
 
 export const commissionTypeValues: CommissionType[] = ["PERCENT", "FLAT"];
 
+// UNCONFIRMED with backend — no documented enum for remittanceType. Educated
+// guess based on the domain (inbound/outbound relative to the home country,
+// vs. domestic/cross-border); do not treat as final. Shared with
+// data/marginSetupData.ts, whose MarginUpsertPayload has the same field.
+export const remittanceTypeOptions = ["Inward", "Outward", "Domestic", "International"];
+
 // Fields accepted by POST /insertOrUpdateRemittancePartnerCommission
 export interface CommissionUpsertPayload {
   userName: string;
@@ -44,7 +50,7 @@ export function emptyCommissionPayload(): CommissionUpsertPayload {
     service: "",
     sendCurrency: settlementCurrencyOptions[0],
     destinationCountry: partnerCountrySelectOptions[0],
-    remittanceType: "",
+    remittanceType: remittanceTypeOptions[0],
   };
 }
 
@@ -57,7 +63,7 @@ export const commissionRecords: CommissionRecord[] = [
     service: "Cash Pickup",
     sendCurrency: "JPY",
     destinationCountry: "India",
-    remittanceType: "Individual",
+    remittanceType: "International",
   },
   {
     id: 2,
@@ -67,6 +73,6 @@ export const commissionRecords: CommissionRecord[] = [
     service: "Bank Deposit",
     sendCurrency: "JPY",
     destinationCountry: "Nepal",
-    remittanceType: "Agent",
+    remittanceType: "Inward",
   },
 ];

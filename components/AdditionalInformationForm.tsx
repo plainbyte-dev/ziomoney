@@ -1,6 +1,7 @@
 "use client";
 
 import SharedDateInput from "./DateInput";
+import FormSectionHeading from "./FormSectionHeading";
 import { useKyc } from "@/contexts/KycContext";
 
 const inputClass =
@@ -16,12 +17,12 @@ function FieldRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[220px_1fr] sm:items-center sm:gap-4">
-      <div className="text-right text-sm font-semibold text-heading/70">{label}</div>
-      <div className="flex flex-wrap items-center gap-2">
-        {children}
-        {required && <span className="text-red-500">*</span>}
+    <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-[140px_1fr] sm:items-center sm:gap-4">
+      <div className="text-sm font-semibold text-heading/70 sm:text-right">
+        {label}
+        {required && <span className="text-red-500"> *</span>}
       </div>
+      <div className="flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );
 }
@@ -34,7 +35,7 @@ function DateInput({
   onChange?: (value: string) => void;
 }) {
   return (
-    <div className="w-40">
+    <div className="w-full min-w-[7rem]">
       <SharedDateInput value={value} onChange={onChange} />
     </div>
   );
@@ -44,18 +45,12 @@ export default function AdditionalInformationForm() {
   const { record, updateField } = useKyc();
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-      <div className="border-b border-border px-6 py-4">
-        <h1 className="text-lg font-bold text-heading">Additional Information</h1>
-      </div>
+    <div className="overflow-hidden rounded-2xl border border-border bg-panel shadow-card">
+      <FormSectionHeading title="Additional Information" />
 
       <div className="bg-panel p-6 sm:p-8">
-        <p className="border-b-2 border-brand-blue pb-2 text-base font-semibold text-heading/70">
-          Additional Information
-        </p>
-
-        <div className="mx-auto mt-5 flex max-w-3xl flex-col gap-4">
-          <FieldRow label={<span className="text-brand-blue">Primary ID No</span>} required>
+        <div className="flex flex-col gap-4">
+          <FieldRow label="Primary ID No" required>
             <input
               value={record.primaryIdNo}
               onChange={(event) => updateField("primaryIdNo", event.target.value)}
@@ -64,21 +59,26 @@ export default function AdditionalInformationForm() {
             />
           </FieldRow>
 
-          <FieldRow label="Primary ID Issue Date">
-            <DateInput
-              value={record.primaryIdIssueDate}
-              onChange={(value) => updateField("primaryIdIssueDate", value)}
-            />
+          <FieldRow label="Primary ID Issue / Expire Date" required>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-heading/50">Issue Date</span>
+                <DateInput
+                  value={record.primaryIdIssueDate}
+                  onChange={(value) => updateField("primaryIdIssueDate", value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-heading/50">Expire Date</span>
+                <DateInput
+                  value={record.primaryIdExpiryDate}
+                  onChange={(value) => updateField("primaryIdExpiryDate", value)}
+                />
+              </div>
+            </div>
           </FieldRow>
 
-          <FieldRow label="Primary ID Expire Date">
-            <DateInput
-              value={record.primaryIdExpiryDate}
-              onChange={(value) => updateField("primaryIdExpiryDate", value)}
-            />
-          </FieldRow>
-
-          <FieldRow label={<span className="text-brand-blue">Secondary ID No</span>}>
+          <FieldRow label="Secondary ID No">
             <input
               value={record.secondaryIdNo}
               onChange={(event) => updateField("secondaryIdNo", event.target.value)}
