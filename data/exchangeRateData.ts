@@ -10,6 +10,8 @@ export interface ExchangeRateItem {
   flag: string;
 }
 
+import { type SetupType, setupTypeValues } from "./setupTypeData";
+
 // Fields accepted by POST /UpdateRate and POST /UpdateCsvRate
 export interface ExchangeRateUpsertPayload {
   symbol: string;
@@ -22,6 +24,13 @@ export interface ExchangeRateUpsertPayload {
   countryIsoCode: string;
   priority: number;
   active: boolean;
+  // MOCK-ONLY pair, below — neither exists in the confirmed /UpdateRate or
+  // /UpdateCsvRate schema. Form-only: "COUNTRY" clears/hides Partner Name so
+  // the rate applies to every partner trading countryName; "PARTNER"
+  // requires it as an override for that one partner. Both are stripped from
+  // the body before it reaches the real endpoint — see lib/rateApi.ts.
+  partnerNameMOCKONLY: string;
+  setupTypeMOCKONLY: SetupType;
 }
 
 // Response data from POST /UpdateRate and POST /UpdateCsvRate
@@ -43,6 +52,8 @@ export function emptyExchangeRatePayload(): ExchangeRateUpsertPayload {
     countryIsoCode: "",
     priority: 0,
     active: true,
+    partnerNameMOCKONLY: "",
+    setupTypeMOCKONLY: setupTypeValues[0],
   };
 }
 
@@ -63,6 +74,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇺🇸",
     priority: 1,
     active: true,
+    partnerNameMOCKONLY: "",
+    setupTypeMOCKONLY: "COUNTRY",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },
@@ -78,6 +91,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇦🇺",
     priority: 2,
     active: true,
+    partnerNameMOCKONLY: "AISA CO. LTD",
+    setupTypeMOCKONLY: "PARTNER",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },
@@ -93,6 +108,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇬🇧",
     priority: 3,
     active: true,
+    partnerNameMOCKONLY: "",
+    setupTypeMOCKONLY: "COUNTRY",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },
@@ -108,6 +125,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇨🇦",
     priority: 4,
     active: true,
+    partnerNameMOCKONLY: "",
+    setupTypeMOCKONLY: "COUNTRY",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },
@@ -123,6 +142,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇦🇪",
     priority: 5,
     active: true,
+    partnerNameMOCKONLY: "TRANS CASH INTERNATIONAL",
+    setupTypeMOCKONLY: "PARTNER",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },
@@ -138,6 +159,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇮🇳",
     priority: 6,
     active: true,
+    partnerNameMOCKONLY: "TRANS CASH INTERNATIONAL",
+    setupTypeMOCKONLY: "PARTNER",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },
@@ -153,6 +176,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇳🇵",
     priority: 7,
     active: true,
+    partnerNameMOCKONLY: "remitteragent",
+    setupTypeMOCKONLY: "PARTNER",
     createdDate: "2026-06-01",
     updatedDate: "2026-07-20",
   },
@@ -168,6 +193,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇧🇩",
     priority: 8,
     active: true,
+    partnerNameMOCKONLY: "",
+    setupTypeMOCKONLY: "COUNTRY",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },
@@ -183,6 +210,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇱🇰",
     priority: 9,
     active: true,
+    partnerNameMOCKONLY: "",
+    setupTypeMOCKONLY: "COUNTRY",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },
@@ -198,6 +227,8 @@ export const exchangeRateRecords: ExchangeRateRecord[] = [
     flag: "🇵🇰",
     priority: 10,
     active: true,
+    partnerNameMOCKONLY: "",
+    setupTypeMOCKONLY: "COUNTRY",
     createdDate: "2026-06-01",
     updatedDate: "2026-08-01",
   },

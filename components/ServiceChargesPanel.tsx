@@ -9,12 +9,14 @@ import SelectField from "./SelectField";
 import CurrencySelect from "./CurrencySelect";
 import Checkbox from "./Checkbox";
 import Button from "./Button";
+import ServiceChargeSetupModal, { type ServiceChargeSetupTarget } from "./ServiceChargeSetupModal";
 import {
   deliveryOptionValues,
   emptyServiceChargePayload,
   type ServiceChargeRecord,
   type ServiceChargeUpsertPayload,
 } from "@/data/serviceChargeData";
+import { setupTypeLabels, setupTypeValues } from "@/data/setupTypeData";
 
 export default function ServiceChargesPanel() {
   const { isLive } = useDataMode();
@@ -33,6 +35,15 @@ export default function ServiceChargesPanel() {
   );
   const agentOptions = partners.filter((p) => p.partnerType === "Agent").map((p) => p.partnerName);
 
+  // One row per registered partner — the setup grid below, matching the
+  // legacy Country/Partner/[3 setup links] layout. Deduplicated by name in
+  // case the same partner appears more than once in Partner Info.
+  const partnerRows = Array.from(new Map(partners.map((p) => [p.partnerName, p])).values());
+
+  const [setupTarget, setSetupTarget] = useState<ServiceChargeSetupTarget | null>(null);
+  const [setupSaving, setSetupSaving] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<ServiceChargeUpsertPayload>(emptyServiceChargePayload());
   const [saving, setSaving] = useState(false);
@@ -47,6 +58,32 @@ export default function ServiceChargesPanel() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  // Match the row/scope a setup link was clicked for against whatever
+  // service charge already exists — matched on partner + scope, since the
+  // real countrySymbol field is a currency code (INR, NPR...) rather than
+  // the partner's registered country (INDIA, NEPAL...), so it can't be used
+  // to join the two.
+  function findExistingSetup(target: ServiceChargeSetupTarget): ServiceChargeRecord | undefined {
+    return serviceCharges.find((charge) =>
+      target.setupType === "COUNTRY"
+        ? charge.setupTypeMOCKONLY === "COUNTRY" && !charge.agentName
+        : charge.setupTypeMOCKONLY === target.setupType && charge.agentName === target.partnerName
+    );
+  }
+
+  async function handleSetupSave(payload: ServiceChargeUpsertPayload) {
+    setSetupError(null);
+    setSetupSaving(true);
+    const existing = setupTarget ? findExistingSetup(setupTarget) : undefined;
+    const ok = await saveServiceChargeEntry({ ...payload, id: existing?.id ?? 0 }, !existing);
+    setSetupSaving(false);
+    if (!ok) {
+      setSetupError("Could not save this setup. Please try again.");
+      return;
+    }
+    setSetupTarget(null);
+  }
+
   function startEdit(charge: ServiceChargeRecord) {
     setEditingId(charge.id);
     setForm({
@@ -55,6 +92,7 @@ export default function ServiceChargesPanel() {
       agentName: charge.agentName,
       deliveryOption: charge.deliveryOption,
       active: charge.active,
+      setupTypeMOCKONLY: charge.setupTypeMOCKONLY,
     });
     setSaveError(null);
   }
@@ -81,13 +119,81 @@ export default function ServiceChargesPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
+        <div className="border-b border-border px-6 py-4">
+          <h1 className="text-lg font-bold text-heading">Service Charge Setup</h1>
+          <p className="mt-0.5 text-sm text-muted">
+            Pick a scope for each partner — Country Wise applies to everyone trading that country, Payout
+            Partner Wise and 3rd Party API Agent wise override it for one partner.
+          </p>
+        </div>
+        <div className="overflow-x-auto bg-panel p-6 sm:p-8">
+          <div className="overflow-hidden rounded-xl border border-border">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-brand-green-light/50 text-xs font-semibold uppercase tracking-wide text-heading/70">
+                  <th className="px-4 py-3">Country</th>
+                  <th className="px-4 py-3">Partner Name</th>
+                  <th className="px-4 py-3">Service Charge Setup</th>
+                </tr>
+              </thead>
+              <tbody>
+                {partnerRows.map((partner) => (
+                  <tr key={partner.id} className="border-b border-border bg-panel last:border-b-0">
+                    <td className="px-4 py-3 text-heading/80">{partner.country}</td>
+                    <td className="px-4 py-3 font-medium text-heading">{partner.partnerName}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {setupTypeValues.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() =>
+                              setSetupTarget({ country: partner.country, partnerName: partner.partnerName, setupType: option })
+                            }
+                            className="text-sm font-medium text-brand-blue underline decoration-brand-blue/40 underline-offset-2 hover:text-brand-blue-dark"
+                          >
+                            [{setupTypeLabels[option]}]
+                          </button>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {partnerRows.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-10 text-center text-sm text-muted">
+                      No partners registered yet — add one under Partner Info first.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <ServiceChargeSetupModal
+        target={setupTarget}
+        existing={setupTarget ? findExistingSetup(setupTarget) : undefined}
+        countrySymbolOptions={countrySymbolOptions}
+        saving={setupSaving}
+        error={setupError}
+        onCancel={() => {
+          setSetupTarget(null);
+          setSetupError(null);
+        }}
+        onSave={handleSetupSave}
+      />
+
+      <div className="overflow-hidden rounded-2xl border border-border shadow-card">
         <div className="border-b border-border flex items-center justify-between px-6 py-4">
           <div>
-            <h1 className="text-lg font-bold text-heading">Service Charges</h1>
+            <h2 className="text-base font-bold text-heading">Configured Service Charges</h2>
             <p className="mt-0.5 text-sm text-muted">
-              {isLive ? "Live remittance API" : "Static demo data"} — per-country/agent delivery-option
-              availability. There is no delete endpoint — deactivating a row (below) is the only removal
-              mechanism.
+              {isLive ? "Live remittance API" : "Static demo data"} — every charge saved from the setup grid
+              above, or added directly below. There is no delete endpoint — deactivating a row is the only
+              removal mechanism.
             </p>
           </div>
           <Button
@@ -108,11 +214,12 @@ export default function ServiceChargesPanel() {
 
           <div className="overflow-hidden rounded-xl border border-border">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left text-sm">
+              <table className="w-full min-w-[1000px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-border bg-brand-green-light/50 text-xs font-semibold uppercase tracking-wide text-heading/70">
                     <th className="px-4 py-3">Country</th>
-                    <th className="px-4 py-3">Agent</th>
+                    <th className="px-4 py-3">Partner Name</th>
+                    <th className="px-4 py-3">Service Charge Setup</th>
                     <th className="px-4 py-3">Delivery Option</th>
                     <th className="px-4 py-3">Active</th>
                     <th className="px-4 py-3">Created</th>
@@ -129,7 +236,20 @@ export default function ServiceChargesPanel() {
                       }`}
                     >
                       <td className="px-4 py-3 font-medium text-heading">{charge.countrySymbol}</td>
-                      <td className="px-4 py-3 text-heading/80">{charge.agentName}</td>
+                      <td className="px-4 py-3 text-heading/80">
+                        {charge.setupTypeMOCKONLY === "COUNTRY" ? "All partners" : charge.agentName || "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            charge.setupTypeMOCKONLY === "COUNTRY"
+                              ? "bg-surface text-heading/70"
+                              : "bg-brand-blue-light text-brand-blue-dark"
+                          }`}
+                        >
+                          {setupTypeLabels[charge.setupTypeMOCKONLY]}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-heading/80">{charge.deliveryOption}</td>
                       <td className="px-4 py-3">
                         <span
@@ -158,7 +278,7 @@ export default function ServiceChargesPanel() {
 
                   {serviceCharges.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted">
+                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
                         No service charges configured yet.
                       </td>
                     </tr>
@@ -187,7 +307,7 @@ export default function ServiceChargesPanel() {
           />
           {agentOptions.length > 0 ? (
             <SelectField
-              label="Agent:"
+              label="Partner Name:"
               required
               options={agentOptions}
               defaultValue={agentOptions[0]}
@@ -196,7 +316,7 @@ export default function ServiceChargesPanel() {
             />
           ) : (
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm text-heading/70">Agent:</label>
+              <label className="text-sm text-heading/70">Partner Name:</label>
               <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
                 No Agent-type partners found — create one under Partner Info first.
               </p>

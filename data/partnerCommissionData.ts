@@ -1,5 +1,8 @@
 import { settlementCurrencyOptions, partnerCountrySelectOptions } from "./partnerData";
 
+// UNCONFIRMED with backend — only "PERCENT" has been verified against a real
+// response; "FLAT" has been discussed but never confirmed as a valid
+// commissionType value. Do not treat as final.
 export type CommissionType = "PERCENT" | "FLAT";
 
 export const commissionTypeValues: CommissionType[] = ["PERCENT", "FLAT"];
@@ -74,5 +77,35 @@ export const commissionRecords: CommissionRecord[] = [
     sendCurrency: "JPY",
     destinationCountry: "Nepal",
     remittanceType: "Inward",
+  },
+  {
+    id: 3,
+    remittancePartner: "AISA CO. LTD",
+    commissionRate: 2,
+    commissionType: "PERCENT",
+    service: "Bank Deposit",
+    sendCurrency: "USD",
+    destinationCountry: "Nepal",
+    remittanceType: "Outward",
+  },
+  {
+    id: 4,
+    remittancePartner: "KOPERASI SINEMI BERDIKARI UTAMA",
+    commissionRate: 750,
+    commissionType: "FLAT",
+    service: "Mobile Wallet",
+    sendCurrency: "JPY",
+    destinationCountry: "Indonesia",
+    remittanceType: "Domestic",
+  },
+  {
+    id: 5,
+    remittancePartner: "remitteragent",
+    commissionRate: 1.2,
+    commissionType: "PERCENT",
+    service: "Cash Pickup",
+    sendCurrency: "USD",
+    destinationCountry: "Nepal",
+    remittanceType: "International",
   },
 ];

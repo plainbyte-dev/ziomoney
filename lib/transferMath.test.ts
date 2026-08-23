@@ -39,6 +39,7 @@ function serviceCharge(feeAmountMOCKONLY: number): ServiceChargeRecord {
     agentName: "TEST AGENT",
     deliveryOption: "Bank Deposit",
     active: true,
+    setupTypeMOCKONLY: "PARTNER",
     feeAmountMOCKONLY,
     createdDate: "2026-08-01",
     updatedDate: "2026-08-01",

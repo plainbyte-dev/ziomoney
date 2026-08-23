@@ -22,12 +22,26 @@ export function getCountryWiseExRate(symbol: string) {
   return callRateAction<ExchangeRateItem>("get-country-wise-ex-rate", { method: "POST", body: { symbol } });
 }
 
+// Strips the MOCK-ONLY partnerNameMOCKONLY/setupTypeMOCKONLY pair (see
+// data/exchangeRateData.ts) before it reaches a real endpoint — neither
+// field exists in the confirmed /UpdateRate or /UpdateCsvRate schema.
+function stripExchangeRateMockFields(payload: ExchangeRateUpsertPayload) {
+  const { partnerNameMOCKONLY, setupTypeMOCKONLY, ...body } = payload;
+  return body;
+}
+
 export function updateExchangeRate(payload: ExchangeRateUpsertPayload) {
-  return callRateAction<ExchangeRateRecord>("update-rate", { method: "POST", body: payload });
+  return callRateAction<ExchangeRateRecord>("update-rate", {
+    method: "POST",
+    body: stripExchangeRateMockFields(payload),
+  });
 }
 
 export function updateExchangeRateFromCsv(payload: ExchangeRateUpsertPayload) {
-  return callRateAction<ExchangeRateRecord>("update-csv-rate", { method: "POST", body: payload });
+  return callRateAction<ExchangeRateRecord>("update-csv-rate", {
+    method: "POST",
+    body: stripExchangeRateMockFields(payload),
+  });
 }
 
 // Service Charge
@@ -50,16 +64,30 @@ export function getAllServiceCharges() {
   return callRateAction<ServiceChargeRecord[]>("get-se-rate", { method: "GET" });
 }
 
+// Strips the MOCK-ONLY setupTypeMOCKONLY field (see data/serviceChargeData.ts)
+// before it reaches a real endpoint — it exists in neither
+// Service_Charges_save nor _Insert's confirmed request schema.
+function stripServiceChargeMockFields(payload: ServiceChargeUpsertPayload) {
+  const { setupTypeMOCKONLY, ...body } = payload;
+  return body;
+}
+
 // Existing row (has a real id) — update in place.
 export function saveServiceCharge(payload: ServiceChargeUpsertPayload) {
-  return callRateAction<ServiceChargeRecord>("service-charges-save", { method: "POST", body: payload });
+  return callRateAction<ServiceChargeRecord>("service-charges-save", {
+    method: "POST",
+    body: stripServiceChargeMockFields(payload),
+  });
 }
 
 // New row (id: 0) — separate endpoint from the one above. Whether it
 // rejects or just ignores a populated id is unconfirmed, so callers should
 // still send id: 0 for a genuinely new row rather than omitting the field.
 export function insertServiceCharge(payload: ServiceChargeUpsertPayload) {
-  return callRateAction<ServiceChargeRecord>("service-charges-insert", { method: "POST", body: payload });
+  return callRateAction<ServiceChargeRecord>("service-charges-insert", {
+    method: "POST",
+    body: stripServiceChargeMockFields(payload),
+  });
 }
 
 // Country / Currency — POST /UpdateCsvfileForCountries upserts ONE row per

@@ -243,6 +243,11 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
             flag: item.flag,
             priority: index,
             active: true,
+            // MOCK-ONLY — /getAllCountries has no such fields; default every
+            // live-fetched row to "COUNTRY" with no partner override until
+            // the admin sets one explicitly (see data/exchangeRateData.ts).
+            partnerNameMOCKONLY: "",
+            setupTypeMOCKONLY: "COUNTRY",
             createdDate: "",
             updatedDate: "",
           }))
@@ -400,7 +405,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
             const exists = prev.some((r) => r.id === id);
             return exists ? prev.map((r) => (r.id === id ? record : r)) : [record, ...prev];
           });
-          notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
+          notify({
+            title: "Service charge saved",
+            message: `${payload.countrySymbol} / ${payload.agentName || "all partners"} was updated.`,
+          });
           return true;
         },
         // New rows go through Service_Charges_Insert; existing ones (a real
@@ -409,7 +417,10 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         live: () => (isNew ? insertServiceCharge(payload) : saveServiceCharge(payload)),
         onLiveSuccess: async () => {
           await refreshServiceCharges();
-          notify({ title: "Service charge saved", message: `${payload.countrySymbol} / ${payload.agentName} was updated.` });
+          notify({
+            title: "Service charge saved",
+            message: `${payload.countrySymbol} / ${payload.agentName || "all partners"} was updated.`,
+          });
           return true;
         },
         failValue: false,

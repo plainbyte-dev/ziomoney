@@ -74,4 +74,16 @@ export const partnerEntries: PartnerEntry[] = [
   { id: "11000246", partnerName: "ANTTECH PVT LTD", partnerId: "11000246", country: "JAPAN", partnerType: "Sender", creditLimit: null, hasBank: false, blocked: true },
   { id: "11000303", partnerName: "API CO LTD", partnerId: "11000303", country: "JAPAN", partnerType: "Sender", creditLimit: null, hasBank: false, blocked: false },
   { id: "11000313", partnerName: "APS INTERNATIONAL PVT LTD", partnerId: "11000313", country: "JAPAN", partnerType: "Sender", creditLimit: 1, hasBank: false, blocked: false },
+  // The four rows below cover every value in remitterTypeOptions (the actual
+  // confirmed enum accepted by insertRemittancePartner) — the rows above
+  // predate that confirmation and use a different Sender/Receiver/
+  // SenderReceiver vocabulary instead. Notably, no seed row had partnerType
+  // "Agent" until now, which left every "Agent"-filtered dropdown (Customer
+  // Details, KYC Approval, Service Charges, Transaction Send Panel) with
+  // nothing to show in demo mode.
+  { id: "11000501", partnerName: "REMITTERAGENT", partnerId: "remitteragent", country: "NEPAL", partnerType: "Agent", creditLimit: 850000, hasBank: true, blocked: false },
+  { id: "11000502", partnerName: "SAKURA GLOBAL REMIT KK", partnerId: "11000502", country: "JAPAN", partnerType: "Agent", creditLimit: 420000, hasBank: false, blocked: false },
+  { id: "11000503", partnerName: "TANAKA HIROSHI", partnerId: "11000503", country: "JAPAN", partnerType: "Individual", creditLimit: 15000, hasBank: false, blocked: false },
+  { id: "11000504", partnerName: "OSAKA TRADING CORPORATION", partnerId: "11000504", country: "JAPAN", partnerType: "Corporate", creditLimit: 2300000, hasBank: true, blocked: false },
+  { id: "11000505", partnerName: "NAGOYA SUB REMIT SERVICES", partnerId: "11000505", country: "JAPAN", partnerType: "Sub Agent", creditLimit: 60000, hasBank: false, blocked: false },
 ];

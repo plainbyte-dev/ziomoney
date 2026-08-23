@@ -3,11 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw, Search, Upload } from "lucide-react";
 import { useRates } from "@/contexts/RatesContext";
+import { usePartners } from "@/contexts/PartnersContext";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { useTabs } from "@/contexts/TabsContext";
 import TextField from "./TextField";
 import Checkbox from "./Checkbox";
 import Button from "./Button";
-import { emptyExchangeRatePayload, type ExchangeRateUpsertPayload } from "@/data/exchangeRateData";
+import ExchangeRateSetupModal, { type ExchangeRateSetupTarget } from "./ExchangeRateSetupModal";
+import { emptyExchangeRatePayload, type ExchangeRateRecord, type ExchangeRateUpsertPayload } from "@/data/exchangeRateData";
+import { setupTypeLabels, setupTypeValues } from "@/data/setupTypeData";
 
 // Parses the small admin CSV import format: a header row followed by rows in
 // the same column order as ExchangeRateUpsertPayload. No quoted-field
@@ -37,6 +41,10 @@ function parseExchangeRateCsv(text: string): ExchangeRateUpsertPayload[] {
       countryIsoCode: get("countryisocode"),
       priority: Number(get("priority")) || 0,
       active: get("active").toLowerCase() !== "false",
+      // CSV import is a bulk, country-level operation — no per-partner
+      // override column, so every imported row defaults to Country Wise.
+      partnerNameMOCKONLY: "",
+      setupTypeMOCKONLY: "COUNTRY",
     });
   }
 
@@ -54,6 +62,17 @@ export default function ExchangeRatesPanel() {
     lookupExchangeRate,
     importExchangeRatesFromCsv,
   } = useRates();
+  const { entries: partners } = usePartners();
+  const { openTab } = useTabs();
+
+  // One row per registered partner — the setup grid below, matching the
+  // legacy Country/Partner/[3 setup links] layout. Deduplicated by name in
+  // case the same partner appears more than once in Partner Info.
+  const partnerRows = Array.from(new Map(partners.map((p) => [p.partnerName, p])).values());
+
+  const [setupTarget, setSetupTarget] = useState<ExchangeRateSetupTarget | null>(null);
+  const [setupSaving, setSetupSaving] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
 
   const [form, setForm] = useState<ExchangeRateUpsertPayload>(emptyExchangeRatePayload());
   const [saving, setSaving] = useState(false);
@@ -73,6 +92,30 @@ export default function ExchangeRatesPanel() {
 
   function updateField<K extends keyof ExchangeRateUpsertPayload>(field: K, value: ExchangeRateUpsertPayload[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  // Match the row/scope a setup link was clicked for against whatever
+  // exchange rate already exists — matched on partner + scope, not symbol,
+  // since a single click into "Country Wise"/"Payout Partner Wise" isn't
+  // scoped to one currency yet (the modal itself picks the symbol).
+  function findExistingSetup(target: ExchangeRateSetupTarget): ExchangeRateRecord | undefined {
+    return exchangeRates.find((rate) =>
+      target.setupType === "COUNTRY"
+        ? rate.setupTypeMOCKONLY === "COUNTRY" && !rate.partnerNameMOCKONLY
+        : rate.setupTypeMOCKONLY === target.setupType && rate.partnerNameMOCKONLY === target.partnerName
+    );
+  }
+
+  async function handleSetupSave(payload: ExchangeRateUpsertPayload) {
+    setSetupError(null);
+    setSetupSaving(true);
+    const ok = await saveExchangeRate(payload);
+    setSetupSaving(false);
+    if (!ok) {
+      setSetupError("Could not save this setup. Please try again.");
+      return;
+    }
+    setSetupTarget(null);
   }
 
   async function handleSave(event: React.FormEvent) {
@@ -109,6 +152,8 @@ export default function ExchangeRatesPanel() {
       countryIsoCode: result.currencyAcro,
       priority: form.priority,
       active: true,
+      partnerNameMOCKONLY: form.partnerNameMOCKONLY,
+      setupTypeMOCKONLY: form.setupTypeMOCKONLY,
     });
   }
 
@@ -133,14 +178,15 @@ export default function ExchangeRatesPanel() {
   return (
     <div className="flex flex-col gap-6">
       <div className="overflow-hidden rounded-2xl border border-border shadow-card">
-        <div className="border-b border-border flex items-center justify-between px-6 py-4">
+        <div className="border-b border-border flex items-center justify-between gap-3 px-6 py-4">
           <div>
-            <h1 className="text-lg font-bold text-heading">Exchange Rates</h1>
+            <h1 className="text-lg font-bold text-heading">Exchange Rate Setup</h1>
             <p className="mt-0.5 text-sm text-muted">
-              {isLive ? "Live remittance API" : "Static demo data"} — active rates ordered by display priority.
+              Pick a scope for each partner — Country Wise applies to everyone trading that country, Payout
+              Partner Wise and 3rd Party API Agent wise override it for one partner.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <input
               type="file"
               accept=".csv,text/csv"
@@ -168,58 +214,71 @@ export default function ExchangeRatesPanel() {
             </Button>
           </div>
         </div>
-
-        <div className="bg-panel p-6 sm:p-8">
-          {exchangeRatesError && (
-            <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{exchangeRatesError}</p>
-          )}
-
+        {exchangeRatesError && (
+          <p className="mx-6 mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{exchangeRatesError}</p>
+        )}
+        <div className="overflow-x-auto bg-panel p-6 sm:p-8">
           <div className="overflow-hidden rounded-xl border border-border">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[820px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-brand-green-light/50 text-xs font-semibold uppercase tracking-wide text-heading/70">
-                    <th className="px-4 py-3">Symbol</th>
-                    <th className="px-4 py-3">Country</th>
-                    <th className="px-4 py-3">Currency</th>
-                    <th className="px-4 py-3">Unit</th>
-                    <th className="px-4 py-3">Buying</th>
-                    <th className="px-4 py-3">Selling</th>
-                    <th className="px-4 py-3">Active</th>
-                    <th className="px-4 py-3">Updated</th>
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-border bg-brand-green-light/50 text-xs font-semibold uppercase tracking-wide text-heading/70">
+                  <th className="px-4 py-3">Country</th>
+                  <th className="px-4 py-3">Partner Name</th>
+                  <th className="px-4 py-3">Exchange Rate Setup</th>
+                </tr>
+              </thead>
+              <tbody>
+                {partnerRows.map((partner) => (
+                  <tr key={partner.id} className="border-b border-border bg-panel last:border-b-0">
+                    <td className="px-4 py-3 text-heading/80">{partner.country}</td>
+                    <td className="px-4 py-3 font-medium text-heading">{partner.partnerName}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {setupTypeValues.map((option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() =>
+                              option === "COUNTRY"
+                                ? openTab({ key: "exchange-rate-country-wise", title: "Country Wise Exchange Rates" })
+                                : setSetupTarget({ country: partner.country, partnerName: partner.partnerName, setupType: option })
+                            }
+                            className="text-sm font-medium text-brand-blue underline decoration-brand-blue/40 underline-offset-2 hover:text-brand-blue-dark"
+                          >
+                            [{setupTypeLabels[option]}]
+                          </button>
+                        ))}
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {exchangeRates.map((rate) => (
-                    <tr key={rate.id} className="border-b border-border bg-panel last:border-b-0">
-                      <td className="px-4 py-3 font-medium text-heading">
-                        {rate.flag} {rate.symbol}
-                      </td>
-                      <td className="px-4 py-3 text-heading/80">{rate.countryName}</td>
-                      <td className="px-4 py-3 text-heading/80">{rate.currencyName}</td>
-                      <td className="px-4 py-3 text-heading/80">{rate.unit}</td>
-                      <td className="px-4 py-3 text-heading/80">{rate.buying}</td>
-                      <td className="px-4 py-3 text-heading/80">{rate.selling}</td>
-                      <td className="px-4 py-3 text-heading/80">{rate.active ? "Yes" : "No"}</td>
-                      <td className="whitespace-nowrap px-4 py-3 text-heading/80">{rate.updatedDate || "-"}</td>
-                    </tr>
-                  ))}
+                ))}
 
-                  {exchangeRates.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-10 text-center text-sm text-muted">
-                        No exchange rates yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                {partnerRows.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-10 text-center text-sm text-muted">
+                      No partners registered yet — add one under Partner Info first.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border shadow-card">
+      <ExchangeRateSetupModal
+        target={setupTarget}
+        existing={setupTarget ? findExistingSetup(setupTarget) : undefined}
+        saving={setupSaving}
+        error={setupError}
+        onCancel={() => {
+          setSetupTarget(null);
+          setSetupError(null);
+        }}
+        onSave={handleSetupSave}
+      />
+
+      {/* <div className="overflow-hidden rounded-2xl border border-border shadow-card">
         <div className="border-b border-border px-6 py-4">
           <h2 className="text-base font-bold text-heading">Add / Update Rate</h2>
         </div>
@@ -299,7 +358,7 @@ export default function ExchangeRatesPanel() {
             </Button>
           </div>
         </form>
-      </div>
+      </div> */}
     </div>
   );
 }

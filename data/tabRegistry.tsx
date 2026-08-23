@@ -18,6 +18,7 @@ import CustomerDetailsPanel from "@/components/CustomerDetailsPanel";
 import KycApprovalQueuePanel from "@/components/KycApprovalQueuePanel";
 import ApprovedKycsPanel from "@/components/ApprovedKycsPanel";
 import ExchangeRatesPanel from "@/components/ExchangeRatesPanel";
+import CountryWiseExchangeRatePanel from "@/components/CountryWiseExchangeRatePanel";
 import ServiceChargesPanel from "@/components/ServiceChargesPanel";
 import MarginSetupPanel from "@/components/MarginSetupPanel";
 import CountryCurrencyPanel from "@/components/CountryCurrencyPanel";
@@ -233,6 +234,17 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
       { label: "Exchange Rates", href: "#", active: true },
     ],
     component: ExchangeRatesPanel,
+  },
+  "exchange-rate-country-wise": {
+    title: "Country Wise Exchange Rates",
+    breadcrumb: [
+      { label: "Home", href: "#" },
+      { label: "Exchange Rate & Commission", href: "#" },
+      { label: "Exchange Rates", href: "#" },
+      { label: "Country Wise", href: "#", active: true },
+    ],
+    closable: true,
+    component: CountryWiseExchangeRatePanel,
   },
   "service-charges": {
     title: "Service Charges",

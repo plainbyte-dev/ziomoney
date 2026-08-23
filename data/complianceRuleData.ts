@@ -139,6 +139,26 @@ export const complianceRuleRecords: ComplianceRule[] = [
     direction: "RECEIVE",
     deleted: false,
   },
+  {
+    id: 4,
+    ruleName: "Sender occupation required",
+    identifier: "SEND_OCCUPATION_REQUIRED",
+    criteria: "occupation IS NOT NULL",
+    dataType: "STRING",
+    field: "occupation",
+    direction: "SEND",
+    deleted: false,
+  },
+  {
+    id: 5,
+    ruleName: "Receiver ID document check",
+    identifier: "RECEIVE_ID_REQUIRED",
+    criteria: "receiverId IS NOT NULL",
+    dataType: "STRING",
+    field: "receiverId",
+    direction: "RECEIVE",
+    deleted: false,
+  },
 ];
 
 // Static demo data — no real backend. Swap for an API call in live mode.
@@ -158,5 +178,29 @@ export const complianceRuleValueRecords: NormalizedComplianceRuleValue[] = [
     value: "300000",
     country: "India",
     agent: "remitteragent",
+  },
+  {
+    id: 3,
+    complianceRuleIdentifier: "SEND_OCCUPATION_REQUIRED",
+    direction: "SEND",
+    value: "REQUIRED",
+    country: "Indonesia",
+    agent: "KOPERASI SINEMI BERDIKARI UTAMA",
+  },
+  {
+    id: 4,
+    complianceRuleIdentifier: "RECEIVE_ID_REQUIRED",
+    direction: "RECEIVE",
+    value: "REQUIRED",
+    country: "Nepal",
+    agent: "remitteragent",
+  },
+  {
+    id: 5,
+    complianceRuleIdentifier: "SEND_NATIONALITY_BLOCK",
+    direction: "SEND",
+    value: "IRN,PRK",
+    country: "Japan",
+    agent: "AISA CO. LTD",
   },
 ];

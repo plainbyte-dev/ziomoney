@@ -202,6 +202,12 @@ export default function TransactionSendPanel() {
       const suggested = beneficiary ? destinationForBeneficiary(beneficiary).currency : "";
       return { ...prev, [id]: suggested };
     });
+    setSourceCurrencyByBeneficiary((prev) => {
+      if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
+      // Seeded from the selected partner's settlement currency, but editable
+      // per beneficiary from here on — same pattern as destination currency.
+      return { ...prev, [id]: form.sourceCurrency };
+    });
     setMethodByBeneficiary((prev) => {
       if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
       return { ...prev, [id]: payoutMethodOptions[0] };
@@ -315,6 +321,18 @@ export default function TransactionSendPanel() {
     return destinationCurrencyByBeneficiary[beneficiaryId] ?? destinationForBeneficiary(beneficiary).currency;
   }
 
+  // Per-beneficiary, agent-chosen source currency. Keyed by beneficiary id,
+  // seeded from the selected partner's settlement currency in
+  // toggleBeneficiary but editable via the CurrencySelect dropdown next to
+  // each beneficiary row — each beneficiary is submitted as its own
+  // POST /transfers call, so a different source currency per row is a real,
+  // independently-submittable choice, not just a display quirk.
+  const [sourceCurrencyByBeneficiary, setSourceCurrencyByBeneficiary] = useState<Record<number, string>>({});
+
+  function sourceCurrencyFor(beneficiaryId: number): string {
+    return sourceCurrencyByBeneficiary[beneficiaryId] ?? form.sourceCurrency;
+  }
+
   // Per-beneficiary, agent-chosen destination country. Keyed by beneficiary
   // id, seeded with a suggestion (from the beneficiary's own country, when
   // it's a recognized one) in toggleBeneficiary, but editable via the
@@ -341,7 +359,7 @@ export default function TransactionSendPanel() {
     const destinationCurrency = destinationCurrencyFor(b.id, b);
     return (
       !ALLOW_CROSS_CURRENCY_CONVERSION &&
-      isCrossCurrencyCorridor(form.sourceCurrency, destinationCurrency)
+      isCrossCurrencyCorridor(sourceCurrencyFor(b.id), destinationCurrency)
     );
   });
 
@@ -352,14 +370,17 @@ export default function TransactionSendPanel() {
   // Every currency involved that ISN'T the home currency needs its own row
   // fetched — this covers all three corridor shapes with one fetch list:
   // foreign->NPR needs the source row, NPR->foreign needs the destination
-  // row(s), foreign->foreign needs both.
+  // row(s), foreign->foreign needs both. Source currency is now per
+  // beneficiary too, so every row's own choice goes into this list, not
+  // just the partner's default settlement currency.
+  const sourceCurrencies = selectedBeneficiaries.map((b) => sourceCurrencyFor(b.id));
   const destinationCurrencies = selectedBeneficiaries
     .map((b) => destinationCurrencyFor(b.id, b))
     .filter((c): c is string => Boolean(c));
 
   const currenciesToFetch = [
     ...new Set(
-      [form.sourceCurrency, ...destinationCurrencies].filter(
+      [...sourceCurrencies, ...destinationCurrencies].filter(
         (c): c is string => Boolean(c) && c !== HOME_CURRENCY
       )
     ),
@@ -395,13 +416,13 @@ export default function TransactionSendPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     JSON.stringify(amountsByBeneficiary),
-    form.sourceCurrency,
+    sourceCurrencies.join("|"),
     currenciesToFetch.join("|"),
   ]);
 
   function estimatedPayoutFor(beneficiaryId: number, destinationCurrency: string): number | null {
     const amount = amountsByBeneficiary[beneficiaryId] ?? 0;
-    return convertAmount(amount, form.sourceCurrency, destinationCurrency, estimatedRates);
+    return convertAmount(amount, sourceCurrencyFor(beneficiaryId), destinationCurrency, estimatedRates);
   }
 
   // Reads lib/transferMath.ts's resolveFee, which is itself a stub while
@@ -425,14 +446,14 @@ export default function TransactionSendPanel() {
     const destinationCurrency = destinationCurrencyFor(beneficiary.id, beneficiary);
     const amount = amountsByBeneficiary[beneficiary.id] ?? 0;
     const commissionRate = resolveCommissionRate(
-      form.sourceCurrency,
+      sourceCurrencyFor(beneficiary.id),
       destinationCountry,
       amount,
       commissions
     );
     return calculateTransfer({
       amount,
-      sourceCurrency: form.sourceCurrency,
+      sourceCurrency: sourceCurrencyFor(beneficiary.id),
       destinationCurrency,
       destinationCountry,
       agentName: selectedPartner?.partnerId ?? "",
@@ -445,17 +466,23 @@ export default function TransactionSendPanel() {
     });
   }
 
-  const totalToDebit = selectedBeneficiaries.reduce((sum, b) => {
+  // Grouped by source currency rather than a single combined figure — each
+  // beneficiary can now debit a different currency (see
+  // sourceCurrencyByBeneficiary), so adding them together would silently mix
+  // currencies into one meaningless number.
+  const totalsToDebitByCurrency = selectedBeneficiaries.reduce<Record<string, number>>((totals, b) => {
     const amount = amountsByBeneficiary[b.id] ?? 0;
     const fee = estimatedFeeFor(b.id, destinationCurrencyFor(b.id, b));
-    return sum + amount + fee;
-  }, 0);
+    const currency = sourceCurrencyFor(b.id) || "—";
+    totals[currency] = (totals[currency] ?? 0) + amount + fee;
+    return totals;
+  }, {});
 
   const formValid =
     Boolean(senderUserName) &&
     beneficiaryIds.length > 0 &&
     selectedBeneficiaries.every((b) => (amountsByBeneficiary[b.id] ?? 0) > 0) &&
-    form.sourceCurrency &&
+    selectedBeneficiaries.every((b) => Boolean(sourceCurrencyFor(b.id))) &&
     allDestinationsResolved &&
     !hasBlockedCrossCurrencyCorridor &&
     form.purpose;
@@ -475,16 +502,17 @@ export default function TransactionSendPanel() {
       const demoResults = selectedBeneficiaries.map((beneficiary) => {
         const destinationCountry = destinationCountryFor(beneficiary.id, beneficiary);
         const destinationCurrency = destinationCurrencyFor(beneficiary.id, beneficiary);
+        const sourceCurrency = sourceCurrencyFor(beneficiary.id);
         const amount = amountsByBeneficiary[beneficiary.id] ?? 0;
         const commissionRate = resolveCommissionRate(
-          form.sourceCurrency,
+          sourceCurrency,
           destinationCountry,
           amount,
           commissions
         );
         const breakdown = calculateTransfer({
           amount,
-          sourceCurrency: form.sourceCurrency,
+          sourceCurrency,
           destinationCurrency,
           destinationCountry,
           agentName,
@@ -497,6 +525,7 @@ export default function TransactionSendPanel() {
         });
         return {
           ...form,
+          sourceCurrency,
           amount,
           beneficiaryId: beneficiary.id,
           destinationCountry,
@@ -545,6 +574,7 @@ export default function TransactionSendPanel() {
       const amount = amountsByBeneficiary[beneficiary.id] ?? 0;
       const response = await insertTransfer({
         ...form,
+        sourceCurrency: sourceCurrencyFor(beneficiary.id),
         amount,
         beneficiaryId: beneficiary.id,
         destinationCountry: destinationCountryFor(beneficiary.id, beneficiary),
@@ -571,6 +601,7 @@ export default function TransactionSendPanel() {
     setTradeRestrictions(emptyTradeRestrictions());
     setBeneficiaryIds([]);
     setAmountsByBeneficiary({});
+    setSourceCurrencyByBeneficiary({});
     setDestinationCountryByBeneficiary({});
     setDestinationCurrencyByBeneficiary({});
     setMethodByBeneficiary({});
@@ -744,6 +775,7 @@ export default function TransactionSendPanel() {
                 // the `username` scope.
                 setBeneficiaryIds([]);
                 setAmountsByBeneficiary({});
+                setSourceCurrencyByBeneficiary({});
                 setDestinationCountryByBeneficiary({});
                 setDestinationCurrencyByBeneficiary({});
                 setMethodByBeneficiary({});
@@ -777,7 +809,7 @@ export default function TransactionSendPanel() {
                   const breakdown = checked && amount > 0 ? chargeBreakdownFor(b) : null;
                   const blocked =
                     checked && !ALLOW_CROSS_CURRENCY_CONVERSION &&
-                    isCrossCurrencyCorridor(form.sourceCurrency, destinationCurrency);
+                    isCrossCurrencyCorridor(sourceCurrencyFor(b.id), destinationCurrency);
                   return (
                     <div
                       key={b.id}
@@ -790,6 +822,15 @@ export default function TransactionSendPanel() {
                         onToggle={() => toggleBeneficiary(b.id)}
                         label={`${b.fullName}${destinationCountry ? ` · ${destinationCountry}` : ""}`}
                       />
+                      {checked && (b.bankName || b.accountNumber) && (
+                        <div className="ml-6 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-heading/80">
+                          <span className="font-semibold uppercase tracking-wide text-muted">Bank on file:</span>
+                          <span>
+                            {b.bankName || "—"}
+                            {b.accountNumber ? ` · A/C ${b.accountNumber}` : ""}
+                          </span>
+                        </div>
+                      )}
                       {checked && (
                         <div className="flex flex-col gap-2 pl-6 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
                           <div className="flex items-center gap-2">
@@ -821,7 +862,13 @@ export default function TransactionSendPanel() {
                               onChange={(e) => updateBeneficiaryAmount(b.id, Number(e.target.value) || 0)}
                               className="w-28 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm tabular-nums text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
                             />
-                            <span className="text-sm font-semibold text-heading">{form.sourceCurrency}</span>
+                            <CurrencySelect
+                              bare
+                              options={currencyOptions}
+                              value={sourceCurrencyFor(b.id)}
+                              onChange={(v) => setSourceCurrencyByBeneficiary((prev) => ({ ...prev, [b.id]: v }))}
+                              label={`Source currency for ${b.fullName}`}
+                            />
                           </div>
 
                           <span className="text-muted" aria-hidden="true">→</span>
@@ -865,7 +912,7 @@ export default function TransactionSendPanel() {
                           )}
                           {blocked && (
                             <span className="text-xs text-red-500">
-                              {form.sourceCurrency} → {destinationCurrency} isn&apos;t supported yet.
+                              {sourceCurrencyFor(b.id)} → {destinationCurrency} isn&apos;t supported yet.
                             </span>
                           )}
                         </div>
@@ -959,7 +1006,7 @@ export default function TransactionSendPanel() {
                             </span>
                             {breakdown.retailRate !== null && (
                               <span className="text-[11px] tabular-nums text-muted">
-                                Rate: 1 {form.sourceCurrency} = {formatAccounting(breakdown.retailRate)}{" "}
+                                Rate: 1 {sourceCurrencyFor(b.id)} = {formatAccounting(breakdown.retailRate)}{" "}
                                 {destinationCurrency}
                               </span>
                             )}
@@ -968,19 +1015,19 @@ export default function TransactionSendPanel() {
                             <div className="flex items-center justify-between">
                               <dt className="text-heading/70">Send amount</dt>
                               <dd className="tabular-nums font-medium text-heading">
-                                {formatAccounting(amount)} {form.sourceCurrency}
+                                {formatAccounting(amount)} {sourceCurrencyFor(b.id)}
                               </dd>
                             </div>
                             <div className="flex items-center justify-between">
                               <dt className="text-heading/70">Service charge</dt>
                               <dd className="tabular-nums font-medium text-heading">
-                                {formatAccounting(breakdown.fee)} {form.sourceCurrency}
+                                {formatAccounting(breakdown.fee)} {sourceCurrencyFor(b.id)}
                               </dd>
                             </div>
                             <div className="flex items-center justify-between border-t border-dashed border-border pt-1">
                               <dt className="font-semibold text-heading">Total collected</dt>
                               <dd className="tabular-nums font-bold text-heading">
-                                {formatAccounting(breakdown.totalToPay)} {form.sourceCurrency}
+                                {formatAccounting(breakdown.totalToPay)} {sourceCurrencyFor(b.id)}
                               </dd>
                             </div>
                             <div className="flex items-center justify-between">
@@ -1010,8 +1057,13 @@ export default function TransactionSendPanel() {
                         : "Select a beneficiary and enter an amount to see the payout."}
                   </span>
                   {selectedBeneficiaries.length > 0 && (
-                    <span className="text-sm font-bold tabular-nums text-heading">
-                      Total to debit: {formatAccounting(totalToDebit)} {form.sourceCurrency}
+                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-bold tabular-nums text-heading">
+                      {Object.entries(totalsToDebitByCurrency).map(([currency, total], index) => (
+                        <span key={currency}>
+                          {index === 0 ? "Total to debit: " : "+ "}
+                          {formatAccounting(total)} {currency}
+                        </span>
+                      ))}
                     </span>
                   )}
                 </div>
@@ -1026,14 +1078,16 @@ export default function TransactionSendPanel() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="flex items-center gap-1 text-sm text-heading/70">
-              Source Currency:<span className="text-red-500" aria-hidden="true">*</span>
-            </label>
+            <label className="text-sm text-heading/70">Default Source Currency:</label>
             <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-heading">
               {form.sourceCurrency ||
                 (selectedPartner
                   ? "Could not determine this partner's settlement currency — contact support."
                   : "Select a Partner ID to determine the settlement currency.")}
+            </p>
+            <p className="text-xs text-muted">
+              Suggested from the selected partner&apos;s settlement currency — each beneficiary&apos;s own
+              From/To currency above can be changed independently.
             </p>
           </div>
 
