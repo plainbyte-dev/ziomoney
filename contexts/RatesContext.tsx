@@ -126,7 +126,7 @@ let localIdCounter = 5000;
 let localOfferRateSeq = 100;
 
 export function RatesProvider({ children }: { children: React.ReactNode }) {
-  const { isLive } = useDataMode();
+  const { isLive, hydrated: dataModeHydrated } = useDataMode();
   const { notify } = useNotifications();
 
   // Seed data is demo-only — a live session must never render it, not even
@@ -174,36 +174,77 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   // Shared by insert/confirm/cancel — same single error slot as before.
   const offerRateActionMutation = useAsyncMutation();
 
+  // Snapshots for useAsyncQuery's `restore` option — a failed refresh (e.g. a
+  // 401 from an expired token) must not leave these permanently wiped to
+  // empty (what `clear()` set them to before the failed fetch); restoring
+  // whatever was on screen beforehand keeps a transient/auth failure from
+  // looking identical to "there's genuinely nothing here."
+  const exchangeRatesRef = useRef(exchangeRates);
+  const serviceChargesRef = useRef(serviceCharges);
+  const partnerOfferRatesRef = useRef(partnerOfferRates);
+  useEffect(() => {
+    exchangeRatesRef.current = exchangeRates;
+  }, [exchangeRates]);
+  useEffect(() => {
+    serviceChargesRef.current = serviceCharges;
+  }, [serviceCharges]);
+  useEffect(() => {
+    partnerOfferRatesRef.current = partnerOfferRates;
+  }, [partnerOfferRates]);
+
   // No "list all" endpoint for margins either — same as countryCurrencies/commissions above.
   const [margins, setMargins] = useState<MarginRecord[]>(() => (isLive ? [] : marginRecords));
   const saveMarginMutation = useAsyncMutation();
 
   // Restore any admin-made changes from a previous session so a page refresh
-  // doesn't silently drop them back to the seed data. Only meaningful in demo
-  // mode — a live session gets its records from the API, never from a
-  // locally persisted demo snapshot.
+  // doesn't silently drop them back to the seed data. exchangeRates/
+  // serviceCharges/partnerOfferRates get refetched from the live API when
+  // isLive, so restoring stale localStorage values for those only matters in
+  // demo mode. countryCurrencies/commissions/margins have no such refetch —
+  // localStorage is the ONLY record of what was previously entered, in
+  // EITHER mode — so those three always restore, live or not, or a page
+  // reload in Live mode would silently drop everything back to empty.
   useEffect(() => {
-    if (isLive) return;
     const saved = loadState<PersistedRatesState>(STORAGE_KEY);
     if (!saved) return;
-    setExchangeRates(saved.exchangeRates);
-    setServiceCharges(saved.serviceCharges);
+    if (!isLive) {
+      setExchangeRates(saved.exchangeRates);
+      setServiceCharges(saved.serviceCharges);
+      setPartnerOfferRates(saved.partnerOfferRates);
+    }
     setCountryCurrencies(saved.countryCurrencies);
     setCommissions(saved.commissions);
-    setPartnerOfferRates(saved.partnerOfferRates);
     setMargins(saved.margins);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // countryCurrencies/commissions/margins have no refresh-from-API mechanism
-  // (no list endpoint), so switching into live mode has to explicitly clear
-  // out whatever demo data was showing — nothing will otherwise overwrite it.
+  // (no list endpoint), so switching into live mode mid-session has to
+  // explicitly clear out whatever demo data was showing — nothing will
+  // otherwise overwrite it. Must only fire on an actual toggle, not on a cold
+  // load that starts already in Live mode — but DataModeContext always
+  // renders "static" for its first render (it can't read localStorage
+  // synchronously) before correcting itself once hydrated, and that
+  // correction looks, from here, exactly like the user just switching into
+  // Live mode. So this waits for DataModeContext to report real hydration,
+  // treats the isLive value it sees at that point as the true baseline (not
+  // a toggle), and only clears on a change seen AFTER that baseline is set.
+  const hasSeenHydratedBaseline = useRef(false);
+  const prevIsLiveRef = useRef(isLive);
   useEffect(() => {
-    if (!isLive) return;
-    setCountryCurrencies([]);
-    setCommissions([]);
-    setMargins([]);
-  }, [isLive]);
+    if (!dataModeHydrated) return;
+    if (!hasSeenHydratedBaseline.current) {
+      hasSeenHydratedBaseline.current = true;
+      prevIsLiveRef.current = isLive;
+      return;
+    }
+    if (isLive && !prevIsLiveRef.current) {
+      setCountryCurrencies([]);
+      setCommissions([]);
+      setMargins([]);
+    }
+    prevIsLiveRef.current = isLive;
+  }, [isLive, dataModeHydrated]);
 
   const skipNextSave = useRef(true);
   useEffect(() => {
@@ -225,6 +266,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
     await exchangeRatesQuery.run<ExchangeRateItem[]>({
       isLive,
       clear: () => setExchangeRates([]),
+      restore: () => setExchangeRates(exchangeRatesRef.current),
       fetch: () => getAllCountries(),
       // /getAllCountries returns the lighter ExchangeRateItem shape; map it
       // onto the fuller record shape the table renders (missing fields
@@ -363,6 +405,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
     await serviceChargesQuery.run<ServiceChargeRecord[]>({
       isLive,
       clear: () => setServiceCharges([]),
+      restore: () => setServiceCharges(serviceChargesRef.current),
       // GetSeRate's response schema is an unexpanded bare `string` in the
       // Swagger doc — guard against it not actually being the array we
       // expect, rather than trusting the type and letting `.map`/`.length`
@@ -600,6 +643,7 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
     await partnerOfferRatesQuery.run<PartnerOfferRateRecord[]>({
       isLive,
       clear: () => setPartnerOfferRates([]),
+      restore: () => setPartnerOfferRates(partnerOfferRatesRef.current),
       fetch: () => getAllPendingPartnerOfferRates(),
       onSuccess: (data) => setPartnerOfferRates(data ?? []),
       fallbackErrorMessage: "Could not load partner offer rates.",

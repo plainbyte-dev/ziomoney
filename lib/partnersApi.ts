@@ -76,6 +76,17 @@ export function insertRemittancePartnerTxnCurrency(remittancePartnerUserName: st
   });
 }
 
+// Associates a destination country with a partner, enabling partner-wise
+// rates/service charges for that country (the "Payout Partner Wise" /
+// "3rd Party API Agent wise" setup scopes on the Exchange Rate and Service
+// Charge Setup grids only make sense once a country is enabled here).
+export function insertRemittancePartnerCountry(remittancePartnerUserName: string, destCountry: string) {
+  return callPartnerAction<RemittancePartnerRecord>("insert-country", {
+    method: "POST",
+    body: { remittancePartnerUserName, destCountry },
+  });
+}
+
 // Registers the well-known default agent partner ("remitteragent") — a
 // fixed, server-side record, so this takes no payload.
 export function insertAgentPartner() {

@@ -6,6 +6,7 @@ import Button from "./Button";
 import SelectField from "./SelectField";
 import TextField from "./TextField";
 import Checkbox from "./Checkbox";
+import RadioPill from "./RadioPill";
 import CurrencySelect from "./CurrencySelect";
 import { useDataMode } from "@/contexts/DataModeContext";
 import { usePartners } from "@/contexts/PartnersContext";
@@ -24,12 +25,17 @@ import {
   type TransferInsertPayload,
   type TransferRecord,
 } from "@/data/transferData";
+import {
+  collectMethodOptions,
+  discountOptions,
+  discountPercentByOption,
+  type CollectMethod,
+} from "@/data/transactionSendData";
 import { formatAccounting } from "@/lib/format";
 import { ALLOW_CROSS_CURRENCY_CONVERSION } from "@/config/businessRules";
 import {
   convertAmount,
   isCrossCurrencyCorridor,
-  resolveFee,
   resolveCommissionRate,
   calculateTransfer,
   HOME_CURRENCY,
@@ -128,6 +134,17 @@ export default function TransactionSendPanel() {
   const [form, setForm] = useState<TransferInsertPayload>(emptyTransferInsertPayload());
   const [partnerSelection, setPartnerSelection] = useState<PartnerSelection>(emptyPartnerSelection());
   const [tradeRestrictions, setTradeRestrictions] = useState<TradeRestrictions>(emptyTradeRestrictions());
+  // How the sender is handing over the collected amount today. One choice
+  // for the whole transaction (not per beneficiary) — the sender pays once,
+  // regardless of how many beneficiaries that payment is split across.
+  // UNCONFIRMED with backend: TransferInsertPayload has no field for this
+  // yet, so — like Trade Restrictions above — it's recorded for this
+  // session/display only and not part of the submitted payload.
+  const [collectMethod, setCollectMethod] = useState<CollectMethod>(collectMethodOptions[0]);
+  // Also transaction-wide. Reduces the computed Service Charge only (never
+  // the transfer amount) — see discountPercentByOption in
+  // data/transactionSendData.ts for the (unconfirmed, placeholder) percentages.
+  const [discount, setDiscount] = useState<string>(discountOptions[0]);
   const [senderUserName, setSenderUserName] = useState("");
   const [beneficiaryIds, setBeneficiaryIds] = useState<number[]>([]);
   // Per-beneficiary amounts, keyed by beneficiary id. Replaces the old
@@ -151,6 +168,21 @@ export default function TransactionSendPanel() {
   // Same idea as bankByBeneficiary, for the "Wallet" method — options come
   // from walletsForCountryMOCKONLY (data/payoutWalletOptionsData.ts).
   const [walletByBeneficiary, setWalletByBeneficiary] = useState<Record<number, string>>({});
+  // Per-beneficiary manual override of the Customer Rate — lets the agent
+  // quote a specific customer a different rate than the computed retail
+  // rate (e.g. a negotiated/VIP rate). null means "use the computed rate."
+  // Only ever set while that beneficiary's Edit checkbox is on, and only
+  // meaningful for the two directly-quoted corridors (never the
+  // foreign->foreign triangulated one, where retailRate is always null —
+  // see lib/transferMath.ts). UNCONFIRMED with backend: no field on
+  // TransferInsertPayload carries this; it only affects the local estimate
+  // and, in demo mode, the numbers actually recorded on the demo transfer.
+  const [customerRateOverrides, setCustomerRateOverrides] = useState<Record<number, number | null>>({});
+  const [customerRateEditing, setCustomerRateEditing] = useState<Record<number, boolean>>({});
+  // Per-beneficiary flat additional fee, on top of the resolved Service
+  // Charge. Same "not part of TransferInsertPayload yet" caveat as the rate
+  // override above.
+  const [additionalFeeByBeneficiary, setAdditionalFeeByBeneficiary] = useState<Record<number, number>>({});
   const [stage, setStage] = useState<Stage>("form");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -287,19 +319,6 @@ export default function TransactionSendPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPartner?.country]);
 
-  // Source currency follows the selected agent-partner's own settlement
-  // currency field — not picked independently, and not tied to the
-  // logged-in user's own partner record, since the Partner ID dropdown
-  // above may point at a different agent-type partner.
-  useEffect(() => {
-    const resolved =
-      selectedPartner?.settlementCurrency && currencyOptions.includes(selectedPartner.settlementCurrency)
-        ? selectedPartner.settlementCurrency
-        : "";
-    setForm((prev) => (prev.sourceCurrency === resolved ? prev : { ...prev, sourceCurrency: resolved }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPartner?.settlementCurrency, exchangeRates]);
-
   // Destination country is still derived from the beneficiary's country, but
   // destination currency is now chosen manually by the agent per
   // beneficiary (see destinationCurrencyByBeneficiary) rather than being
@@ -425,19 +444,6 @@ export default function TransactionSendPanel() {
     return convertAmount(amount, sourceCurrencyFor(beneficiaryId), destinationCurrency, estimatedRates);
   }
 
-  // Reads lib/transferMath.ts's resolveFee, which is itself a stub while
-  // SERVICE_FEE_SOURCE_CONFIRMED is false — see config/businessRules.ts.
-  // Matched by destination currency code (serviceChargeData's
-  // countrySymbol is a currency code like NPR/INR, not a country name).
-  function estimatedFeeFor(beneficiaryId: number, destinationCurrency: string): number {
-    return resolveFee({
-      destinationCurrency,
-      agentName: selectedPartner?.partnerId ?? "",
-      deliveryOption: methodFor(beneficiaryId),
-      serviceCharges,
-    });
-  }
-
   // Full charge breakdown for one beneficiary's leg — same calculateTransfer
   // used at submit time (handleConfirmSubmit), so the live estimate shown
   // here never drifts from what's actually recorded once sent.
@@ -466,15 +472,100 @@ export default function TransactionSendPanel() {
     });
   }
 
+  function additionalFeeFor(beneficiaryId: number): number {
+    return additionalFeeByBeneficiary[beneficiaryId] ?? 0;
+  }
+
+  function customerRateOverrideFor(beneficiaryId: number): number | null {
+    return customerRateOverrides[beneficiaryId] ?? null;
+  }
+
+  // Recomputes the receiver-side amount using a manually entered Customer
+  // Rate instead of the computed retail rate — mirrors convertAmount's two
+  // directly-quoted branches (never called for the foreign->foreign
+  // corridor, where the Edit control is disabled below).
+  function recomputeReceiverAmountWithRate(
+    amount: number,
+    sourceCurrency: string,
+    destinationCurrency: string,
+    rate: number
+  ): number | null {
+    if (destinationCurrency === HOME_CURRENCY) {
+      const unit = estimatedRates[sourceCurrency]?.unit;
+      if (!unit) return null;
+      return (amount / unit) * rate;
+    }
+    if (sourceCurrency === HOME_CURRENCY) {
+      const unit = estimatedRates[destinationCurrency]?.unit;
+      if (!unit || rate <= 0) return null;
+      return (amount / rate) * unit;
+    }
+    return null;
+  }
+
+  function toggleCustomerRateEditing(beneficiaryId: number, retailRate: number | null) {
+    setCustomerRateEditing((prev) => {
+      const next = !prev[beneficiaryId];
+      if (!next) {
+        // Turning "Edit" off reverts to the computed rate rather than
+        // leaving a stale override behind that no longer has a visible
+        // control to change it back.
+        setCustomerRateOverrides((p) => ({ ...p, [beneficiaryId]: null }));
+      } else if (retailRate !== null) {
+        setCustomerRateOverrides((p) => (p[beneficiaryId] != null ? p : { ...p, [beneficiaryId]: retailRate }));
+      }
+      return { ...prev, [beneficiaryId]: next };
+    });
+  }
+
+  // Layers Additional Fee / Discount / Customer-Rate-override on top of the
+  // confirmed calculateTransfer breakdown for one beneficiary — these extra
+  // numbers feed the "Transaction Detail" box below. None of them are part
+  // of TransferInsertPayload yet (same status as feeAmountMOCKONLY
+  // elsewhere in this app): they're local estimates until backend confirms
+  // a real place to send them.
+  function transactionDetailFor(beneficiary: { id: number; country: string }) {
+    const breakdown = chargeBreakdownFor(beneficiary);
+    const destinationCurrency = destinationCurrencyFor(beneficiary.id, beneficiary);
+    const sourceCurrency = sourceCurrencyFor(beneficiary.id);
+    const amount = amountsByBeneficiary[beneficiary.id] ?? 0;
+
+    const discountPercent = discountPercentByOption[discount] ?? 0;
+    const serviceChargeAfterDiscount = breakdown.fee * (1 - discountPercent / 100);
+    const additionalFee = additionalFeeFor(beneficiary.id);
+
+    const overrideRate = customerRateOverrideFor(beneficiary.id);
+    const customerRate = overrideRate ?? breakdown.retailRate;
+    const receiveAmount =
+      overrideRate !== null && overrideRate > 0
+        ? recomputeReceiverAmountWithRate(amount, sourceCurrency, destinationCurrency, overrideRate) ??
+          breakdown.receiverAmount
+        : breakdown.receiverAmount;
+
+    return {
+      ...breakdown,
+      sourceCurrency,
+      destinationCurrency,
+      amount,
+      discountPercent,
+      serviceChargeAfterDiscount,
+      additionalFee,
+      customerRate,
+      payoutAmountFC: breakdown.receiverAmount,
+      receiveAmount,
+      collectedAmount: amount + serviceChargeAfterDiscount + additionalFee,
+    };
+  }
+
   // Grouped by source currency rather than a single combined figure — each
   // beneficiary can now debit a different currency (see
   // sourceCurrencyByBeneficiary), so adding them together would silently mix
   // currencies into one meaningless number.
   const totalsToDebitByCurrency = selectedBeneficiaries.reduce<Record<string, number>>((totals, b) => {
     const amount = amountsByBeneficiary[b.id] ?? 0;
-    const fee = estimatedFeeFor(b.id, destinationCurrencyFor(b.id, b));
+    const collectedAmount = amount > 0 ? transactionDetailFor(b).collectedAmount : amount;
     const currency = sourceCurrencyFor(b.id) || "—";
-    totals[currency] = (totals[currency] ?? 0) + amount + fee;
+    totals[currency] = (totals[currency] ?? 0) + collectedAmount;
     return totals;
   }, {});
 
@@ -510,19 +601,12 @@ export default function TransactionSendPanel() {
           amount,
           commissions
         );
-        const breakdown = calculateTransfer({
-          amount,
-          sourceCurrency,
-          destinationCurrency,
-          destinationCountry,
-          agentName,
-          deliveryOption: methodFor(beneficiary.id),
-          commissionRate,
-          rates: estimatedRates,
-          partnerOfferRates,
-          serviceCharges,
-          margins,
-        });
+        // Folds Additional Fee / Discount / Customer-Rate-override into the
+        // same existing fields (exchangeRate/fee/totalAmount/receiverAmount)
+        // rather than adding new ones — TransferRecord already has a slot
+        // for "the rate/fee/amount that actually applied," so the override
+        // just changes what value lands there instead of needing new schema.
+        const detail = transactionDetailFor(beneficiary);
         return {
           ...form,
           sourceCurrency,
@@ -537,21 +621,24 @@ export default function TransactionSendPanel() {
           status: "INSERTED",
           provider: "demo",
           providerReference: "",
-          exchangeRate: breakdown.retailRate ?? 0,
-          fee: breakdown.fee,
-          totalAmount: amount + breakdown.fee,
-          receiverAmount: breakdown.receiverAmount ?? 0,
+          exchangeRate: detail.customerRate ?? 0,
+          fee: detail.serviceChargeAfterDiscount + detail.additionalFee,
+          totalAmount: detail.collectedAmount,
+          receiverAmount: detail.receiveAmount ?? 0,
           createdAt: now,
           updatedAt: now,
           rateBreakdownMOCKONLY: {
             agentName,
-            retailRate: breakdown.retailRate,
-            wholesaleRate: breakdown.wholesaleRate,
-            fxSpread: breakdown.fxSpread,
+            retailRate: detail.customerRate,
+            wholesaleRate: detail.wholesaleRate,
+            fxSpread: detail.fxSpread,
             commissionRate,
-            commission: breakdown.commission,
-            marginRate: breakdown.marginRate,
-            netEarning: breakdown.netEarning,
+            commission: detail.commission,
+            marginRate: detail.marginRate,
+            netEarning:
+              detail.fxSpread !== null
+                ? detail.serviceChargeAfterDiscount + detail.additionalFee + detail.fxSpread - detail.commission
+                : null,
             computedAt: now,
           },
         };
@@ -599,6 +686,8 @@ export default function TransactionSendPanel() {
     setForm(emptyTransferInsertPayload());
     setPartnerSelection(emptyPartnerSelection());
     setTradeRestrictions(emptyTradeRestrictions());
+    setCollectMethod(collectMethodOptions[0]);
+    setDiscount(discountOptions[0]);
     setBeneficiaryIds([]);
     setAmountsByBeneficiary({});
     setSourceCurrencyByBeneficiary({});
@@ -607,6 +696,9 @@ export default function TransactionSendPanel() {
     setMethodByBeneficiary({});
     setBankByBeneficiary({});
     setWalletByBeneficiary({});
+    setCustomerRateOverrides({});
+    setCustomerRateEditing({});
+    setAdditionalFeeByBeneficiary({});
     setResults([]);
     setSubmitError(null);
     setEstimatedRates({});
@@ -759,6 +851,48 @@ export default function TransactionSendPanel() {
           <h2 className="sm:col-span-2 text-base font-bold text-heading border-b border-border pb-3">
             Transaction Details
           </h2>
+
+          <div className="sm:col-span-2 flex flex-col gap-3 rounded-xl border border-dashed border-border bg-panel p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <span className="text-sm font-semibold text-heading">Amount Collect From Remitter:</span>
+              <span className="text-xs text-muted">Applies once to the whole transaction, not per beneficiary.</span>
+            </div>
+            <div role="radiogroup" aria-label="Amount collect from remitter" className="flex flex-wrap gap-x-6 gap-y-2">
+              {collectMethodOptions.map((option) => (
+                <RadioPill
+                  key={option}
+                  label={option}
+                  checked={collectMethod === option}
+                  onSelect={() => setCollectMethod(option)}
+                />
+              ))}
+            </div>
+
+            <div className="mt-1 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-sm text-heading/70">Max Limit:</label>
+                <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-heading">
+                  {selectedPartner
+                    ? selectedPartner.creditLimit !== null
+                      ? `${formatAccounting(selectedPartner.creditLimit)} ${form.sourceCurrency || ""}`.trim()
+                      : "No limit set for this partner"
+                    : "Select a Partner ID first"}
+                </p>
+              </div>
+              <SelectField
+                label="Discount:"
+                options={discountOptions}
+                defaultValue={discountOptions[0]}
+                value={discount}
+                onChange={setDiscount}
+              />
+            </div>
+            <p className="text-xs text-muted">
+              Collection method and Max Limit are recorded for this session only — not yet part of the submitted
+              transaction. Discount reduces the Service Charge shown per beneficiary below, not the transfer amount.
+            </p>
+          </div>
+
           {verifiedSenders.length > 0 ? (
             <SelectField
               label="Sender:"
@@ -781,6 +915,9 @@ export default function TransactionSendPanel() {
                 setMethodByBeneficiary({});
                 setBankByBeneficiary({});
                 setWalletByBeneficiary({});
+                setCustomerRateOverrides({});
+                setCustomerRateEditing({});
+                setAdditionalFeeByBeneficiary({});
               }}
             />
           ) : (
@@ -806,7 +943,8 @@ export default function TransactionSendPanel() {
                   const destinationCurrency = destinationCurrencyFor(b.id, b);
                   const amount = amountsByBeneficiary[b.id] ?? 0;
                   const payout = destinationCurrency ? estimatedPayoutFor(b.id, destinationCurrency) : null;
-                  const breakdown = checked && amount > 0 ? chargeBreakdownFor(b) : null;
+                  const detail = checked && amount > 0 ? transactionDetailFor(b) : null;
+                  const isEditingRate = customerRateEditing[b.id] ?? false;
                   const blocked =
                     checked && !ALLOW_CROSS_CURRENCY_CONVERSION &&
                     isCrossCurrencyCorridor(sourceCurrencyFor(b.id), destinationCurrency);
@@ -998,48 +1136,100 @@ export default function TransactionSendPanel() {
                           <span className="text-muted">Paid out as cash at pickup — no bank account needed.</span>
                         </div>
                       )}
-                      {breakdown && (
-                        <div className="ml-6 rounded-lg border border-dashed border-border bg-panel px-3 py-2.5">
-                          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">
-                              Charges for this beneficiary
-                            </span>
-                            {breakdown.retailRate !== null && (
-                              <span className="text-[11px] tabular-nums text-muted">
-                                Rate: 1 {sourceCurrencyFor(b.id)} = {formatAccounting(breakdown.retailRate)}{" "}
-                                {destinationCurrency}
-                              </span>
-                            )}
+                      {detail && (
+                        <div className="ml-6 overflow-hidden rounded-lg border border-border">
+                          <div className="bg-heading px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white">
+                            Transaction Detail
                           </div>
-                          <dl className="mt-2 flex flex-col gap-1 text-xs">
-                            <div className="flex items-center justify-between">
-                              <dt className="text-heading/70">Send amount</dt>
-                              <dd className="tabular-nums font-medium text-heading">
-                                {formatAccounting(amount)} {sourceCurrencyFor(b.id)}
-                              </dd>
+                          <div className="grid grid-cols-1 gap-x-4 gap-y-2.5 bg-panel px-3 py-2.5 sm:grid-cols-2">
+                            <LabeledAmount label="Transfer Amount (LC)">
+                              {formatAccounting(detail.amount)} {sourceCurrencyFor(b.id)}
+                            </LabeledAmount>
+                            <LabeledAmount label="Payout Amount (FC)" highlight>
+                              {detail.payoutAmountFC !== null ? formatAccounting(detail.payoutAmountFC) : "—"}{" "}
+                              {destinationCurrency}
+                            </LabeledAmount>
+
+                            <LabeledAmount label="Service Charge">
+                              {detail.discountPercent > 0 && (
+                                <span className="mr-1.5 text-[11px] text-muted line-through">
+                                  {formatAccounting(detail.fee)}
+                                </span>
+                              )}
+                              {formatAccounting(detail.serviceChargeAfterDiscount)} {sourceCurrencyFor(b.id)}
+                              {detail.discountPercent > 0 && (
+                                <span className="ml-1.5 text-[11px] text-brand-green-dark">
+                                  (-{detail.discountPercent}%)
+                                </span>
+                              )}
+                            </LabeledAmount>
+
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <dt className="text-xs text-heading/70">Customer Rate</dt>
+                                <Checkbox
+                                  checked={isEditingRate}
+                                  onToggle={() => toggleCustomerRateEditing(b.id, detail.retailRate)}
+                                  label="Edit"
+                                  className="text-[11px]"
+                                />
+                              </div>
+                              {isEditingRate ? (
+                                <input
+                                  type="number"
+                                  min={0}
+                                  step="any"
+                                  value={customerRateOverrideFor(b.id) ?? ""}
+                                  onChange={(e) =>
+                                    setCustomerRateOverrides((prev) => ({
+                                      ...prev,
+                                      [b.id]: Number(e.target.value) || 0,
+                                    }))
+                                  }
+                                  aria-label={`Customer rate for ${b.fullName}`}
+                                  className="w-full rounded-lg border border-brand-green bg-surface px-2.5 py-1.5 text-sm tabular-nums text-heading focus:outline-none focus:ring-1 focus:ring-brand-green"
+                                />
+                              ) : (
+                                <span className="rounded-lg bg-surface px-2.5 py-1.5 text-sm tabular-nums font-medium text-heading">
+                                  {detail.customerRate !== null ? formatAccounting(detail.customerRate) : "—"}
+                                </span>
+                              )}
                             </div>
-                            <div className="flex items-center justify-between">
-                              <dt className="text-heading/70">Service charge</dt>
-                              <dd className="tabular-nums font-medium text-heading">
-                                {formatAccounting(breakdown.fee)} {sourceCurrencyFor(b.id)}
-                              </dd>
+
+                            <div className="flex flex-col gap-1">
+                              <label
+                                htmlFor={`additional-fee-${b.id}`}
+                                className="text-xs text-heading/70"
+                              >
+                                Additional Fee
+                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <input
+                                  id={`additional-fee-${b.id}`}
+                                  type="number"
+                                  min={0}
+                                  value={additionalFeeFor(b.id) || ""}
+                                  placeholder="0"
+                                  onChange={(e) =>
+                                    setAdditionalFeeByBeneficiary((prev) => ({
+                                      ...prev,
+                                      [b.id]: Number(e.target.value) || 0,
+                                    }))
+                                  }
+                                  className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm tabular-nums text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
+                                />
+                                <span className="text-xs text-muted">{sourceCurrencyFor(b.id)}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center justify-between border-t border-dashed border-border pt-1">
-                              <dt className="font-semibold text-heading">Total collected</dt>
-                              <dd className="tabular-nums font-bold text-heading">
-                                {formatAccounting(breakdown.totalToPay)} {sourceCurrencyFor(b.id)}
-                              </dd>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <dt className="text-heading/70">Receiver gets</dt>
-                              <dd className="tabular-nums font-semibold text-brand-green-dark">
-                                {breakdown.receiverAmount !== null
-                                  ? formatAccounting(breakdown.receiverAmount)
-                                  : "—"}{" "}
-                                {destinationCurrency}
-                              </dd>
-                            </div>
-                          </dl>
+
+                            <LabeledAmount label="Collected Amount" bold>
+                              {formatAccounting(detail.collectedAmount)} {sourceCurrencyFor(b.id)}
+                            </LabeledAmount>
+                            <LabeledAmount label="Receive Amount" bold highlight>
+                              {detail.receiveAmount !== null ? formatAccounting(detail.receiveAmount) : "—"}{" "}
+                              {destinationCurrency}
+                            </LabeledAmount>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1078,16 +1268,17 @@ export default function TransactionSendPanel() {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm text-heading/70">Default Source Currency:</label>
-            <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-heading">
-              {form.sourceCurrency ||
-                (selectedPartner
-                  ? "Could not determine this partner's settlement currency — contact support."
-                  : "Select a Partner ID to determine the settlement currency.")}
-            </p>
+            <CurrencySelect
+              label="Default Source Currency:"
+              required
+              options={currencyOptions}
+              value={form.sourceCurrency}
+              onChange={(v) => updateField("sourceCurrency", v)}
+              emptyMessage="No tradeable currencies found — check Exchange Rates setup."
+            />
             <p className="text-xs text-muted">
-              Suggested from the selected partner&apos;s settlement currency — each beneficiary&apos;s own
-              From/To currency above can be changed independently.
+              Chosen for this transaction — not auto-filled from the selected partner. Seeds each new
+              beneficiary&apos;s own From currency below, which can still be changed independently per row.
             </p>
           </div>
 
@@ -1127,6 +1318,35 @@ export default function TransactionSendPanel() {
           </Button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// One labeled value inside the per-beneficiary "Transaction Detail" box —
+// `highlight` marks the FX-converted/receiver-facing fields (Payout
+// Amount, Receive Amount) the way the beneficiary list's own payout badge
+// above already uses brand-green for that purpose.
+function LabeledAmount({
+  label,
+  bold,
+  highlight,
+  children,
+}: {
+  label: string;
+  bold?: boolean;
+  highlight?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <dt className="text-xs text-heading/70">{label}</dt>
+      <dd
+        className={`tabular-nums rounded-lg px-2.5 py-1.5 text-sm ${
+          highlight ? "bg-brand-green-light text-brand-green-dark" : "bg-surface text-heading"
+        } ${bold ? "font-bold" : "font-medium"}`}
+      >
+        {children}
+      </dd>
     </div>
   );
 }

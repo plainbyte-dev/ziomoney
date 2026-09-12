@@ -10,11 +10,13 @@ import Checkbox from "./Checkbox";
 import { usePartners } from "@/contexts/PartnersContext";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { useRates } from "@/contexts/RatesContext";
 import { settlementCurrencyOptions, type PartnerEntry } from "@/data/partnerData";
 import {
   updateRemittancePartnerEmail,
   updateRemittancePartnerAcceptPin,
   insertRemittancePartnerTxnCurrency,
+  insertRemittancePartnerCountry,
   changeRemittancePartnerPassword,
 } from "@/lib/partnersApi";
 
@@ -36,6 +38,9 @@ export default function PartnerManageModal({
   const { updateEntry } = usePartners();
   const { notify } = useNotifications();
   const { isLive } = useDataMode();
+  const { countryCurrencies } = useRates();
+
+  const countryOptions = Array.from(new Set(countryCurrencies.map((c) => c.countryName))).sort();
 
   const [email, setEmail] = useState(entry?.email ?? "");
   const [emailSaving, setEmailSaving] = useState(false);
@@ -48,6 +53,10 @@ export default function PartnerManageModal({
   const [currency, setCurrency] = useState(settlementCurrencyOptions[0]);
   const [currencySaving, setCurrencySaving] = useState(false);
   const [currencyError, setCurrencyError] = useState<string | null>(null);
+
+  const [destCountry, setDestCountry] = useState(countryOptions[0] ?? "");
+  const [destCountrySaving, setDestCountrySaving] = useState(false);
+  const [destCountryError, setDestCountryError] = useState<string | null>(null);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -114,11 +123,61 @@ export default function PartnerManageModal({
     const response = await insertRemittancePartnerTxnCurrency(userName, currency);
     setCurrencySaving(false);
     if (!response.success) {
+      // There's no list endpoint for txnCurrencies (see PartnersContext), so
+      // this modal only knows what's been added THIS browser — a currency
+      // mapped in an earlier session, on another device, or lost to a
+      // localStorage wipe still exists server-side and gets rejected as a
+      // duplicate here. Treat that as "already in the desired state" and
+      // reconcile local state instead of leaving the admin stuck on an error
+      // for something that isn't actually wrong.
+      if (/already/i.test(response.message || "")) {
+        updateEntry(entry!.id, { txnCurrencies: [...(entry!.txnCurrencies ?? []), currency] });
+        notify({ title: "Already enabled", message: `${currency} was already mapped to ${userName}.` });
+        return;
+      }
       setCurrencyError(response.message || "Could not add the transaction currency.");
       return;
     }
     updateEntry(entry!.id, { txnCurrencies: [...(entry!.txnCurrencies ?? []), currency] });
     notify({ title: "Transaction currency added", message: `${userName} can now send ${currency}.` });
+  }
+
+  async function handleAddDestCountry() {
+    setDestCountryError(null);
+    if (!destCountry) {
+      setDestCountryError("Pick a country first.");
+      return;
+    }
+    if (entry!.destCountries?.includes(destCountry)) {
+      setDestCountryError(`${destCountry} is already enabled for this partner.`);
+      return;
+    }
+    setDestCountrySaving(true);
+    if (!isLive) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      updateEntry(entry!.id, { destCountries: [...(entry!.destCountries ?? []), destCountry] });
+      notify({ title: "Destination country added", message: `${userName} can now be used for ${destCountry}-wise rates.` });
+      setDestCountrySaving(false);
+      return;
+    }
+    const response = await insertRemittancePartnerCountry(userName, destCountry);
+    setDestCountrySaving(false);
+    if (!response.success) {
+      // Same reasoning as handleAddCurrency above: no list endpoint for
+      // destCountries either, so a country mapped in an earlier session, on
+      // another device, or lost to a localStorage wipe still exists
+      // server-side — reconcile local state instead of showing a dead-end
+      // error for something that isn't actually wrong.
+      if (/already/i.test(response.message || "")) {
+        updateEntry(entry!.id, { destCountries: [...(entry!.destCountries ?? []), destCountry] });
+        notify({ title: "Already enabled", message: `${destCountry} was already mapped to ${userName}.` });
+        return;
+      }
+      setDestCountryError(response.message || "Could not add the destination country.");
+      return;
+    }
+    updateEntry(entry!.id, { destCountries: [...(entry!.destCountries ?? []), destCountry] });
+    notify({ title: "Destination country added", message: `${userName} can now be used for ${destCountry}-wise rates.` });
   }
 
   async function handleChangePassword() {
@@ -217,6 +276,42 @@ export default function PartnerManageModal({
               </Button>
             </div>
             {currencyError && <p className="mt-2 text-xs text-red-600">{currencyError}</p>}
+          </section>
+
+          <section className="border-t border-border pt-5">
+            <p className="mb-3 text-sm font-semibold text-heading/70">Destination Countries</p>
+            {entry.destCountries && entry.destCountries.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {entry.destCountries.map((country) => (
+                  <span
+                    key={country}
+                    className="rounded-full bg-brand-blue-light px-2.5 py-1 text-xs font-semibold text-brand-blue"
+                  >
+                    {country}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex items-end gap-3">
+              <div className="flex-1">
+                <SelectField
+                  label="Country:"
+                  options={countryOptions}
+                  defaultValue={countryOptions[0] ?? ""}
+                  value={destCountry}
+                  onChange={setDestCountry}
+                />
+              </div>
+              <Button variant="secondary" size="md" onClick={handleAddDestCountry} loading={destCountrySaving}>
+                Add
+              </Button>
+            </div>
+            {countryOptions.length === 0 && (
+              <p className="mt-2 text-xs text-muted">
+                No countries set up yet — add rows on the Country/Currency tab first.
+              </p>
+            )}
+            {destCountryError && <p className="mt-2 text-xs text-red-600">{destCountryError}</p>}
           </section>
 
           <section className="border-t border-border pt-5">

@@ -5,7 +5,7 @@ import { loadState, saveState } from "@/lib/persist";
 import { useNotifications } from "./NotificationsContext";
 import { useDataMode } from "./DataModeContext";
 import { listRemittancePartners, type RemittancePartnerRecord } from "@/lib/partnersApi";
-import { partnerEntries as initialEntries, type PartnerEntry } from "@/data/partnerData";
+import { partnerEntries as initialEntries, normalizedPartnerName, type PartnerEntry } from "@/data/partnerData";
 
 interface PartnersContextValue {
   entries: PartnerEntry[];
@@ -74,10 +74,29 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
     saveState(STORAGE_KEY, entries);
   }, [entries]);
 
+  // listRemittancePartners has no way to report txnCurrencies/destCountries
+  // back (both are set via their own insert-only endpoints with no list
+  // counterpart — same gap as countryCurrencies in RatesContext) — so a
+  // refresh keeps whatever was already known locally for those fields,
+  // matched by partner name, instead of wiping them back to empty. Seeded
+  // straight from localStorage (not from `entries`, which starts at [] in
+  // live mode) so even the very first refresh right after a Live-mode page
+  // reload has something to merge from — otherwise the restore-from-storage
+  // effect above (demo-only) never gets a chance to run before refreshEntries
+  // already wiped these fields back to nothing.
+  const entriesRef = useRef<PartnerEntry[]>(loadState<PartnerEntry[]>(STORAGE_KEY) ?? entries);
+  useEffect(() => {
+    entriesRef.current = entries;
+  }, [entries]);
+
   const refreshEntries = useCallback(async () => {
     // In static/demo mode there's no backend to refresh from — the list
     // already reflects whatever the admin has done locally.
     if (!isLive) return;
+
+    const previousByName = new Map(
+      entriesRef.current.map((entry) => [normalizedPartnerName(entry.partnerName), entry])
+    );
 
     // Wipe out whatever was there (e.g. demo-mode entries, if this refresh
     // was triggered by just switching into live mode) before fetching —
@@ -91,10 +110,23 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
 
     if (!response.success) {
       setEntriesError(response.message || "Could not load remittance partners.");
+      // A failed fetch (e.g. the token expiring mid-session, a 401) must not
+      // leave the list wiped to nothing until the next successful refresh —
+      // restore whatever was known before this attempt so a transient/auth
+      // failure doesn't look identical to "there are no partners."
+      setEntries(entriesRef.current);
       return;
     }
 
-    setEntries((response.data ?? []).map(mapPartnerRecord));
+    setEntries(
+      (response.data ?? []).map((record) => {
+        const mapped = mapPartnerRecord(record);
+        const previous = previousByName.get(normalizedPartnerName(mapped.partnerName));
+        return previous
+          ? { ...mapped, txnCurrencies: previous.txnCurrencies, destCountries: previous.destCountries }
+          : mapped;
+      })
+    );
   }, [isLive]);
 
   useEffect(() => {

@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, RefreshCw, X } from "lucide-react";
 import { useRates } from "@/contexts/RatesContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import TextField from "./TextField";
+import CurrencySelect from "./CurrencySelect";
 import Checkbox from "./Checkbox";
 import Button from "./Button";
 import { emptyExchangeRatePayload, type ExchangeRateRecord, type ExchangeRateUpsertPayload } from "@/data/exchangeRateData";
+import { flagEmojiFromIso2 } from "@/lib/flagEmoji";
+import { currencyNameFromCode } from "@/lib/currencyNames";
 
 // Dedicated tab for the "Country Wise" link on the Exchange Rate Setup grid
 // (ExchangeRatesPanel) — Country Wise isn't scoped to any one partner, so
@@ -16,15 +19,32 @@ import { emptyExchangeRatePayload, type ExchangeRateRecord, type ExchangeRateUps
 // own full table/tab.
 export default function CountryWiseExchangeRatePanel() {
   const { isLive } = useDataMode();
-  const { exchangeRates, exchangeRatesLoading, exchangeRatesError, refreshExchangeRates, saveExchangeRate } =
+  const { exchangeRates, exchangeRatesLoading, exchangeRatesError, refreshExchangeRates, saveExchangeRate, countryCurrencies } =
     useRates();
 
   const countryWiseRates = exchangeRates.filter((rate) => rate.setupTypeMOCKONLY === "COUNTRY");
+
+  const formRef = useRef<HTMLDivElement | null>(null);
 
   const [editingSymbol, setEditingSymbol] = useState<string | null>(null);
   const [form, setForm] = useState<ExchangeRateUpsertPayload>(emptyExchangeRatePayload());
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Country choices come from the Country/Currency reference table, not free
+  // text, so the symbol/ISO code/flag saved here always match what's on file
+  // there. A country being edited that predates that table (legacy seed data)
+  // is still shown so its row doesn't disappear from the dropdown.
+  const countryOptions = Array.from(new Set(countryCurrencies.map((c) => c.countryName))).sort();
+  const selectableCountries =
+    form.countryName && !countryOptions.includes(form.countryName)
+      ? [form.countryName, ...countryOptions]
+      : countryOptions;
+  // A country can have more than one currency row on file (e.g. imported
+  // twice with different currencies) — offer all of them rather than
+  // silently picking the first match.
+  const currencyMatches = countryCurrencies.filter((c) => c.countryName === form.countryName);
+  const matchedCountry = currencyMatches.find((c) => c.currencyCode === form.symbol) ?? currencyMatches[0];
 
   useEffect(() => {
     refreshExchangeRates();
@@ -33,6 +53,29 @@ export default function CountryWiseExchangeRatePanel() {
 
   function updateField<K extends keyof ExchangeRateUpsertPayload>(field: K, value: ExchangeRateUpsertPayload[K]) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function handleCountryChange(countryName: string) {
+    const match = countryCurrencies.find((c) => c.countryName === countryName);
+    setForm((prev) => ({
+      ...prev,
+      countryName,
+      symbol: match?.currencyCode ?? prev.symbol,
+      currencyName: match ? currencyNameFromCode(match.currencyCode) : prev.currencyName,
+      countryIsoCode: match?.isoAlpha2 ?? prev.countryIsoCode,
+      flag: match ? flagEmojiFromIso2(match.isoAlpha2) : prev.flag,
+    }));
+  }
+
+  function handleCurrencyChange(currencyCode: string) {
+    const match = currencyMatches.find((c) => c.currencyCode === currencyCode);
+    setForm((prev) => ({
+      ...prev,
+      symbol: currencyCode,
+      currencyName: currencyNameFromCode(currencyCode),
+      countryIsoCode: match?.isoAlpha2 ?? prev.countryIsoCode,
+      flag: match ? flagEmojiFromIso2(match.isoAlpha2) : prev.flag,
+    }));
   }
 
   function startEdit(rate: ExchangeRateRecord) {
@@ -52,6 +95,9 @@ export default function CountryWiseExchangeRatePanel() {
       setupTypeMOCKONLY: "COUNTRY",
     });
     setSaveError(null);
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    formRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
   }
 
   function cancelEdit() {
@@ -152,32 +198,58 @@ export default function CountryWiseExchangeRatePanel() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border shadow-card">
+      <div ref={formRef} className="overflow-hidden rounded-2xl border border-border shadow-card scroll-mt-6">
         <div className="border-b border-border px-6 py-4">
           <h2 className="text-base font-bold text-heading">
             {editingSymbol === null ? "Add Country Wise Rate" : `Update ${editingSymbol}`}
           </h2>
         </div>
         <form onSubmit={handleSave} className="grid grid-cols-1 gap-x-6 gap-y-5 bg-panel p-6 sm:grid-cols-3 sm:p-8">
-          <TextField label="Symbol:" required value={form.symbol} onChange={(v) => updateField("symbol", v)} />
-          <TextField
-            label="Country Name:"
+          <CurrencySelect
+            label="Country:"
             required
+            options={selectableCountries}
             value={form.countryName}
-            onChange={(v) => updateField("countryName", v)}
+            onChange={handleCountryChange}
+            emptyMessage="No countries set up yet — add rows on the Country/Currency tab first."
           />
+          {currencyMatches.length > 0 ? (
+            <CurrencySelect
+              label="Symbol:"
+              required
+              options={currencyMatches.map((c) => c.currencyCode)}
+              value={form.symbol}
+              onChange={handleCurrencyChange}
+            />
+          ) : (
+            <TextField label="Symbol:" required value={form.symbol} onChange={(v) => updateField("symbol", v)} />
+          )}
           <TextField
             label="Currency Name:"
             required
+            disabled={Boolean(matchedCountry)}
             value={form.currencyName}
             onChange={(v) => updateField("currencyName", v)}
           />
           <TextField
             label="Country ISO Code:"
+            disabled={Boolean(matchedCountry)}
             value={form.countryIsoCode}
             onChange={(v) => updateField("countryIsoCode", v)}
           />
-          <TextField label="Flag (emoji):" value={form.flag} onChange={(v) => updateField("flag", v)} />
+          <TextField
+            label="Flag (emoji):"
+            disabled={Boolean(matchedCountry)}
+            value={form.flag}
+            onChange={(v) => updateField("flag", v)}
+          />
+          {matchedCountry && (
+            <p className="sm:col-span-3 -mt-2 text-xs text-muted">
+              {currencyMatches.length > 1
+                ? `${currencyMatches.length} currencies are on file for ${matchedCountry.countryName} — pick one above. Currency name, ISO code and flag are sourced from the Country/Currency setup.`
+                : `Symbol, currency name, ISO code and flag are sourced from the Country/Currency setup for ${matchedCountry.countryName}.`}
+            </p>
+          )}
           <TextField
             label="Unit:"
             value={String(form.unit)}

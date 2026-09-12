@@ -11,6 +11,7 @@ const ACTIONS: Record<string, { path: string; method: "GET" | "POST" }> = {
   "update-email": { path: "/updateRemittancePartnerEmail", method: "POST" },
   "update-accept-pin": { path: "/updateRemittancePartnerAcceptPin", method: "POST" },
   "insert-txn-currency": { path: "/insertRemittancePartnerTxnCurrency", method: "POST" },
+  "insert-country": { path: "/insertRemittancePartnerCountry", method: "POST" },
   "insert-agent-partner": { path: "/insertAgentPartner", method: "POST" },
   "change-password": { path: "/changeRemittancePartnerPassword", method: "POST" },
   "insert-payout-config": { path: "/insertRemittancePayoutPartnerConfiguration", method: "POST" },

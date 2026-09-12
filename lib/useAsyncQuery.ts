@@ -26,6 +26,14 @@ export interface AsyncQueryOptions<D> {
   fetch: () => Promise<ApiResponse<D>>;
   onSuccess: (data: D) => void;
   fallbackErrorMessage: string;
+  // Called instead of leaving state at whatever `clear()` set it to when the
+  // fetch fails (e.g. a 401 from an expired token) — without this, a
+  // transient/auth failure permanently blanks the screen until the next
+  // successful refresh, indistinguishable from "there's genuinely nothing
+  // here." Optional only for backward compatibility with existing callers;
+  // new callers should always pass one that restores whatever was on screen
+  // before this run (capture it in a closure before calling `run`).
+  restore?: () => void;
 }
 
 export function useAsyncQuery() {
@@ -44,6 +52,7 @@ export function useAsyncQuery() {
 
     if (!response.success) {
       setError(response.message || options.fallbackErrorMessage);
+      options.restore?.();
       return;
     }
     options.onSuccess((response.data ?? null) as D);

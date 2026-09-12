@@ -6,7 +6,7 @@ import { useRates } from "@/contexts/RatesContext";
 import { usePartners } from "@/contexts/PartnersContext";
 import { useDataMode } from "@/contexts/DataModeContext";
 import SelectField from "./SelectField";
-import CurrencySelect from "./CurrencySelect";
+import CurrencySelect, { type CurrencySelectOption } from "./CurrencySelect";
 import Checkbox from "./Checkbox";
 import Button from "./Button";
 import ServiceChargeSetupModal, { type ServiceChargeSetupTarget } from "./ServiceChargeSetupModal";
@@ -16,7 +16,8 @@ import {
   type ServiceChargeRecord,
   type ServiceChargeUpsertPayload,
 } from "@/data/serviceChargeData";
-import { setupTypeLabels, setupTypeValues } from "@/data/setupTypeData";
+import { setupTypeLabels } from "@/data/setupTypeData";
+import { dedupePartnerEntriesByName } from "@/data/partnerData";
 
 export default function ServiceChargesPanel() {
   const { isLive } = useDataMode();
@@ -30,15 +31,22 @@ export default function ServiceChargesPanel() {
   } = useRates();
   const { entries: partners } = usePartners();
 
-  const countrySymbolOptions = Array.from(new Set(countryCurrencies.map((c) => c.currencyCode))).filter(
-    Boolean
-  );
+  // One entry per currency code, labeled with its country so the picker shows
+  // exactly what's on file in the Country/Currency reference table rather
+  // than a bare code — the saved value is still just the currency code.
+  const countrySymbolOptions: CurrencySelectOption[] = Array.from(
+    new Map(countryCurrencies.map((c) => [c.currencyCode, c])).values()
+  )
+    .filter((c) => c.currencyCode)
+    .map((c) => ({ value: c.currencyCode, label: `${c.countryName} — ${c.currencyCode}` }));
   const agentOptions = partners.filter((p) => p.partnerType === "Agent").map((p) => p.partnerName);
 
   // One row per registered partner — the setup grid below, matching the
   // legacy Country/Partner/[3 setup links] layout. Deduplicated by name in
-  // case the same partner appears more than once in Partner Info.
-  const partnerRows = Array.from(new Map(partners.map((p) => [p.partnerName, p])).values());
+  // case the same partner appears more than once in Partner Info, merging
+  // txnCurrencies/destCountries across duplicates rather than picking one
+  // arbitrarily.
+  const partnerRows = dedupePartnerEntriesByName(partners);
 
   const [setupTarget, setSetupTarget] = useState<ServiceChargeSetupTarget | null>(null);
   const [setupSaving, setSetupSaving] = useState(false);
@@ -142,19 +150,33 @@ export default function ServiceChargesPanel() {
                     <td className="px-4 py-3 text-heading/80">{partner.country}</td>
                     <td className="px-4 py-3 font-medium text-heading">{partner.partnerName}</td>
                     <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-x-4 gap-y-1">
-                        {setupTypeValues.map((option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            onClick={() =>
-                              setSetupTarget({ country: partner.country, partnerName: partner.partnerName, setupType: option })
-                            }
-                            className="text-sm font-medium text-brand-blue underline decoration-brand-blue/40 underline-offset-2 hover:text-brand-blue-dark"
-                          >
-                            [{setupTypeLabels[option]}]
-                          </button>
-                        ))}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setSetupTarget({ partnerName: partner.partnerName, setupType: "COUNTRY" })}
+                        >
+                          {setupTypeLabels.COUNTRY}
+                        </Button>
+
+                        {partner.destCountries && partner.destCountries.length > 0 ? (
+                          (["PARTNER", "THIRD_PARTY_AGENT"] as const).map((option) => (
+                            <Button
+                              key={option}
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => setSetupTarget({ partnerName: partner.partnerName, setupType: option })}
+                            >
+                              {setupTypeLabels[option]}
+                            </Button>
+                          ))
+                        ) : (
+                          <span className="text-xs text-muted">
+                            No destination countries enabled — add some in Manage Partner.
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -177,6 +199,7 @@ export default function ServiceChargesPanel() {
         target={setupTarget}
         existing={setupTarget ? findExistingSetup(setupTarget) : undefined}
         countrySymbolOptions={countrySymbolOptions}
+        partners={partners}
         saving={setupSaving}
         error={setupError}
         onCancel={() => {

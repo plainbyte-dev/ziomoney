@@ -46,6 +46,18 @@ export const japanPrefectureOptions = [
 
 export const discountOptions = ["--SELECT DISCOUNT--", "Loyalty 5%", "Promo Code", "Staff Discount"];
 
+// UNCONFIRMED with backend — no documented discount endpoint/schema exists
+// yet. These percentages, applied to the computed Service Charge only (not
+// the transfer amount itself), are local UI-only placeholders so the
+// Discount dropdown does something meaningful before a real
+// discount-lookup endpoint is confirmed. Wire to a real source once one exists.
+export const discountPercentByOption: Record<string, number> = {
+  "--SELECT DISCOUNT--": 0,
+  "Loyalty 5%": 5,
+  "Promo Code": 10,
+  "Staff Discount": 100,
+};
+
 export const payoutPartnerBankOptions = [
   "NEPAL- TRANSCASH",
   "INDIA - TCI BANK",

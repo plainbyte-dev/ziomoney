@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Zio Money Admin — Feature → API Integration Map</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #1a1f16;
+    font-size: 10.5px;
+    line-height: 1.45;
+    margin: 0;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subtitle { color: #555; font-size: 11px; margin: 0 0 18px; }
+  h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: #1f2d1a;
+    color: #fff;
+    padding: 6px 10px;
+    margin: 22px 0 8px;
+    border-radius: 3px;
+    page-break-after: avoid;
+  }
+  h2:first-of-type { margin-top: 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 4px;
+    page-break-inside: auto;
+  }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  th, td {
+    border: 1px solid #d8ddd2;
+    padding: 5px 7px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #eef1e9;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #33402b;
+  }
+  td.feature { font-weight: 600; width: 15%; }
+  td.component { width: 15%; font-family: "Consolas", monospace; font-size: 9.5px; color: #445; }
+  td.source { width: 12%; }
+  td.api { width: 40%; font-family: "Consolas", monospace; font-size: 9px; }
+  td.notes { width: 18%; font-size: 9px; color: #555; }
+  .route { display: block; margin-bottom: 3px; }
+  .method {
+    display: inline-block;
+    font-weight: 700;
+    font-size: 8.5px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    color: #fff;
+    margin-right: 4px;
+    min-width: 32px;
+    text-align: center;
+  }
+  .GET { background: #2f6f3e; }
+  .POST { background: #2a5db0; }
+  .PUT { background: #a3690f; }
+  .DELETE { background: #a3342f; }
+  .local {
+    display: inline-block;
+    background: #6b6f66;
+    color: #fff;
+    font-size: 8.5px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 2px;
+  }
+  .arrow { color: #888; }
+  .legend {
+    margin: 10px 0 20px;
+    font-size: 9.5px;
+    color: #444;
+  }
+  .legend span { margin-right: 14px; }
+  .toc {
+    columns: 2;
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+  .toc a { color: #2a5db0; text-decoration: none; }
+  footer { margin-top: 24px; font-size: 8.5px; color: #888; }
+</style>
+</head>
+<body>
+
+<h1>Zio Money Admin — Feature → API Integration Map</h1>
+<p class="subtitle">
+  Every screen in the sidebar/tab workspace, the component that renders it, where its data
+  comes from (React Context vs. direct call), and every Remittance/Auth API endpoint it
+  integrates with in Live mode. Generated from the current state of <code>data/tabRegistry.tsx</code>,
+  <code>contexts/*.tsx</code>, and <code>lib/*Api.ts</code>. Cross-reference with
+  <code>docs/03-api-reference.md</code> for full endpoint details.
+</p>
+
+<div class="legend">
+  <span><span class="method GET">GET</span> read</span>
+  <span><span class="method POST">POST</span> write / query</span>
+  <span><span class="method PUT">PUT</span> update</span>
+  <span><span class="method DELETE">DELETE</span> remove</span>
+  <span><span class="local">LOCAL</span> demo/mock data only — no live backend call today</span>
+</div>
+
+<!-- ============ ACCOUNTS DETAIL ============ -->
+<h2>Accounts Detail</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+
+<tr>
+  <td class="feature">Correspondence Report</td>
+  <td class="component">CorrespondenceReportCard</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/correspondenceReportData.ts — no confirmed upstream endpoint</td>
+</tr>
+<tr>
+  <td class="feature">Report Results</td>
+  <td class="component">CorrespondenceReportResultsPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">Same source as Correspondence Report</td>
+</tr>
+<tr>
+  <td class="feature">Ledger List</td>
+  <td class="component">LedgerListPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/ledgerData.ts — CRUD is in-memory only</td>
+</tr>
+<tr>
+  <td class="feature">Create New Ledger</td>
+  <td class="component">CreateLedgerForm</td>
+  <td class="source">local + RatesContext</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">Currency dropdown reads RatesContext cache, no submit endpoint yet</td>
+</tr>
+<tr>
+  <td class="feature">Voucher Entry</td>
+  <td class="component">VoucherEntryPanel / VoucherEntryForm</td>
+  <td class="source">VouchersContext (local)</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">VouchersContext is localStorage-only, no backend module exists</td>
+</tr>
+<tr>
+  <td class="feature">Voucher Approval</td>
+  <td class="component">VoucherApprovalPanel</td>
+  <td class="source">VouchersContext (local)</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">Same as Voucher Entry</td>
+</tr>
+<tr>
+  <td class="feature">Statement of Account</td>
+  <td class="component">StatementOfAccountPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/statementOfAccountData.ts, statementOfAccountReportData.ts</td>
+</tr>
+<tr>
+  <td class="feature">Daily Report</td>
+  <td class="component">DailyReportPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">No reporting endpoint wired yet</td>
+</tr>
+<tr>
+  <td class="feature">Summary Report</td>
+  <td class="component">SummaryReportPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">No reporting endpoint wired yet</td>
+</tr>
+</table>
+
+<!-- ============ PARTNERS ============ -->
+<h2>Partners</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+
+<tr>
+  <td class="feature">Partner Info</td>
+  <td class="component">PartnerInfoPanel<br/>PartnerManageModal</td>
+  <td class="source">PartnersContext</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/partners/list <span class="arrow">→</span> /obtainAllRemittancePartner</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/insert-agent-partner <span class="arrow">→</span> /insertAgentPartner</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/update-email <span class="arrow">→</span> /updateRemittancePartnerEmail</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/update-accept-pin <span class="arrow">→</span> /updateRemittancePartnerAcceptPin</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/insert-txn-currency <span class="arrow">→</span> /insertRemittancePartnerTxnCurrency</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/insert-country <span class="arrow">→</span> /insertRemittancePartnerCountry</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/change-password <span class="arrow">→</span> /changeRemittancePartnerPassword</span>
+  </td>
+  <td class="notes">Manage modal drives the update actions; list is loaded once by PartnersContext</td>
+</tr>
+<tr>
+  <td class="feature">New Partner</td>
+  <td class="component">CreatePartnerForm</td>
+  <td class="source">direct (partnersApi)</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/partners/register <span class="arrow">→</span> /insertRemittancePartner</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/insert-txn-currency <span class="arrow">→</span> /insertRemittancePartnerTxnCurrency</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/insert-payout-config <span class="arrow">→</span> /insertRemittancePayoutPartnerConfiguration</span>
+  </td>
+  <td class="notes">Three-step create flow chained in one submit handler</td>
+</tr>
+<tr>
+  <td class="feature">Balance &amp; Credit Adjustments</td>
+  <td class="component">PartnerBalanceCreditPanel</td>
+  <td class="source">direct (partnersApi)</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/partners/add-actual-balance <span class="arrow">→</span> /addActualBalance</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/update-credit-limit <span class="arrow">→</span> /updateCreditLimit</span>
+  </td>
+  <td class="notes">Reads partner list from PartnersContext for the picker</td>
+</tr>
+<tr>
+  <td class="feature">Payout Configuration</td>
+  <td class="component">PayoutConfigurationPanel</td>
+  <td class="source">direct (partnersApi)</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/partners/get-payout-config <span class="arrow">→</span> /obtainRemittancePayoutPartnerConfiguration</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/update-payout-config <span class="arrow">→</span> /updateRemittancePayoutPartnerConfiguration</span>
+  </td>
+  <td class="notes">Edit-only view; initial creation happens on the New Partner form</td>
+</tr>
+<tr>
+  <td class="feature">Payout Banks</td>
+  <td class="component">PayoutBanksPanel</td>
+  <td class="source">direct (partnersApi)</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/partners/payout-partner-networks <span class="arrow">→</span> /getPayoutPartner</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/payout-bank-update <span class="arrow">→</span> /requestPayoutBankUpdate</span>
+  </td>
+  <td class="notes">getPayoutPartner's response shape is ambiguous upstream — treated as unknown</td>
+</tr>
+</table>
+
+<!-- ============ CUSTOMER DETAIL ============ -->
+<h2>Customer Detail</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+
+<tr>
+  <td class="feature">Corporate Customer</td>
+  <td class="component">CorporateCustomerPanel<br/>(KycMethodPanel, CompanyProfileForm)</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">No corporate-KYC endpoint wired yet</td>
+</tr>
+<tr>
+  <td class="feature">Customer Details</td>
+  <td class="component">CustomerDetailsPanel<br/>(PersonalDetailsForm, ContactDetailsForm, AdditionalInformationForm)</td>
+  <td class="source">KycContext, PartnersContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/kyc/update-customer <span class="arrow">→</span> /updateCustomer</span>
+  </td>
+  <td class="notes">Multi-step form; commits via updateCustomer on final submit</td>
+</tr>
+<tr>
+  <td class="feature">KYC Approval Queue</td>
+  <td class="component">KycApprovalQueuePanel<br/>KycApprovalModal</td>
+  <td class="source">KycContext</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/kyc/pending <span class="arrow">→</span> /getAllUnapprovedKycs</span>
+    <span class="route"><span class="method POST">POST</span> /api/kyc/approve <span class="arrow">→</span> /InsertApprovedKYC</span>
+    <span class="route"><span class="method POST">POST</span> /api/kyc/compliance-approve <span class="arrow">→</span> /InsertApprovedCompilenceKYC</span>
+  </td>
+  <td class="notes">Two approval paths: standard vs. compliance-team approval</td>
+</tr>
+<tr>
+  <td class="feature">Approved KYCs</td>
+  <td class="component">ApprovedKycsPanel</td>
+  <td class="source">KycContext</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/kyc/approved <span class="arrow">→</span> /getAllapprovedKycs</span>
+  </td>
+  <td class="notes">&nbsp;</td>
+</tr>
+<tr>
+  <td class="feature">Beneficiaries</td>
+  <td class="component">BeneficiariesPanel<br/>BeneficiaryFormFields, EditCustomerModal</td>
+  <td class="source">BeneficiariesContext, KycContext</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/beneficiaries <span class="arrow">→</span> /beneficiaries</span>
+    <span class="route"><span class="method POST">POST</span> /api/beneficiaries <span class="arrow">→</span> /beneficiaries</span>
+    <span class="route"><span class="method DELETE">DELETE</span> /api/beneficiaries/&#123;id&#125; <span class="arrow">→</span> /beneficiaries/&#123;id&#125;</span>
+  </td>
+  <td class="notes">senderUserName / beneficiaryKycStatus are client-only fields merged in after fetch</td>
+</tr>
+</table>
+
+<!-- ============ REPORTS (sidebar group backing "Define Credit Limit") ============ -->
+<h2>Reports</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+<tr>
+  <td class="feature">Define Credit Limit</td>
+  <td class="component">DefineCreditLimitPanel<br/>CreditLimitTable, CreditLimitBanner, CreditLimitLogModal</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/creditLimitData.tsx — no confirmed upstream endpoint</td>
+</tr>
+</table>
+
+<!-- ============ EXCHANGE RATE & COMMISSION ============ -->
+<h2>Exchange Rate &amp; Commission</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+
+<tr>
+  <td class="feature">Exchange Rates</td>
+  <td class="component">ExchangeRatesPanel<br/>ExchangeRateSetupModal</td>
+  <td class="source">RatesContext</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/rates/get-all-countries <span class="arrow">→</span> /getAllCountries</span>
+    <span class="route"><span class="method POST">POST</span> /api/rates/get-country-wise-ex-rate <span class="arrow">→</span> /getCountryWiseExRate</span>
+    <span class="route"><span class="method POST">POST</span> /api/rates/update-rate <span class="arrow">→</span> /UpdateRate</span>
+    <span class="route"><span class="method POST">POST</span> /api/rates/update-csv-rate <span class="arrow">→</span> /UpdateCsvRate</span>
+  </td>
+  <td class="notes">buying/selling quoted against home currency NPR</td>
+</tr>
+<tr>
+  <td class="feature">Country Wise Exchange Rates</td>
+  <td class="component">CountryWiseExchangeRatePanel</td>
+  <td class="source">RatesContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/rates/get-country-wise-ex-rate <span class="arrow">→</span> /getCountryWiseExRate</span>
+  </td>
+  <td class="notes">Read-only drill-down of Exchange Rates by country</td>
+</tr>
+<tr>
+  <td class="feature">Service Charges</td>
+  <td class="component">ServiceChargesPanel<br/>ServiceChargeSetupModal</td>
+  <td class="source">RatesContext</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/rates/get-service-charge <span class="arrow">→</span> /getServiceCharge</span>
+    <span class="route"><span class="method POST">POST</span> /api/rates/service-charges-save <span class="arrow">→</span> /Service_Charges_save</span>
+    <span class="route"><span class="method POST">POST</span> /api/rates/service-charges-insert <span class="arrow">→</span> /Service_Charges_Insert</span>
+  </td>
+  <td class="notes">feeAmountMOCKONLY stub still in use — real schema has no fee-amount field yet</td>
+</tr>
+<tr>
+  <td class="feature">Margin Setup</td>
+  <td class="component">MarginSetupPanel</td>
+  <td class="source">RatesContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/rates/add-or-update-margin <span class="arrow">→</span> /addOrUpdateMargin</span>
+  </td>
+  <td class="notes">Only consulted by transferMath when WHOLESALE_RETAIL_SPLIT_CONFIRMED=true</td>
+</tr>
+<tr>
+  <td class="feature">Country / Currency</td>
+  <td class="component">CountryCurrencyPanel</td>
+  <td class="source">RatesContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/rates/update-csv-file-for-countries <span class="arrow">→</span> /UpdateCsvfileForCountries</span>
+  </td>
+  <td class="notes">upsertCountryCurrency() — despite the name, confirmed as a normal JSON upsert, not a raw CSV upload</td>
+</tr>
+<tr>
+  <td class="feature">Propose Offer Rate</td>
+  <td class="component">PartnerOfferRatePropose</td>
+  <td class="source">RatesContext, PartnersContext, AuthContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/rates/insert-partner-rates <span class="arrow">→</span> /insertRemittancePartnerRates</span>
+  </td>
+  <td class="notes">Maker step of the maker-checker workflow</td>
+</tr>
+<tr>
+  <td class="feature">Offer Rate Approvals</td>
+  <td class="component">PartnerOfferRateApprovals</td>
+  <td class="source">RatesContext, AuthContext</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/rates/obtain-all-pending-partner-offer-rates <span class="arrow">→</span> /obtainAllPendingPartnerOfferRates</span>
+    <span class="route"><span class="method POST">POST</span> /api/rates/confirm-partner-rate <span class="arrow">→</span> /confirmRemittancePartnerRate</span>
+    <span class="route"><span class="method POST">POST</span> /api/rates/cancel-partner-rate <span class="arrow">→</span> /cancelRemittancePartnerRate</span>
+  </td>
+  <td class="notes">Checker step; self-approval block gated by SELF_APPROVAL_RESTRICTION_ENABLED</td>
+</tr>
+<tr>
+  <td class="feature">Current Offer Rate</td>
+  <td class="component">PartnerOfferRateCurrent<br/>PartnerOfferRateLookupForm</td>
+  <td class="source">RatesContext, PartnersContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/rates/obtain-partner-rates <span class="arrow">→</span> /obtainRemittancePartnerRates</span>
+  </td>
+  <td class="notes">&nbsp;</td>
+</tr>
+<tr>
+  <td class="feature">Offer Rate History</td>
+  <td class="component">PartnerOfferRateHistory</td>
+  <td class="source">RatesContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/rates/obtain-partner-all-rates <span class="arrow">→</span> /obtainRemittancePartnerAllRates</span>
+  </td>
+  <td class="notes">&nbsp;</td>
+</tr>
+<tr>
+  <td class="feature">Partner Commission</td>
+  <td class="component">PartnerCommissionPanel</td>
+  <td class="source">RatesContext, PartnersContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/rates/obtain-partner-commission <span class="arrow">→</span> /obtainRemittancePartnerCommission</span>
+    <span class="route"><span class="method POST">POST</span> /api/rates/insert-or-update-partner-commission <span class="arrow">→</span> /insertOrUpdateRemittancePartnerCommission</span>
+  </td>
+  <td class="notes">commissionType "FLAT" is unconfirmed with backend</td>
+</tr>
+</table>
+
+<!-- ============ COMPLIANCE ============ -->
+<h2>Compliance</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+
+<tr>
+  <td class="feature">Risk Profiling screens<br/><span style="font-weight:400;font-size:9px">(High Risk Countries, High Risk Management, Payment Mode, Source of Income, Reason for Remittance, Sender Occupation, Relation, Customer Visa Type, Compliance Range, Age Group, High Risk Branches, Transaction Frequency)</span></td>
+  <td class="component">HighRiskCountriesPanel, HighRiskManagementPanel, PaymentModeRiskPanel, SourceOfIncomeRiskPanel, ReasonForRemittanceRiskPanel, SenderOccupationRiskPanel, RelationRiskPanel, CustomerVisaTypeRiskPanel, ComplianceRangeRiskPanel, AgeGroupRiskPanel, HighRiskBranchesPanel, TransactionFrequencyPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/riskProfilingData.ts — no confirmed upstream risk-profiling endpoints yet; all 12 screens are demo-data only</td>
+</tr>
+<tr>
+  <td class="feature">Compliance Rules Setup</td>
+  <td class="component">ComplianceRulesSetupPanel</td>
+  <td class="source">ComplianceRuleContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/compliance-rules/list <span class="arrow">→</span> /obtainComplianceRule</span>
+    <span class="route"><span class="method POST">POST</span> /api/compliance-rules/add <span class="arrow">→</span> /addComplianceRule</span>
+    <span class="route"><span class="method POST">POST</span> /api/compliance-rules/update <span class="arrow">→</span> /updateComplianceRule</span>
+    <span class="route"><span class="method POST">POST</span> /api/compliance-rules/delete <span class="arrow">→</span> /deleteComplianceRule</span>
+  </td>
+  <td class="notes">Update is looked up by `identifier`, not numeric id</td>
+</tr>
+<tr>
+  <td class="feature">Compliance Rule Values</td>
+  <td class="component">ComplianceRuleValuesPanel</td>
+  <td class="source">ComplianceRuleContext, PartnersContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/compliance-rules/value-specific <span class="arrow">→</span> /obtainComplianceRuleValueSpecific</span>
+    <span class="route"><span class="method POST">POST</span> /api/compliance-rules/value-specific-country <span class="arrow">→</span> /obtainComplianceRuleValueSpecificCountry</span>
+    <span class="route"><span class="method POST">POST</span> /api/compliance-rules/add-value <span class="arrow">→</span> /addComplianceRuleValue</span>
+    <span class="route"><span class="method POST">POST</span> /api/compliance-rules/update-value <span class="arrow">→</span> /updateComplianceRuleValue</span>
+  </td>
+  <td class="notes">Response key `ruleIdentifier` is normalized to `complianceRuleIdentifier` client-side</td>
+</tr>
+<tr>
+  <td class="feature">Transaction Compliance Holds</td>
+  <td class="component">ComplianceTxnHoldsPanel</td>
+  <td class="source">direct (transactionApi)</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/transactions/compliance-holds <span class="arrow">→</span> /getAllCompileHoldRemittance</span>
+  </td>
+  <td class="notes">&nbsp;</td>
+</tr>
+</table>
+
+<!-- ============ UTILITY ============ -->
+<h2>Utility</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+<tr>
+  <td class="feature">Transaction Query</td>
+  <td class="component">TransactionQueryPanel</td>
+  <td class="source">direct (transactionApi)</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/transactions/view-transaction <span class="arrow">→</span> /viewTransaction</span>
+    <span class="route"><span class="method POST">POST</span> /api/transactions/by-staff <span class="arrow">→</span> /getTransactionByStaff</span>
+    <span class="route"><span class="method POST">POST</span> /api/transactions/by-ref-no <span class="arrow">→</span> /getRemittanceByrefno</span>
+    <span class="route"><span class="method POST">POST</span> /api/transactions/latest-by-username <span class="arrow">→</span> /getRemittanceByUsernamefrompartners</span>
+  </td>
+  <td class="notes">Four query modes toggled in one form ("Track B")</td>
+</tr>
+</table>
+
+<!-- ============ AGENT ============ -->
+<h2>Agent</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+<tr>
+  <td class="feature">Upload Files</td>
+  <td class="component">AgentFileUploadPanel</td>
+  <td class="source">direct (agentFileApi)</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/agent-files/list <span class="arrow">→</span> /obtainFileUploadedByAgent</span>
+    <span class="route"><span class="method POST">POST</span> /api/agent-files/content <span class="arrow">→</span> /obtainFileContentByFileName</span>
+  </td>
+  <td class="notes">&nbsp;</td>
+</tr>
+</table>
+
+<!-- ============ SECURITY ============ -->
+<h2>Security</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+<tr>
+  <td class="feature">Audit Tran Log</td>
+  <td class="component">AuditTranLogPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/securityData.ts</td>
+</tr>
+<tr>
+  <td class="feature">Days Exceeded TXN Requests</td>
+  <td class="component">DaysExceededTxnPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/securityData.ts</td>
+</tr>
+</table>
+
+<!-- ============ REMITTANCES ============ -->
+<h2>Remittances</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+
+<tr>
+  <td class="feature">Send Transaction</td>
+  <td class="component">TransactionSendPanel</td>
+  <td class="source">direct (transferApi) + RatesContext, PartnersContext, BeneficiariesContext, KycContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/transfers <span class="arrow">→</span> /transfers</span>
+  </td>
+  <td class="notes">Rate/fee/commission preview is computed client-side via lib/transferMath.ts, not a separate quote endpoint</td>
+</tr>
+<tr>
+  <td class="feature">Transfers</td>
+  <td class="component">TransfersPanel</td>
+  <td class="source">direct (transferApi) + RatesContext</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/transfers?page&amp;size&amp;sort <span class="arrow">→</span> /transfers</span>
+    <span class="route"><span class="method GET">GET</span> /api/transfers/ref/&#123;referenceNumber&#125; <span class="arrow">→</span> /transfers/ref/&#123;referenceNumber&#125;</span>
+    <span class="route"><span class="method PUT">PUT</span> /api/transfers/&#123;id&#125;/cancel <span class="arrow">→</span> /transfers/&#123;id&#125;/cancel</span>
+  </td>
+  <td class="notes">Paginated list via lib/useTransfers.ts's usePaginatedTransfers hook ("Track A")</td>
+</tr>
+<tr>
+  <td class="feature">Transaction Rate Report</td>
+  <td class="component">TransactionRateReportPanel</td>
+  <td class="source">RatesContext (computed)</td>
+  <td class="api"><span class="local">LOCAL</span> (computed)</td>
+  <td class="notes">Recomputes/reads rateBreakdownMOCKONLY via lib/transferMath.ts's getOrComputeBreakdown — no dedicated report endpoint</td>
+</tr>
+<tr>
+  <td class="feature">Un-Confirmed List</td>
+  <td class="component">UnconfirmedListPanel → UnconfirmedQueuePanel</td>
+  <td class="source">direct (transactionApi)</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/transactions/unconfirmed-admin <span class="arrow">→</span> /getAllUnapprovedRemittances</span>
+  </td>
+  <td class="notes">Admin-facing unconfirmed queue ("Track B")</td>
+</tr>
+<tr>
+  <td class="feature">Un-Confirmed List (Partner API)</td>
+  <td class="component">UnconfirmedListPartnerApiPanel → UnconfirmedQueuePanel</td>
+  <td class="source">direct (transactionApi)</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/transactions/unconfirmed-partner <span class="arrow">→</span> /getAllUnapprovedRemittances2</span>
+  </td>
+  <td class="notes">Partner-API-facing variant of the same queue</td>
+</tr>
+<tr>
+  <td class="feature">Unpaid Transactions</td>
+  <td class="component">UnpaidTransactionsPanel</td>
+  <td class="source">lib/useConfirmedRemittances hook</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/transactions/confirmed <span class="arrow">→</span> /getAllConformedRemittances</span>
+  </td>
+  <td class="notes">Filters the confirmed list client-side for unpaid rows</td>
+</tr>
+<tr>
+  <td class="feature">Pending Transaction</td>
+  <td class="component">PendingTransactionPanel</td>
+  <td class="source">lib/useConfirmedRemittances hook</td>
+  <td class="api">
+    <span class="route"><span class="method GET">GET</span> /api/transactions/confirmed <span class="arrow">→</span> /getAllConformedRemittances</span>
+  </td>
+  <td class="notes">Same hook/endpoint as Unpaid Transactions, different client-side filter</td>
+</tr>
+</table>
+
+<!-- ============ USER MANAGEMENT AND SECURITY ============ -->
+<h2>User Management and Security</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+<tr>
+  <td class="feature">Audit User Rights - Partner</td>
+  <td class="component">AuditUserRightsPartnerPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">No confirmed upstream endpoint</td>
+</tr>
+<tr>
+  <td class="feature">Create Head Office User</td>
+  <td class="component">CreateHeadOfficeUserPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/userManagementData.ts — form has no submit endpoint wired yet</td>
+</tr>
+<tr>
+  <td class="feature">Create Partner User</td>
+  <td class="component">CreatePartnerUserPanel</td>
+  <td class="source">direct (partnersApi), TabsContext, PartnersContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/partners/register <span class="arrow">→</span> /insertRemittancePartner</span>
+  </td>
+  <td class="notes">Reuses the partner-registration endpoint to create a partner-scoped user</td>
+</tr>
+<tr>
+  <td class="feature">Head Office User Status</td>
+  <td class="component">HeadOfficeUserStatusPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">No confirmed upstream endpoint</td>
+</tr>
+<tr>
+  <td class="feature">Manage Roles</td>
+  <td class="component">ManageRolesPanel</td>
+  <td class="source">lib/sidebarPrivileges.ts (derived from staticData)</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">Privilege tree is derived from the sidebar's nav structure, not fetched</td>
+</tr>
+</table>
+
+<!-- ============ OPERATIONS & ADMIN ============ -->
+<h2>Operations &amp; Admin</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+<tr>
+  <td class="feature">Report Writer</td>
+  <td class="component">ReportWriterPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/reportWriterData.ts — no confirmed upstream endpoint</td>
+</tr>
+<tr>
+  <td class="feature">Report List</td>
+  <td class="component">ReportListPanel</td>
+  <td class="source">local data</td>
+  <td class="api"><span class="local">LOCAL</span></td>
+  <td class="notes">data/reportWriterData.ts (SavedReport)</td>
+</tr>
+</table>
+
+<!-- ============ AUTHENTICATION (cross-cutting) ============ -->
+<h2>Authentication &amp; Session (cross-cutting, not a tab)</h2>
+<table>
+<tr><th>Feature</th><th>Component</th><th>Data source</th><th>API calls</th><th>Notes</th></tr>
+<tr>
+  <td class="feature">Login</td>
+  <td class="component">LoginForm (app/login)</td>
+  <td class="source">AuthContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/auth/login <span class="arrow">→</span> POST /api/auth/login</span>
+    <span class="route"><span class="method GET">GET</span> /api/auth/validate <span class="arrow">→</span> GET /api/auth/validate</span>
+    <span class="route"><span class="method POST">POST</span> /api/partners/lookup <span class="arrow">→</span> /obtainRemittancePartner</span>
+  </td>
+  <td class="notes">validate resolves username/roles right after login; partner lookup resolves the agent's own settlement currency</td>
+</tr>
+<tr>
+  <td class="feature">Logout</td>
+  <td class="component">Topbar, LogoutConfirmModal</td>
+  <td class="source">AuthContext</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/auth/logout <span class="arrow">→</span> POST /api/auth/logout</span>
+  </td>
+  <td class="notes">Best-effort call; local session is cleared regardless of the result</td>
+</tr>
+<tr>
+  <td class="feature">Session refresh (automatic)</td>
+  <td class="component">lib/apiClient.ts (fetchWithAuth)</td>
+  <td class="source">every lib/*Api.ts call</td>
+  <td class="api">
+    <span class="route"><span class="method POST">POST</span> /api/auth/refresh <span class="arrow">→</span> POST /api/auth/refresh</span>
+  </td>
+  <td class="notes">Triggered silently on any 401; concurrent 401s are coalesced into one refresh call</td>
+</tr>
+</table>
+
+<footer>
+  Zio Money Admin — generated documentation. See <code>docs/03-api-reference.md</code> for full request/response
+  field details of every endpoint listed above, and <code>config/businessRules.ts</code> for feature flags that
+  gate unconfirmed business logic (wholesale/retail split, service fee source, cross-currency conversion,
+  self-approval restriction).
+</footer>
+
+</body>
+</html>

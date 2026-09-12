@@ -43,6 +43,11 @@ export type PartnerEntry = {
   email?: string;
   acceptPartnerPin?: boolean;
   txnCurrencies?: string[];
+  // Destination countries enabled for this partner via
+  // insertRemittancePartnerCountry — separate from `country` (the partner's
+  // own registered country), this drives which countries can have a
+  // partner-wise exchange rate / service charge set up for this partner.
+  destCountries?: string[];
   description?: string;
   partnerAddress?: string;
   settlementCurrency?: string;
@@ -54,6 +59,43 @@ export type PartnerEntry = {
   registeredDate?: string;
   updatedDate?: string;
 };
+
+// Some screens need one row per partner NAME rather than one per partner
+// record — e.g. the Exchange Rate / Service Charge setup grids, which key
+// off partnerName the way the legacy Country/Partner/[3 setup links] layout
+// did. A plain last-write-wins dedup silently drops whichever duplicate
+// wasn't picked, along with anything set on it — most visibly destCountries/
+// txnCurrencies added via Manage Partner on a different entry sharing the
+// same name (possible with live-mode registration edge cases). This unions
+// those two array fields across every entry sharing a name instead of
+// picking one arbitrarily.
+// Case/whitespace-insensitive key for matching the same partner across
+// sources that don't normalize consistently — a name typed once at
+// registration, echoed back by the live API's `userName` field, and typed
+// again when adding a txn currency/destination country in Manage Partner —
+// any casing or stray-whitespace difference between those would otherwise
+// silently fail an exact `===` match and drop the association.
+export function normalizedPartnerName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+export function dedupePartnerEntriesByName(entries: PartnerEntry[]): PartnerEntry[] {
+  const byName = new Map<string, PartnerEntry>();
+  for (const entry of entries) {
+    const key = normalizedPartnerName(entry.partnerName);
+    const existing = byName.get(key);
+    if (!existing) {
+      byName.set(key, entry);
+      continue;
+    }
+    byName.set(key, {
+      ...existing,
+      txnCurrencies: Array.from(new Set([...(existing.txnCurrencies ?? []), ...(entry.txnCurrencies ?? [])])),
+      destCountries: Array.from(new Set([...(existing.destCountries ?? []), ...(entry.destCountries ?? [])])),
+    });
+  }
+  return Array.from(byName.values());
+}
 
 export const partnerEntries: PartnerEntry[] = [
   { id: "11000132", partnerName: "TRANS CASH INTERNATIONAL", partnerId: "TCI001", country: "INDIA", partnerType: "SenderReceiver", creditLimit: 13128914, hasBank: true, blocked: false },

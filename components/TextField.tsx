@@ -8,6 +8,7 @@ interface TextFieldProps {
   placeholder?: string;
   required?: boolean;
   error?: string;
+  disabled?: boolean;
   // Optional controlled mode — omit both to keep the field uncontrolled/decorative.
   value?: string;
   onChange?: (value: string) => void;
@@ -19,6 +20,7 @@ export default function TextField({
   placeholder,
   required,
   error,
+  disabled,
   value,
   onChange,
 }: TextFieldProps) {
@@ -44,10 +46,11 @@ export default function TextField({
         onChange={onChange ? (event) => onChange(event.target.value) : undefined}
         placeholder={placeholder}
         required={required}
+        disabled={disabled}
         aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? errorId : undefined}
-        className={`w-full rounded-xl border bg-panel px-3 py-2.5 text-sm text-heading placeholder:text-muted transition-colors focus:outline-none focus:ring-1 ${
+        className={`w-full rounded-xl border bg-panel px-3 py-2.5 text-sm text-heading placeholder:text-muted transition-colors focus:outline-none focus:ring-1 disabled:bg-surface disabled:text-muted ${
           error
             ? "border-red-300 focus:border-red-400 focus:ring-red-400"
             : "border-border focus:border-brand-green focus:ring-brand-green"

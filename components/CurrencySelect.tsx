@@ -3,8 +3,13 @@
 import { useId } from "react";
 import { ChevronDown } from "lucide-react";
 
+// Plain strings keep the existing behavior (value === label). Pass
+// {value, label} pairs when the displayed text needs to show more than the
+// stored value — e.g. "India — INR" while still saving just "INR".
+export type CurrencySelectOption = string | { value: string; label: string };
+
 interface CurrencySelectProps {
-  options: string[];
+  options: CurrencySelectOption[];
   value: string;
   onChange: (value: string) => void;
   label?: string;
@@ -30,27 +35,30 @@ export default function CurrencySelect({
   placeholder = "CCY",
 }: CurrencySelectProps) {
   const selectId = useId();
+  const normalized = options.map((option) =>
+    typeof option === "string" ? { value: option, label: option } : option
+  );
 
   if (bare) {
     return (
       <select
         aria-label={label}
-        value={value || options[0] || ""}
+        value={value || normalized[0]?.value || ""}
         onChange={(event) => onChange(event.target.value)}
-        disabled={disabled || options.length === 0}
+        disabled={disabled || normalized.length === 0}
         className="w-24 rounded-lg border border-border bg-panel px-2 py-2.5 text-center text-sm text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
       >
-        {options.length === 0 && <option value="">{placeholder}</option>}
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+        {normalized.length === 0 && <option value="">{placeholder}</option>}
+        {normalized.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>
     );
   }
 
-  if (options.length === 0) {
+  if (normalized.length === 0) {
     return (
       <div className="flex flex-col gap-1.5">
         <label className="text-sm text-heading/70">{label}</label>
@@ -81,9 +89,9 @@ export default function CurrencySelect({
           aria-required={required || undefined}
           className="w-full appearance-none rounded-xl border border-border bg-panel px-3 py-2.5 pr-9 text-sm text-heading transition-colors focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green disabled:bg-surface disabled:text-muted"
         >
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
+          {normalized.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
             </option>
           ))}
         </select>

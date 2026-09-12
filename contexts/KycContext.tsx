@@ -91,6 +91,22 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
   );
   const [approvedList, setApprovedList] = useState<KycRecord[]>(() => (isLive ? [] : approvedKycRecords));
 
+  // Snapshots for useAsyncQuery's `restore` option — a failed refresh (e.g. a
+  // 401 from an expired token) must not leave these permanently wiped to
+  // empty (what `clear()` set them to before the failed fetch).
+  const pendingListRef = useRef(pendingList);
+  const complianceHoldListRef = useRef(complianceHoldList);
+  const approvedListRef = useRef(approvedList);
+  useEffect(() => {
+    pendingListRef.current = pendingList;
+  }, [pendingList]);
+  useEffect(() => {
+    complianceHoldListRef.current = complianceHoldList;
+  }, [complianceHoldList]);
+  useEffect(() => {
+    approvedListRef.current = approvedList;
+  }, [approvedList]);
+
   // Restore any admin-made changes (submissions/approvals) from a previous
   // session so a page refresh doesn't silently drop them back to the seed data.
   // Only meaningful in demo mode — a live session gets its records from the
@@ -186,6 +202,11 @@ export function KycProvider({ children }: { children: React.ReactNode }) {
         setPendingList([]);
         setComplianceHoldList([]);
         setApprovedList([]);
+      },
+      restore: () => {
+        setPendingList(pendingListRef.current);
+        setComplianceHoldList(complianceHoldListRef.current);
+        setApprovedList(approvedListRef.current);
       },
       fetch: async () => {
         const [pending, hold, approved] = await Promise.all([

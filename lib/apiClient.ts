@@ -73,14 +73,22 @@ export async function fetchWithAuth(
     });
 
   const token = getAccessToken();
+  console.log("Bearer token:", token);
   const res = await attempt(token);
 
   if (res.status !== 401) return res;
 
-  // No token at all just means "not logged in" — a refresh can't fix that,
-  // and there's nothing to end that isn't already ended.
+  // No token at all can't be fixed by a refresh, but it does NOT mean this
+  // session's login should be torn down: `user` can be non-null with no
+  // token at all (a static/demo-mode login stores tokens: null), and flipping
+  // the app into Live mode without logging in again fires every live-only
+  // effect with no Authorization header. Calling endSession() here would
+  // force-logout a session that was never live-authenticated in the first
+  // place — and worse, flag a misleading "session expired" notice for it.
+  // Leave it to whichever lib/*Api.ts caller made this request to surface its
+  // own error state; only a *stale* token (handled below) warrants ending
+  // an actual session.
   if (!token) {
-    endSession();
     return res;
   }
 

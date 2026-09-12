@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import Button from "./Button";
 import SelectField from "./SelectField";
-import CurrencySelect from "./CurrencySelect";
+import CurrencySelect, { type CurrencySelectOption } from "./CurrencySelect";
 import Checkbox from "./Checkbox";
 import {
   deliveryOptionValues,
@@ -12,9 +12,9 @@ import {
   type ServiceChargeUpsertPayload,
 } from "@/data/serviceChargeData";
 import { setupTypeLabels, type SetupType } from "@/data/setupTypeData";
+import { normalizedPartnerName, type PartnerEntry } from "@/data/partnerData";
 
 export interface ServiceChargeSetupTarget {
-  country: string;
   partnerName: string;
   setupType: SetupType;
 }
@@ -23,6 +23,7 @@ export default function ServiceChargeSetupModal({
   target,
   existing,
   countrySymbolOptions,
+  partners,
   saving,
   error,
   onCancel,
@@ -30,29 +31,42 @@ export default function ServiceChargeSetupModal({
 }: {
   target: ServiceChargeSetupTarget | null;
   existing: ServiceChargeRecord | undefined;
-  countrySymbolOptions: string[];
+  countrySymbolOptions: CurrencySelectOption[];
+  partners: PartnerEntry[];
   saving: boolean;
   error: string | null;
   onCancel: () => void;
   onSave: (payload: ServiceChargeUpsertPayload) => void;
 }) {
+  const [country, setCountry] = useState("");
   const [countrySymbol, setCountrySymbol] = useState("");
   const [deliveryOption, setDeliveryOption] = useState(deliveryOptionValues[0]);
   const [active, setActive] = useState(true);
 
+  const partnerEntry = target
+    ? partners.find((p) => normalizedPartnerName(p.partnerName) === normalizedPartnerName(target.partnerName))
+    : undefined;
+
   // Re-seed the form every time a different row/scope is opened, from
-  // whatever service charge already exists for that exact country+partner+
-  // scope combination — otherwise the previous modal's edits would leak in.
+  // whatever service charge already exists for that exact partner+scope
+  // combination — otherwise the previous modal's edits would leak in. The
+  // destination country picker (Payout Partner Wise / 3rd Party API Agent
+  // wise only) defaults to the partner's first enabled destination country —
+  // it's informational only here, since ServiceChargeUpsertPayload has no
+  // country field of its own to save it into.
   useEffect(() => {
     if (!target) return;
+    setCountry(partnerEntry?.destCountries?.[0] ?? "");
     setCountrySymbol(existing?.countrySymbol ?? "");
     setDeliveryOption(existing?.deliveryOption ?? deliveryOptionValues[0]);
     setActive(existing?.active ?? true);
-  }, [target, existing]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target, existing, partnerEntry]);
 
   if (!target) return null;
 
   const appliesToAllPartners = target.setupType === "COUNTRY";
+  const headerCountry = appliesToAllPartners ? partnerEntry?.country ?? "" : country;
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -74,7 +88,8 @@ export default function ServiceChargeSetupModal({
           <div>
             <h2 className="text-lg font-bold text-heading">{setupTypeLabels[target.setupType]}</h2>
             <p className="mt-1 text-sm text-muted">
-              {target.country} — {appliesToAllPartners ? "applies to every partner in this country" : target.partnerName}
+              {headerCountry ? `${headerCountry} — ` : ""}
+              {appliesToAllPartners ? "applies to every partner in this country" : target.partnerName}
             </p>
           </div>
           <button
@@ -88,6 +103,16 @@ export default function ServiceChargeSetupModal({
         </div>
 
         <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
+          {!appliesToAllPartners && (
+            <CurrencySelect
+              label="Destination Country:"
+              required
+              options={partnerEntry?.destCountries ?? []}
+              value={country}
+              onChange={setCountry}
+              emptyMessage={`No destination countries enabled for ${target.partnerName} — add some in Manage Partner first.`}
+            />
+          )}
           <CurrencySelect
             label="Country / Currency:"
             required
@@ -116,7 +141,7 @@ export default function ServiceChargeSetupModal({
           {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
           <div className="mt-1 flex items-center gap-3 border-t border-border pt-4">
-            <Button type="submit" loading={saving} disabled={!countrySymbol}>
+            <Button type="submit" loading={saving} disabled={!countrySymbol || (!appliesToAllPartners && !country)}>
               {saving ? "Saving..." : "Save Setup"}
             </Button>
             <Button type="button" variant="secondary" onClick={onCancel}>

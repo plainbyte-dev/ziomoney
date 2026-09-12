@@ -77,7 +77,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // — there's no partner record backing a mock user — so it's left null
   // there and callers fall back to a fixed home currency.
   useEffect(() => {
-    if (!isLive || !user?.username) {
+    // Also requires a real access token: switching the app into Live mode
+    // doesn't by itself mean this session ever logged in against the live
+    // API (e.g. you can log in under static/demo mode, which stores
+    // tokens: null, then flip to Live without logging in again). Calling out
+    // with no token would 401 and, since there's no token to refresh,
+    // immediately end the session — a spurious forced logout for a session
+    // that was never live-authenticated in the first place, not an expired one.
+    if (!isLive || !user?.username || !tokens?.accessToken) {
       setAgentPartner(null);
       setAgentPartnerError(null);
       return;
@@ -98,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [isLive, user?.username]);
+  }, [isLive, user?.username, tokens?.accessToken]);
 
   // Skip the very first save (still holds the pre-restore default state) so it
   // can't race the restore effect above and clobber what's in localStorage.
