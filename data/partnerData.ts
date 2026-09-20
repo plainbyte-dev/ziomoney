@@ -1,6 +1,42 @@
-export const partnerCountryOptions = ["ALL", "INDIA", "INDONESIA", "JAPAN"];
+import { countryCurrencyRecords } from "./countryCurrencyData";
 
-export const partnerCountrySelectOptions = ["India", "Indonesia", "Japan", "Nepal", "Australia"];
+// "ALL" plus every country in the full ISO reference table (see
+// data/countryCurrencyData.ts), uppercased to match PartnerEntry.country's
+// existing convention (e.g. "INDIA", "JAPAN" in partnerEntries below).
+export const partnerCountryOptions = [
+  "ALL",
+  ...Array.from(new Set(countryCurrencyRecords.map((c) => c.countryName.toUpperCase()))).sort(),
+];
+
+// Every country in the full ISO country/currency reference table (see
+// data/countryCurrencyData.ts) — not a hand-picked subset — so Partner
+// Country and every other destination-country picker built on this offers
+// the complete list, same reasoning as settlementCurrencyOptions below.
+export const partnerCountrySelectOptions = Array.from(
+  new Set(countryCurrencyRecords.map((c) => c.countryName))
+).sort();
+
+// Example-only placeholder text for the Partner Address field, illustrating
+// each country's typical address format — a UI hint, never validated
+// against or parsed. Falls back to a generic example for any country not
+// explicitly listed (most of them, given partnerCountrySelectOptions now
+// covers the full reference table above).
+const EXAMPLE_ADDRESS_BY_COUNTRY: Record<string, string> = {
+  India: "e.g. 12 MG Road, Bengaluru, Karnataka 560001",
+  Indonesia: "e.g. Jl. Sudirman No. 45, Jakarta Selatan 12190",
+  Japan: "e.g. 1-2-3 Shibuya, Shibuya-ku, Tokyo 150-0002",
+  Nepal: "e.g. Durbar Marg, Kathmandu 44600",
+  Australia: "e.g. 22 George Street, Sydney NSW 2000",
+  "United States": "e.g. 500 Market St, San Francisco, CA 94105",
+  "United Kingdom": "e.g. 10 Downing Street, London SW1A 2AA",
+  Philippines: "e.g. 123 Ayala Ave, Makati, Metro Manila 1226",
+  "United Arab Emirates": "e.g. Sheikh Zayed Road, Dubai",
+  Canada: "e.g. 100 Queen St W, Toronto, ON M5H 2N2",
+};
+
+export function exampleAddressForCountry(country: string): string {
+  return EXAMPLE_ADDRESS_BY_COUNTRY[country] ?? "e.g. Street, City, Postal Code";
+}
 
 export const partnerTypeOptions = ["Sender Agent", "Receiver Agent", "SenderReceiver Agent"];
 
@@ -24,10 +60,17 @@ export const localTimeOptions = [
 
 export const partnerLocalCurrencyOptions = ["--SELECT--", "USD", "JPY", "AUD", "INR", "GBP", "NPR"];
 
-// Remittance API fields (insertRemittancePartner)
-export const remitterTypeOptions = ["Individual", "Corporate", "Agent", "Sub Agent"];
+// Remittance API fields (insertRemittancePartner) — backend-confirmed enum for
+// remitterType, sent as-is on partner registration.
+export const remitterTypeOptions = ["Agent", "Payout"];
 
-export const settlementCurrencyOptions = ["USD", "JPY", "AUD", "INR", "GBP", "NPR"];
+// Every currency in the full ISO country/currency reference table (see
+// data/countryCurrencyData.ts) — not a hand-picked subset — so Settlement
+// Currency, Transaction Currencies and every other currency picker built on
+// this offers the complete list with no admin setup step.
+export const settlementCurrencyOptions = Array.from(
+  new Set(countryCurrencyRecords.map((c) => c.currencyCode))
+).sort();
 
 export type PartnerEntry = {
   id: string;
@@ -116,16 +159,16 @@ export const partnerEntries: PartnerEntry[] = [
   { id: "11000246", partnerName: "ANTTECH PVT LTD", partnerId: "11000246", country: "JAPAN", partnerType: "Sender", creditLimit: null, hasBank: false, blocked: true },
   { id: "11000303", partnerName: "API CO LTD", partnerId: "11000303", country: "JAPAN", partnerType: "Sender", creditLimit: null, hasBank: false, blocked: false },
   { id: "11000313", partnerName: "APS INTERNATIONAL PVT LTD", partnerId: "11000313", country: "JAPAN", partnerType: "Sender", creditLimit: 1, hasBank: false, blocked: false },
-  // The four rows below cover every value in remitterTypeOptions (the actual
-  // confirmed enum accepted by insertRemittancePartner) — the rows above
-  // predate that confirmation and use a different Sender/Receiver/
+  // The five rows below cover every value in remitterTypeOptions (the actual
+  // confirmed enum accepted by insertRemittancePartner: Agent/Payout) — the
+  // rows above predate that confirmation and use a different Sender/Receiver/
   // SenderReceiver vocabulary instead. Notably, no seed row had partnerType
-  // "Agent" until now, which left every "Agent"-filtered dropdown (Customer
-  // Details, KYC Approval, Service Charges, Transaction Send Panel) with
-  // nothing to show in demo mode.
+  // "Agent" or "Payout" until now, which left every "Agent"-filtered dropdown
+  // (Customer Details, KYC Approval, Service Charges, Transaction Send Panel)
+  // with nothing to show in demo mode.
   { id: "11000501", partnerName: "REMITTERAGENT", partnerId: "remitteragent", country: "NEPAL", partnerType: "Agent", creditLimit: 850000, hasBank: true, blocked: false },
   { id: "11000502", partnerName: "SAKURA GLOBAL REMIT KK", partnerId: "11000502", country: "JAPAN", partnerType: "Agent", creditLimit: 420000, hasBank: false, blocked: false },
-  { id: "11000503", partnerName: "TANAKA HIROSHI", partnerId: "11000503", country: "JAPAN", partnerType: "Individual", creditLimit: 15000, hasBank: false, blocked: false },
-  { id: "11000504", partnerName: "OSAKA TRADING CORPORATION", partnerId: "11000504", country: "JAPAN", partnerType: "Corporate", creditLimit: 2300000, hasBank: true, blocked: false },
-  { id: "11000505", partnerName: "NAGOYA SUB REMIT SERVICES", partnerId: "11000505", country: "JAPAN", partnerType: "Sub Agent", creditLimit: 60000, hasBank: false, blocked: false },
+  { id: "11000503", partnerName: "TANAKA HIROSHI", partnerId: "11000503", country: "JAPAN", partnerType: "Payout", creditLimit: 15000, hasBank: false, blocked: false },
+  { id: "11000504", partnerName: "OSAKA TRADING CORPORATION", partnerId: "11000504", country: "JAPAN", partnerType: "Payout", creditLimit: 2300000, hasBank: true, blocked: false },
+  { id: "11000505", partnerName: "NAGOYA SUB REMIT SERVICES", partnerId: "11000505", country: "JAPAN", partnerType: "Payout", creditLimit: 60000, hasBank: false, blocked: false },
 ];

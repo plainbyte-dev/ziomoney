@@ -1,3 +1,5 @@
+import { countryCurrencyRecords } from "./countryCurrencyData";
+
 export interface CreditLimitEntry {
   id: string;
   country: string;
@@ -21,7 +23,12 @@ export function getAvailableLimit(
 
 export const yourTopUpLimit = { amount: 1500000, currency: "USD" };
 
-export const creditLimitCountryOptions = ["JAPAN"];
+// Every country in the full ISO reference table (see
+// data/countryCurrencyData.ts), uppercased to match creditLimitEntries'
+// existing "JAPAN"-style country values below.
+export const creditLimitCountryOptions = Array.from(
+  new Set(countryCurrencyRecords.map((c) => c.countryName.toUpperCase()))
+).sort();
 
 export const creditLimitEntries: CreditLimitEntry[] = [
   { id: "CR-0001", country: "JAPAN", partner: "株式会社岩", agentLimit: 1000000, topUpLimit: 0, currentBalance: 0, userLimit: 241200000, userLimitCurrency: "JPY" },

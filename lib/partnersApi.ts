@@ -69,8 +69,11 @@ export function updateRemittancePartnerAcceptPin(userName: string, acceptPartner
   });
 }
 
+// Confirmed against Swagger: the response envelope's `data` is `{}` on
+// success, not a partner record — callers must key off `success`/`message`
+// alone, never `.data`.
 export function insertRemittancePartnerTxnCurrency(remittancePartnerUserName: string, txnCurrency: string) {
-  return callPartnerAction<RemittancePartnerRecord>("insert-txn-currency", {
+  return callPartnerAction<Record<string, never>>("insert-txn-currency", {
     method: "POST",
     body: { remittancePartnerUserName, txnCurrency },
   });
@@ -80,11 +83,23 @@ export function insertRemittancePartnerTxnCurrency(remittancePartnerUserName: st
 // rates/service charges for that country (the "Payout Partner Wise" /
 // "3rd Party API Agent wise" setup scopes on the Exchange Rate and Service
 // Charge Setup grids only make sense once a country is enabled here).
+// Confirmed against Swagger: `data` is `{}` on success, same as
+// insertRemittancePartnerTxnCurrency above.
 export function insertRemittancePartnerCountry(remittancePartnerUserName: string, destCountry: string) {
-  return callPartnerAction<RemittancePartnerRecord>("insert-country", {
+  return callPartnerAction<Record<string, never>>("insert-country", {
     method: "POST",
     body: { remittancePartnerUserName, destCountry },
   });
+}
+
+// GET with `userName` as a query param — confirmed against Swagger. The
+// response schema documents `data` as a bare, unexpanded `string`, same
+// pattern as GetSeRate in rateApi.ts; the real payload is the list of
+// country names insertRemittancePartnerCountry has added for this partner,
+// so this is typed as string[] with the shape guarded at the call site
+// (see PartnersContext.refreshEntries) rather than trusted blindly.
+export function obtainRemittancePartnerCountries(userName: string) {
+  return callPartnerAction<string[]>(`countries?userName=${encodeURIComponent(userName)}`, { method: "GET" });
 }
 
 // Registers the well-known default agent partner ("remitteragent") — a

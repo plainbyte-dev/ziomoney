@@ -13,6 +13,17 @@ export type OfferRateStatus = "PENDING" | "CONFIRMED" | "CANCELLED";
 
 export const quoteTypeValues: QuoteType[] = ["DIRECT"];
 
+// Direct Quote is fully derived from the two USD legs, not an independent
+// figure — it's "1 unit of sendCurrency, expressed in units of
+// receiveCurrency" (the direct-quotation convention), computed as the
+// cross-rate through USD: receiveCurrencyPerUsd / sendCurrencyPerUsd.
+// Confirmed against every seed row in partnerOfferRateRecords below (e.g.
+// JPY->INR: 83.1 / 148.2 ≈ 0.561). Callers should compute this rather than
+// have an admin do the division by hand and type it in.
+export function directQuoteFromLegs(sendCurrencyPerUsd: number, receiveCurrencyPerUsd: number): number {
+  return sendCurrencyPerUsd > 0 ? receiveCurrencyPerUsd / sendCurrencyPerUsd : 0;
+}
+
 // Response data shared by insert / confirm / cancel / lookup endpoints
 export interface PartnerOfferRateRecord {
   id: number;

@@ -119,7 +119,7 @@ export default function ServiceChargeSetupModal({
             options={countrySymbolOptions}
             value={countrySymbol}
             onChange={setCountrySymbol}
-            emptyMessage="No currencies found — import one under Country / Currency first."
+            emptyMessage="No currencies available."
           />
           {!appliesToAllPartners && (
             <div className="flex flex-col gap-1.5">

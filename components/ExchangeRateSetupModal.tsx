@@ -96,10 +96,6 @@ export default function ExchangeRateSetupModal({
 
   if (!target) return null;
 
-  const matchedCurrency = countryCurrencies.find(
-    (c) => c.countryName === country && c.currencyCode === fields.symbol
-  );
-
   function updateField<K extends keyof typeof emptyRateFields>(key: K, value: (typeof emptyRateFields)[K]) {
     setFields((prev) => ({ ...prev, [key]: value }));
   }
@@ -163,32 +159,6 @@ export default function ExchangeRateSetupModal({
             onChange={handleCurrencyChange}
             emptyMessage={`No transaction currencies enabled for ${target.partnerName} — add some in Manage Partner first.`}
           />
-          <TextField
-            label="Currency Name:"
-            required
-            disabled
-            value={fields.currencyName}
-            onChange={(v) => updateField("currencyName", v)}
-          />
-          <TextField
-            label="Country ISO Code:"
-            disabled
-            value={fields.countryIsoCode}
-            onChange={(v) => updateField("countryIsoCode", v)}
-          />
-          <TextField
-            label="Flag (emoji):"
-            disabled
-            value={fields.flag}
-            onChange={(v) => updateField("flag", v)}
-          />
-          {fields.symbol && (
-            <p className="sm:col-span-2 -mt-2 text-xs text-muted">
-              {matchedCurrency
-                ? `Currency name, ISO code and flag are sourced from the Country/Currency setup for ${country}.`
-                : `No Country/Currency row on file for ${country} / ${fields.symbol} — ISO code and flag will stay blank until one is added there.`}
-            </p>
-          )}
           <TextField
             label="Unit:"
             value={String(fields.unit)}

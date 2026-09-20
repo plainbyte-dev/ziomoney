@@ -10,6 +10,7 @@ import {
   Send,
   type LucideIcon,
 } from "lucide-react";
+import { countryCurrencyRecords } from "./countryCurrencyData";
 
 export const loggedInUser = {
   name: "John Doe",
@@ -38,9 +39,13 @@ export const correspondenceReportBreadcrumbs: BreadcrumbItem[] = [
   { label: "Correspondence Report", href: "/", active: true },
 ];
 
-export const countryOptions = ["INDIA", "Nepal", "Bangladesh", "Sri Lanka", "Pakistan"];
+// Every country in the full ISO country/currency reference table (see
+// data/countryCurrencyData.ts) — not a hand-picked subset — same reasoning
+// as settlementCurrencyOptions/partnerCountrySelectOptions in
+// data/partnerData.ts.
+export const countryOptions = Array.from(new Set(countryCurrencyRecords.map((c) => c.countryName))).sort();
 
-export const beneficiaryCountryOptions = ["Australia", "United States", "United Kingdom", "Canada", "UAE"];
+export const beneficiaryCountryOptions = countryOptions;
 
 export const payoutPartnerOptions = [
   "Australia - Transcash",
@@ -52,7 +57,7 @@ export const payoutPartnerOptions = [
 export const tnxDateOptions = ["TNX Date", "Booking Date", "Settlement Date"];
 
 export const reportDefaults = {
-  sendingCountry: "INDIA",
+  sendingCountry: "India",
   beneficiaryCountry: "Australia",
   payoutPartner: "Australia - Transcash",
   beneficiaryCountry2: "Australia",
@@ -114,7 +119,7 @@ export const navGroups: NavGroup[] = [
       },
       {
         // Covers Service Charge, Margin Setup, Exchange Rate,
-        // Country/Currency, Partner Offer Rate and Partner Commission.
+        // Partner Offer Rate and Partner Commission.
         label: "Exchange Rate & Commission",
         icon: ArrowLeftRight,
         href: "#",
@@ -124,7 +129,6 @@ export const navGroups: NavGroup[] = [
           { label: "Exchange Rates", tabKey: "exchange-rates" },
           { label: "Service Charges", tabKey: "service-charges" },
           { label: "Margin Setup", tabKey: "margin-setup" },
-          { label: "Country / Currency", tabKey: "country-currency" },
           {
             label: "Partner Offer Rates",
             submenuTitle: "Partner Offer Rates",

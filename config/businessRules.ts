@@ -19,11 +19,18 @@
 export const WHOLESALE_RETAIL_SPLIT_CONFIRMED = false;
 
 // ServiceChargeUpsertRequest (data/serviceChargeData.ts) has no fee-amount
-// field in the documented schema. Set this to true only once the real
-// field/endpoint holding the fee amount is confirmed and wired into
-// lib/transferMath.ts's resolveFee — until then, resolveFee reads the
-// mock-only feeAmountMOCKONLY field instead.
-export const SERVICE_FEE_SOURCE_CONFIRMED = false;
+// field in the documented schema. Confirmed source as of now:
+// POST /obtainRemittancePartnerCommission (CommissionRecord, same data
+// Partner Commission and resolveCommissionRate already use) — the service
+// charge collected from the sender IS the commission schedule, not a
+// separate fee, so resolveFee's confirmed branch just reuses the
+// commissionRate/amount already resolved for the `commission` field rather
+// than a second, independent lookup. This intentionally makes `fee` and
+// `commission` the same number, which is why calculateTransfer's
+// netEarning (fee + fxSpread - commission) reduces to just fxSpread once
+// this is true — the fee collected directly funds the commission payout,
+// so the company's net is the FX spread margin alone.
+export const SERVICE_FEE_SOURCE_CONFIRMED = true;
 
 // Foreign-to-foreign corridor triangulation (neither source nor
 // destination currency is NPR). The math is implemented in

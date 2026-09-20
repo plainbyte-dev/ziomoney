@@ -5,6 +5,7 @@ import { Pencil, Plus, RefreshCw, X } from "lucide-react";
 import { useRates } from "@/contexts/RatesContext";
 import { usePartners } from "@/contexts/PartnersContext";
 import { useDataMode } from "@/contexts/DataModeContext";
+import { useTabs } from "@/contexts/TabsContext";
 import SelectField from "./SelectField";
 import CurrencySelect, { type CurrencySelectOption } from "./CurrencySelect";
 import Checkbox from "./Checkbox";
@@ -18,6 +19,7 @@ import {
 } from "@/data/serviceChargeData";
 import { setupTypeLabels } from "@/data/setupTypeData";
 import { dedupePartnerEntriesByName } from "@/data/partnerData";
+import { payoutPartnerWiseTabKey } from "@/data/tabRegistry";
 
 export default function ServiceChargesPanel() {
   const { isLive } = useDataMode();
@@ -30,10 +32,11 @@ export default function ServiceChargesPanel() {
     countryCurrencies,
   } = useRates();
   const { entries: partners } = usePartners();
+  const { openTab } = useTabs();
 
   // One entry per currency code, labeled with its country so the picker shows
-  // exactly what's on file in the Country/Currency reference table rather
-  // than a bare code — the saved value is still just the currency code.
+  // "Country — CODE" rather than a bare code — the saved value is still just
+  // the currency code.
   const countrySymbolOptions: CurrencySelectOption[] = Array.from(
     new Map(countryCurrencies.map((c) => [c.currencyCode, c])).values()
   )
@@ -161,17 +164,38 @@ export default function ServiceChargesPanel() {
                         </Button>
 
                         {partner.destCountries && partner.destCountries.length > 0 ? (
-                          (["PARTNER", "THIRD_PARTY_AGENT"] as const).map((option) => (
+                          <>
+                            {/* Backend confirmed: partner-wise service charge setup goes
+                                through insertOrUpdateRemittancePartnerCommission, not
+                                Service_Charges_save/Insert — a "service-charge" kind tab
+                                (PayoutPartnerOfferRatePanel), separate from the "rate" kind
+                                tab Exchange Rates' Payout Partner Wise button opens, so this
+                                page only shows the Commission-backed Service Charge Setup
+                                form rather than mixing in the offer-rate sections too. */}
                             <Button
-                              key={option}
                               type="button"
                               variant="secondary"
                               size="sm"
-                              onClick={() => setSetupTarget({ partnerName: partner.partnerName, setupType: option })}
+                              onClick={() =>
+                                openTab({
+                                  key: payoutPartnerWiseTabKey(partner.partnerName, "service-charge"),
+                                  title: `Service Charge — ${partner.partnerName}`,
+                                })
+                              }
                             >
-                              {setupTypeLabels[option]}
+                              {setupTypeLabels.PARTNER}
                             </Button>
-                          ))
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                setSetupTarget({ partnerName: partner.partnerName, setupType: "THIRD_PARTY_AGENT" })
+                              }
+                            >
+                              {setupTypeLabels.THIRD_PARTY_AGENT}
+                            </Button>
+                          </>
                         ) : (
                           <span className="text-xs text-muted">
                             No destination countries enabled — add some in Manage Partner.
@@ -326,7 +350,7 @@ export default function ServiceChargesPanel() {
             options={countrySymbolOptions}
             value={form.countrySymbol}
             onChange={(v) => updateField("countrySymbol", v)}
-            emptyMessage="No currencies found — import one under Country / Currency first."
+            emptyMessage="No currencies available."
           />
           {agentOptions.length > 0 ? (
             <SelectField

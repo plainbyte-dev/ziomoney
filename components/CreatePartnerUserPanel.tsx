@@ -15,6 +15,7 @@ import {
   partnerCountrySelectOptions,
   remitterTypeOptions,
   settlementCurrencyOptions,
+  exampleAddressForCountry,
   type PartnerEntry,
 } from "@/data/partnerData";
 
@@ -239,7 +240,13 @@ export default function CreatePartnerUserPanel() {
             value={partnerCountry}
             onChange={setPartnerCountry}
           />
-          <TextField label="Partner Address:" required value={partnerAddress} onChange={setPartnerAddress} />
+          <TextField
+            label="Partner Address:"
+            required
+            placeholder={exampleAddressForCountry(partnerCountry)}
+            value={partnerAddress}
+            onChange={setPartnerAddress}
+          />
           <SelectField
             label="Remitter Type:"
             options={remitterTypeOptions}

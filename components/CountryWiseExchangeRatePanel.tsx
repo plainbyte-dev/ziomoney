@@ -31,10 +31,10 @@ export default function CountryWiseExchangeRatePanel() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Country choices come from the Country/Currency reference table, not free
-  // text, so the symbol/ISO code/flag saved here always match what's on file
-  // there. A country being edited that predates that table (legacy seed data)
-  // is still shown so its row doesn't disappear from the dropdown.
+  // Country choices come from the full ISO country/currency reference table,
+  // not free text, so the symbol/ISO code/flag saved here always match a
+  // known country. A country being edited that predates that table (legacy
+  // seed data) is still shown so its row doesn't disappear from the dropdown.
   const countryOptions = Array.from(new Set(countryCurrencies.map((c) => c.countryName))).sort();
   const selectableCountries =
     form.countryName && !countryOptions.includes(form.countryName)
@@ -44,7 +44,6 @@ export default function CountryWiseExchangeRatePanel() {
   // twice with different currencies) — offer all of them rather than
   // silently picking the first match.
   const currencyMatches = countryCurrencies.filter((c) => c.countryName === form.countryName);
-  const matchedCountry = currencyMatches.find((c) => c.currencyCode === form.symbol) ?? currencyMatches[0];
 
   useEffect(() => {
     refreshExchangeRates();
@@ -211,7 +210,7 @@ export default function CountryWiseExchangeRatePanel() {
             options={selectableCountries}
             value={form.countryName}
             onChange={handleCountryChange}
-            emptyMessage="No countries set up yet — add rows on the Country/Currency tab first."
+            emptyMessage="No countries available."
           />
           {currencyMatches.length > 0 ? (
             <CurrencySelect
@@ -223,32 +222,6 @@ export default function CountryWiseExchangeRatePanel() {
             />
           ) : (
             <TextField label="Symbol:" required value={form.symbol} onChange={(v) => updateField("symbol", v)} />
-          )}
-          <TextField
-            label="Currency Name:"
-            required
-            disabled={Boolean(matchedCountry)}
-            value={form.currencyName}
-            onChange={(v) => updateField("currencyName", v)}
-          />
-          <TextField
-            label="Country ISO Code:"
-            disabled={Boolean(matchedCountry)}
-            value={form.countryIsoCode}
-            onChange={(v) => updateField("countryIsoCode", v)}
-          />
-          <TextField
-            label="Flag (emoji):"
-            disabled={Boolean(matchedCountry)}
-            value={form.flag}
-            onChange={(v) => updateField("flag", v)}
-          />
-          {matchedCountry && (
-            <p className="sm:col-span-3 -mt-2 text-xs text-muted">
-              {currencyMatches.length > 1
-                ? `${currencyMatches.length} currencies are on file for ${matchedCountry.countryName} — pick one above. Currency name, ISO code and flag are sourced from the Country/Currency setup.`
-                : `Symbol, currency name, ISO code and flag are sourced from the Country/Currency setup for ${matchedCountry.countryName}.`}
-            </p>
           )}
           <TextField
             label="Unit:"

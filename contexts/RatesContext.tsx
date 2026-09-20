@@ -14,7 +14,6 @@ import {
   getAllServiceCharges,
   saveServiceCharge,
   insertServiceCharge,
-  upsertCountryCurrency,
   getPartnerCommissions,
   upsertPartnerCommission,
   getAllPendingPartnerOfferRates,
@@ -36,12 +35,7 @@ import {
   type ServiceChargeRecord,
   type ServiceChargeUpsertPayload,
 } from "@/data/serviceChargeData";
-import {
-  countryCurrencyRecords,
-  type CountryCurrencyImportRowResult,
-  type CountryCurrencyRecord,
-  type CountryCurrencyUpsertPayload,
-} from "@/data/countryCurrencyData";
+import { countryCurrencyRecords, type CountryCurrencyRecord } from "@/data/countryCurrencyData";
 import {
   commissionRecords,
   type CommissionLookupPayload,
@@ -72,9 +66,9 @@ interface RatesContextValue {
   refreshServiceCharges: () => Promise<void>;
   saveServiceChargeEntry: (payload: ServiceChargeUpsertPayload, isNew: boolean) => Promise<boolean>;
 
+  // Full ISO country/currency reference table — always available, no
+  // admin setup step required (see data/countryCurrencyData.ts).
   countryCurrencies: CountryCurrencyRecord[];
-  countryCurrencyImporting: boolean;
-  importCountryCurrencyCsv: (rows: CountryCurrencyUpsertPayload[]) => Promise<CountryCurrencyImportRowResult[]>;
 
   commissions: CommissionRecord[];
   commissionsLoading: boolean;
@@ -116,7 +110,6 @@ const STORAGE_KEY = "zio-rates-state";
 interface PersistedRatesState {
   exchangeRates: ExchangeRateRecord[];
   serviceCharges: ServiceChargeRecord[];
-  countryCurrencies: CountryCurrencyRecord[];
   commissions: CommissionRecord[];
   partnerOfferRates: PartnerOfferRateRecord[];
   margins: MarginRecord[];
@@ -143,15 +136,9 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   const serviceChargesQuery = useAsyncQuery();
   const saveServiceChargeMutation = useAsyncMutation();
 
-  // countryCurrencies has no "list all" endpoint at all — the only backend
-  // call is UpdateCsvfileForCountries, which takes one raw CSV row string per
-  // call and returns an opaque string, not a saved record. So this table is
-  // built entirely from what was successfully imported this session, using
-  // the values as parsed from the CSV — never from a response payload.
-  const [countryCurrencies, setCountryCurrencies] = useState<CountryCurrencyRecord[]>(() =>
-    isLive ? [] : countryCurrencyRecords
-  );
-  const [countryCurrencyImporting, setCountryCurrencyImporting] = useState(false);
+  // Full built-in ISO reference table — same in live and demo mode, never
+  // fetched or admin-managed.
+  const countryCurrencies = countryCurrencyRecords;
 
   // No "list ALL" endpoint for commissions — obtainRemittancePartnerCommission
   // is a real search endpoint (userName + destinationCountry + sendCurrency),
@@ -200,30 +187,32 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
   // doesn't silently drop them back to the seed data. exchangeRates/
   // serviceCharges/partnerOfferRates get refetched from the live API when
   // isLive, so restoring stale localStorage values for those only matters in
-  // demo mode. countryCurrencies/commissions/margins have no such refetch —
-  // localStorage is the ONLY record of what was previously entered, in
-  // EITHER mode — so those three always restore, live or not, or a page
-  // reload in Live mode would silently drop everything back to empty.
+  // demo mode. commissions/margins have no such refetch — localStorage is
+  // the ONLY record of what was previously entered, in EITHER mode — so
+  // those two always restore, live or not, or a page reload in Live mode
+  // would silently drop everything back to empty.
+  const [restored, setRestored] = useState(false);
   useEffect(() => {
     const saved = loadState<PersistedRatesState>(STORAGE_KEY);
-    if (!saved) return;
-    if (!isLive) {
-      setExchangeRates(saved.exchangeRates);
-      setServiceCharges(saved.serviceCharges);
-      setPartnerOfferRates(saved.partnerOfferRates);
+    if (saved) {
+      if (!isLive) {
+        setExchangeRates(saved.exchangeRates);
+        setServiceCharges(saved.serviceCharges);
+        setPartnerOfferRates(saved.partnerOfferRates);
+      }
+      setCommissions(saved.commissions);
+      setMargins(saved.margins);
     }
-    setCountryCurrencies(saved.countryCurrencies);
-    setCommissions(saved.commissions);
-    setMargins(saved.margins);
+    setRestored(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // countryCurrencies/commissions/margins have no refresh-from-API mechanism
-  // (no list endpoint), so switching into live mode mid-session has to
-  // explicitly clear out whatever demo data was showing — nothing will
-  // otherwise overwrite it. Must only fire on an actual toggle, not on a cold
-  // load that starts already in Live mode — but DataModeContext always
-  // renders "static" for its first render (it can't read localStorage
+  // commissions/margins have no refresh-from-API mechanism (no list
+  // endpoint), so switching into live mode mid-session has to explicitly
+  // clear out whatever demo data was showing — nothing will otherwise
+  // overwrite it. Must only fire on an actual toggle, not on a cold load
+  // that starts already in Live mode — but DataModeContext always renders
+  // "static" for its first render (it can't read localStorage
   // synchronously) before correcting itself once hydrated, and that
   // correction looks, from here, exactly like the user just switching into
   // Live mode. So this waits for DataModeContext to report real hydration,
@@ -239,28 +228,31 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     if (isLive && !prevIsLiveRef.current) {
-      setCountryCurrencies([]);
       setCommissions([]);
       setMargins([]);
     }
     prevIsLiveRef.current = isLive;
   }, [isLive, dataModeHydrated]);
 
-  const skipNextSave = useRef(true);
+  // Gated on `restored` state (not a ref-based "skip the first run" flag) so
+  // this can't fire before the restore effect above has actually committed.
+  // A ref flip isn't enough — React 18 Strict Mode double-invokes every
+  // effect on mount in dev using the SAME pre-restore render's closure, so a
+  // ref consumed by the first invocation lets the second one straight
+  // through, overwriting a real persisted snapshot with the pre-restore seed
+  // state moments before the real state change re-fires this correctly.
+  // `restored` only flips via a real committed render, so both Strict Mode
+  // invocations on the initial (pre-restore) render see it as false.
   useEffect(() => {
-    if (skipNextSave.current) {
-      skipNextSave.current = false;
-      return;
-    }
+    if (!restored) return;
     saveState<PersistedRatesState>(STORAGE_KEY, {
       exchangeRates,
       serviceCharges,
-      countryCurrencies,
       commissions,
       partnerOfferRates,
       margins,
     });
-  }, [exchangeRates, serviceCharges, countryCurrencies, commissions, partnerOfferRates, margins]);
+  }, [restored, exchangeRates, serviceCharges, commissions, partnerOfferRates, margins]);
 
   const refreshExchangeRates = useCallback(async () => {
     await exchangeRatesQuery.run<ExchangeRateItem[]>({
@@ -470,64 +462,6 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
         fallbackErrorMessage: "Could not save the service charge.",
       }),
     [isLive, notify, refreshServiceCharges, saveServiceChargeMutation]
-  );
-
-  // UpdateCsvfileForCountries upserts ONE row per call and has no
-  // "list all" endpoint, so importing is a batched loop and the table is
-  // built from successfully-imported rows, not a fetch. Batched (not fully
-  // parallel) so a large file doesn't fire dozens of requests at once.
-  const COUNTRY_CURRENCY_IMPORT_BATCH_SIZE = 5;
-
-  const importCountryCurrencyCsv = useCallback(
-    async (rows: CountryCurrencyUpsertPayload[]): Promise<CountryCurrencyImportRowResult[]> => {
-      setCountryCurrencyImporting(true);
-      const results: CountryCurrencyImportRowResult[] = [];
-
-      if (!isLive) {
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        for (const row of rows) results.push({ row, success: true, message: "Imported (demo mode)." });
-        setCountryCurrencies((prev) => [...rows.map((row) => ({ ...row, id: ++localIdCounter })), ...prev]);
-        setCountryCurrencyImporting(false);
-        notify({
-          title: "Country/currency rows imported",
-          message: `${rows.length} of ${rows.length} row(s) imported.`,
-        });
-        return results;
-      }
-
-      for (let i = 0; i < rows.length; i += COUNTRY_CURRENCY_IMPORT_BATCH_SIZE) {
-        const batch = rows.slice(i, i + COUNTRY_CURRENCY_IMPORT_BATCH_SIZE);
-        const batchResults = await Promise.all(
-          batch.map(async (row): Promise<CountryCurrencyImportRowResult & { record?: CountryCurrencyRecord }> => {
-            const response = await upsertCountryCurrency(row);
-            return {
-              row,
-              success: response.success && !!response.data,
-              message: response.success ? "Imported." : response.message || "Import failed.",
-              record: response.data ?? undefined,
-            };
-          })
-        );
-        results.push(...batchResults.map(({ row, success, message }) => ({ row, success, message })));
-        // Use the server-assigned id from the response rather than a local
-        // counter — this is a real upsert now, not a fire-and-forget call.
-        const succeededRows = batchResults
-          .filter((r): r is typeof r & { record: CountryCurrencyRecord } => r.success && !!r.record)
-          .map((r) => r.record);
-        if (succeededRows.length) setCountryCurrencies((prev) => [...succeededRows, ...prev]);
-      }
-
-      setCountryCurrencyImporting(false);
-      const succeeded = results.filter((r) => r.success).length;
-      notify({
-        title: "Country/currency rows imported",
-        message: `${succeeded} of ${rows.length} row(s) imported${
-          succeeded < rows.length ? `, ${rows.length - succeeded} failed` : ""
-        }.`,
-      });
-      return results;
-    },
-    [isLive, notify]
   );
 
   const saveCommission = useCallback(
@@ -818,8 +752,6 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       refreshServiceCharges,
       saveServiceChargeEntry,
       countryCurrencies,
-      countryCurrencyImporting,
-      importCountryCurrencyCsv,
       commissions,
       commissionsLoading: commissionsMutation.loading,
       commissionsError: commissionsMutation.error,
@@ -855,8 +787,6 @@ export function RatesProvider({ children }: { children: React.ReactNode }) {
       refreshServiceCharges,
       saveServiceChargeEntry,
       countryCurrencies,
-      countryCurrencyImporting,
-      importCountryCurrencyCsv,
       commissions,
       commissionsMutation.loading,
       commissionsMutation.error,

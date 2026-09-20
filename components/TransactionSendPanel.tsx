@@ -15,7 +15,6 @@ import { useBeneficiaries } from "@/contexts/BeneficiariesContext";
 import { useKyc } from "@/contexts/KycContext";
 import { insertTransfer } from "@/lib/transferApi";
 import { partnerCountrySelectOptions } from "@/data/partnerData";
-import { banksForCountryMOCKONLY } from "@/data/payoutBankOptionsData";
 import { walletsForCountryMOCKONLY } from "@/data/payoutWalletOptionsData";
 import {
   emptyTransferInsertPayload,
@@ -104,10 +103,9 @@ export default function TransactionSendPanel() {
   } = useRates();
 
   // Exchange-rate rows are the live source of which currencies (and their
-  // country pairing) are actually tradeable — unlike countryCurrencies,
-  // which has no "list all" endpoint and stays empty in live mode until
-  // someone happens to CSV-import it. Refresh on mount so destination
-  // currency resolution below doesn't silently depend on that.
+  // country pairing) are actually tradeable — countryCurrencies is just the
+  // full ISO reference table, not a tradeability signal. Refresh on mount so
+  // destination currency resolution below doesn't silently depend on stale data.
   useEffect(() => {
     refreshExchangeRates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -145,6 +143,10 @@ export default function TransactionSendPanel() {
   // the transfer amount) — see discountPercentByOption in
   // data/transactionSendData.ts for the (unconfirmed, placeholder) percentages.
   const [discount, setDiscount] = useState<string>(discountOptions[0]);
+  // Free-text purpose, only used when form.purpose === "Other" — the actual
+  // value submitted/validated as the purpose is effectivePurpose below, not
+  // form.purpose directly, so a bare "Other" is never sent as-is.
+  const [customPurpose, setCustomPurpose] = useState("");
   const [senderUserName, setSenderUserName] = useState("");
   const [beneficiaryIds, setBeneficiaryIds] = useState<number[]>([]);
   // Per-beneficiary amounts, keyed by beneficiary id. Replaces the old
@@ -160,12 +162,9 @@ export default function TransactionSendPanel() {
   // paid out, so this now travels with the beneficiary's own amount/rate
   // row instead.
   const [methodByBeneficiary, setMethodByBeneficiary] = useState<Record<number, string>>({});
-  // Which bank the payout goes through, keyed by beneficiary id — only
-  // meaningful while that beneficiary's method is "Bank". Options come from
-  // banksForCountryMOCKONLY (data/payoutBankOptionsData.ts), a local stand-in
-  // until a real "list banks by destination country" endpoint exists.
-  const [bankByBeneficiary, setBankByBeneficiary] = useState<Record<number, string>>({});
-  // Same idea as bankByBeneficiary, for the "Wallet" method — options come
+  // Same idea as before bank selection was removed (the beneficiary's own
+  // bank-on-file is used instead — see the "Bank on file" display below),
+  // now only for the "Wallet" method — options come
   // from walletsForCountryMOCKONLY (data/payoutWalletOptionsData.ts).
   const [walletByBeneficiary, setWalletByBeneficiary] = useState<Record<number, string>>({});
   // Per-beneficiary manual override of the Customer Rate — lets the agent
@@ -236,24 +235,14 @@ export default function TransactionSendPanel() {
     });
     setSourceCurrencyByBeneficiary((prev) => {
       if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
-      // Seeded from the selected partner's settlement currency, but editable
-      // per beneficiary from here on — same pattern as destination currency.
-      return { ...prev, [id]: form.sourceCurrency };
+      // No shared "default source currency" anymore — each beneficiary is
+      // seeded independently with the first tradeable currency, editable
+      // per row from here on, same pattern as destination currency.
+      return { ...prev, [id]: currencyOptions[0] ?? "" };
     });
     setMethodByBeneficiary((prev) => {
       if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
       return { ...prev, [id]: payoutMethodOptions[0] };
-    });
-    setBankByBeneficiary((prev) => {
-      if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
-      const beneficiary = beneficiaries.find((b) => b.id === id);
-      const country = beneficiary ? destinationForBeneficiary(beneficiary).country : "";
-      const options = banksForCountryMOCKONLY(country);
-      // Prefer the beneficiary's own bank-on-file when it happens to be one
-      // of the country's listed banks — otherwise default to the first
-      // option rather than leaving the picker unset.
-      const suggested = beneficiary && options.includes(beneficiary.bankName) ? beneficiary.bankName : options[0] ?? "";
-      return { ...prev, [id]: suggested };
     });
     setWalletByBeneficiary((prev) => {
       if (prev[id] !== undefined) return prev; // keep existing choice if re-checking
@@ -268,18 +257,7 @@ export default function TransactionSendPanel() {
     setAmountsByBeneficiary((prev) => ({ ...prev, [id]: value }));
   }
 
-  // The bank options list depends on the destination country, which the
-  // agent can change after the initial seed above — fall back through the
-  // country's current option list rather than trusting a stale stored value
-  // that may no longer belong to it.
-  function bankFor(beneficiaryId: number, country: string): string {
-    const options = banksForCountryMOCKONLY(country);
-    const stored = bankByBeneficiary[beneficiaryId];
-    if (stored && options.includes(stored)) return stored;
-    return options[0] ?? "";
-  }
-
-  // Same reasoning as bankFor above, for the "Wallet" method's options.
+  // Same reasoning as before bank selection was removed, for the "Wallet" method's options.
   function walletFor(beneficiaryId: number, country: string): string {
     const options = walletsForCountryMOCKONLY(country);
     const stored = walletByBeneficiary[beneficiaryId];
@@ -341,15 +319,16 @@ export default function TransactionSendPanel() {
   }
 
   // Per-beneficiary, agent-chosen source currency. Keyed by beneficiary id,
-  // seeded from the selected partner's settlement currency in
-  // toggleBeneficiary but editable via the CurrencySelect dropdown next to
-  // each beneficiary row — each beneficiary is submitted as its own
-  // POST /transfers call, so a different source currency per row is a real,
-  // independently-submittable choice, not just a display quirk.
+  // seeded with the first tradeable currency in toggleBeneficiary but
+  // editable via the CurrencySelect dropdown next to each beneficiary row —
+  // each beneficiary is submitted as its own POST /transfers call, so a
+  // different source currency per row is a real, independently-submittable
+  // choice, not just a display quirk. No shared "default source currency"
+  // field exists anymore — every row is independent from the start.
   const [sourceCurrencyByBeneficiary, setSourceCurrencyByBeneficiary] = useState<Record<number, string>>({});
 
   function sourceCurrencyFor(beneficiaryId: number): string {
-    return sourceCurrencyByBeneficiary[beneficiaryId] ?? form.sourceCurrency;
+    return sourceCurrencyByBeneficiary[beneficiaryId] ?? currencyOptions[0] ?? "";
   }
 
   // Per-beneficiary, agent-chosen destination country. Keyed by beneficiary
@@ -569,6 +548,11 @@ export default function TransactionSendPanel() {
     return totals;
   }, {});
 
+  // The actual purpose to validate/submit — when "Other" is selected, the
+  // free-text customPurpose is what's meaningful, not the literal word
+  // "Other".
+  const effectivePurpose = form.purpose === "Other" ? customPurpose.trim() : form.purpose;
+
   const formValid =
     Boolean(senderUserName) &&
     beneficiaryIds.length > 0 &&
@@ -576,7 +560,7 @@ export default function TransactionSendPanel() {
     selectedBeneficiaries.every((b) => Boolean(sourceCurrencyFor(b.id))) &&
     allDestinationsResolved &&
     !hasBlockedCrossCurrencyCorridor &&
-    form.purpose;
+    effectivePurpose;
 
   // POST /transfers takes one beneficiaryId (and one destinationCountry/
   // destinationCurrency, and now one beneficiary-specific amount) per call
@@ -609,6 +593,7 @@ export default function TransactionSendPanel() {
         const detail = transactionDetailFor(beneficiary);
         return {
           ...form,
+          purpose: effectivePurpose,
           sourceCurrency,
           amount,
           beneficiaryId: beneficiary.id,
@@ -661,6 +646,7 @@ export default function TransactionSendPanel() {
       const amount = amountsByBeneficiary[beneficiary.id] ?? 0;
       const response = await insertTransfer({
         ...form,
+        purpose: effectivePurpose,
         sourceCurrency: sourceCurrencyFor(beneficiary.id),
         amount,
         beneficiaryId: beneficiary.id,
@@ -688,13 +674,13 @@ export default function TransactionSendPanel() {
     setTradeRestrictions(emptyTradeRestrictions());
     setCollectMethod(collectMethodOptions[0]);
     setDiscount(discountOptions[0]);
+    setCustomPurpose("");
     setBeneficiaryIds([]);
     setAmountsByBeneficiary({});
     setSourceCurrencyByBeneficiary({});
     setDestinationCountryByBeneficiary({});
     setDestinationCurrencyByBeneficiary({});
     setMethodByBeneficiary({});
-    setBankByBeneficiary({});
     setWalletByBeneficiary({});
     setCustomerRateOverrides({});
     setCustomerRateEditing({});
@@ -874,7 +860,7 @@ export default function TransactionSendPanel() {
                 <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-heading">
                   {selectedPartner
                     ? selectedPartner.creditLimit !== null
-                      ? `${formatAccounting(selectedPartner.creditLimit)} ${form.sourceCurrency || ""}`.trim()
+                      ? `${formatAccounting(selectedPartner.creditLimit)} ${selectedPartner.settlementCurrency ?? ""}`.trim()
                       : "No limit set for this partner"
                     : "Select a Partner ID first"}
                 </p>
@@ -913,7 +899,6 @@ export default function TransactionSendPanel() {
                 setDestinationCountryByBeneficiary({});
                 setDestinationCurrencyByBeneficiary({});
                 setMethodByBeneficiary({});
-                setBankByBeneficiary({});
                 setWalletByBeneficiary({});
                 setCustomerRateOverrides({});
                 setCustomerRateEditing({});
@@ -1053,45 +1038,6 @@ export default function TransactionSendPanel() {
                               {sourceCurrencyFor(b.id)} → {destinationCurrency} isn&apos;t supported yet.
                             </span>
                           )}
-                        </div>
-                      )}
-                      {checked && methodFor(b.id) === "Bank" && (
-                        <div className="ml-6 flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-lg bg-surface px-3 py-2 text-xs text-heading/80">
-                          <span className="font-semibold uppercase tracking-wide text-muted">Payout bank:</span>
-                          {(() => {
-                            const bankOptions = banksForCountryMOCKONLY(destinationCountry);
-                            if (bankOptions.length === 0) {
-                              return (
-                                <span className="text-red-500">
-                                  {destinationCountry
-                                    ? `No banks listed for ${destinationCountry} yet.`
-                                    : "Select a destination country to see its banks."}
-                                </span>
-                              );
-                            }
-                            return (
-                              <>
-                                <select
-                                  value={bankFor(b.id, destinationCountry)}
-                                  onChange={(e) =>
-                                    setBankByBeneficiary((prev) => ({ ...prev, [b.id]: e.target.value }))
-                                  }
-                                  aria-label={`Payout bank for ${b.fullName}`}
-                                  className="rounded-lg border border-border bg-panel px-2.5 py-1.5 text-sm font-semibold text-heading focus:border-brand-green focus:outline-none focus:ring-1 focus:ring-brand-green"
-                                >
-                                  {bankOptions.map((option) => (
-                                    <option key={option} value={option}>
-                                      {option}
-                                    </option>
-                                  ))}
-                                </select>
-                                {b.accountNumber && <span className="text-muted">A/C {b.accountNumber}</span>}
-                              </>
-                            );
-                          })()}
-                          <span className="w-full text-[10px] text-muted">
-                            Sample bank list — will be pulled from the country&apos;s payout bank API once available.
-                          </span>
                         </div>
                       )}
                       {checked && methodFor(b.id) === "Wallet" && (
@@ -1267,29 +1213,26 @@ export default function TransactionSendPanel() {
             )}
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <CurrencySelect
-              label="Default Source Currency:"
-              required
-              options={currencyOptions}
-              value={form.sourceCurrency}
-              onChange={(v) => updateField("sourceCurrency", v)}
-              emptyMessage="No tradeable currencies found — check Exchange Rates setup."
-            />
-            <p className="text-xs text-muted">
-              Chosen for this transaction — not auto-filled from the selected partner. Seeds each new
-              beneficiary&apos;s own From currency below, which can still be changed independently per row.
-            </p>
-          </div>
-
           <SelectField
             label="Purpose:"
             required
             options={transferPurposeOptions}
             defaultValue={transferPurposeOptions[0]}
             value={form.purpose}
-            onChange={(v) => updateField("purpose", v)}
+            onChange={(v) => {
+              updateField("purpose", v);
+              if (v !== "Other") setCustomPurpose("");
+            }}
           />
+          {form.purpose === "Other" && (
+            <TextField
+              label="Specify Purpose:"
+              required
+              placeholder="e.g. Property Purchase"
+              value={customPurpose}
+              onChange={setCustomPurpose}
+            />
+          )}
           <div className="sm:col-span-2 flex flex-col gap-1.5">
             <label className="text-sm text-heading/70">Remarks:</label>
             <textarea

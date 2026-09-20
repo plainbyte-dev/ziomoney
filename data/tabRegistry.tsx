@@ -21,7 +21,6 @@ import ExchangeRatesPanel from "@/components/ExchangeRatesPanel";
 import CountryWiseExchangeRatePanel from "@/components/CountryWiseExchangeRatePanel";
 import ServiceChargesPanel from "@/components/ServiceChargesPanel";
 import MarginSetupPanel from "@/components/MarginSetupPanel";
-import CountryCurrencyPanel from "@/components/CountryCurrencyPanel";
 import PartnerOfferRatePropose from "@/components/PartnerOfferRatePropose";
 import PartnerOfferRateApprovals from "@/components/PartnerOfferRateApprovals";
 import PartnerOfferRateCurrent from "@/components/PartnerOfferRateCurrent";
@@ -263,15 +262,6 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
       { label: "Margin Setup", href: "#", active: true },
     ],
     component: MarginSetupPanel,
-  },
-  "country-currency": {
-    title: "Country / Currency",
-    breadcrumb: [
-      { label: "Home", href: "#" },
-      { label: "Exchange Rate & Commission", href: "#" },
-      { label: "Country / Currency", href: "#", active: true },
-    ],
-    component: CountryCurrencyPanel,
   },
   "partner-offer-rates-propose": {
     title: "Propose Offer Rate",
@@ -699,3 +689,34 @@ export const tabRegistry: Record<string, TabRegistryEntry> = {
     component: ReportListPanel,
   },
 };
+
+// "Payout Partner Wise" is scoped to one partner at a time, so it can't be a
+// single static entry in the registry above the way every other tab is —
+// this key format lets one tab exist per partner+kind (opening a second
+// partner's tab doesn't clobber the first one still open). It also encodes
+// which button opened it — ExchangeRatesPanel's "Payout Partner Wise"
+// (kind "rate": approved offer rates + propose) vs. ServiceChargesPanel's
+// (kind "service-charge": the Commission-backed Service Charge Setup form
+// only) — so the two intents render as two separate tabs instead of one
+// page mashing both sections together regardless of which button was
+// clicked. TabbedWorkspace special-cases this prefix instead of looking it
+// up in tabRegistry directly.
+export type PayoutPartnerWiseKind = "rate" | "service-charge";
+const PAYOUT_PARTNER_WISE_PREFIX = "payout-partner-wise:";
+
+export function payoutPartnerWiseTabKey(partnerName: string, kind: PayoutPartnerWiseKind): string {
+  return `${PAYOUT_PARTNER_WISE_PREFIX}${kind}:${partnerName}`;
+}
+
+export function parsePayoutPartnerWiseTabKey(
+  key: string
+): { kind: PayoutPartnerWiseKind; partnerName: string } | null {
+  if (!key.startsWith(PAYOUT_PARTNER_WISE_PREFIX)) return null;
+  const rest = key.slice(PAYOUT_PARTNER_WISE_PREFIX.length);
+  const separatorIndex = rest.indexOf(":");
+  if (separatorIndex === -1) return null;
+  const kind = rest.slice(0, separatorIndex);
+  const partnerName = rest.slice(separatorIndex + 1);
+  if (kind !== "rate" && kind !== "service-charge") return null;
+  return { kind, partnerName };
+}

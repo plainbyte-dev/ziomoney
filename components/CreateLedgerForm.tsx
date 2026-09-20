@@ -32,10 +32,8 @@ export default function CreateLedgerForm() {
     setCurrency(currencyForCountry(value) || currencyOptions[0] || "");
   }
 
-  // Country/currency load asynchronously (imported via the Country/Currency
-  // tab) — once the list is available, default to its first country and the
-  // currency that goes with it, re-pointing if the previous selection no
-  // longer exists in the list.
+  // Default to the first country and its currency, re-pointing if the
+  // previous selection no longer exists in the list.
   useEffect(() => {
     if (countryOptions.length === 0) return;
     const next = countryOptions.includes(country) ? country : countryOptions[0];
@@ -95,7 +93,7 @@ export default function CreateLedgerForm() {
             <div className="flex flex-col gap-1.5">
               <label className="text-sm text-heading/70">Country</label>
               <p className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-muted">
-                No countries uploaded — add rows on the Country/Currency tab first.
+                No countries available.
               </p>
             </div>
           )}

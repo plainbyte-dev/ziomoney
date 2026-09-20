@@ -308,7 +308,7 @@ export default function PartnerManageModal({
             </div>
             {countryOptions.length === 0 && (
               <p className="mt-2 text-xs text-muted">
-                No countries set up yet — add rows on the Country/Currency tab first.
+                No countries available.
               </p>
             )}
             {destCountryError && <p className="mt-2 text-xs text-red-600">{destCountryError}</p>}

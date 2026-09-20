@@ -11,6 +11,7 @@ import Button from "./Button";
 import {
   emptyPartnerOfferRateInsertPayload,
   quoteTypeValues,
+  directQuoteFromLegs,
   type PartnerOfferRateInsertPayload,
 } from "@/data/partnerOfferRateData";
 import { settlementCurrencyOptions, partnerCountrySelectOptions } from "@/data/partnerData";
@@ -24,6 +25,16 @@ export default function PartnerOfferRatePropose() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [lastSubmittedId, setLastSubmittedId] = useState<string | null>(null);
+
+  // Tracked as raw text, separate from form.sendCurrencyPerUsd/receiveCurrencyPerUsd/
+  // directQuote (which stay numbers for the payload) — a controlled input whose
+  // value is String(someNumberState) snaps back the instant you type a trailing
+  // "." (String(Number("148.")) === "148"), which makes it impossible to ever
+  // type a decimal at all. These hold exactly what was typed; the number field
+  // is only parsed out on change, not fed back into the displayed value.
+  const [sendPerUsdInput, setSendPerUsdInput] = useState("0");
+  const [receivePerUsdInput, setReceivePerUsdInput] = useState("0");
+  const [directQuoteInput, setDirectQuoteInput] = useState("0");
 
   const partnerOptions = partners.map((p) => p.partnerName);
 
@@ -58,6 +69,9 @@ export default function PartnerOfferRatePropose() {
     }
     setLastSubmittedId(record.uniqueId);
     setForm(emptyPartnerOfferRateInsertPayload());
+    setSendPerUsdInput("0");
+    setReceivePerUsdInput("0");
+    setDirectQuoteInput("0");
   }
 
   return (
@@ -120,21 +134,35 @@ export default function PartnerOfferRatePropose() {
         <TextField
           label="Send Currency per USD:"
           required
-          value={String(form.sendCurrencyPerUsd)}
-          onChange={(v) => updateField("sendCurrencyPerUsd", Number(v) || 0)}
+          placeholder="e.g. 148.25"
+          value={sendPerUsdInput}
+          onChange={(v) => {
+            setSendPerUsdInput(v);
+            const sendPerUsd = parseFloat(v) || 0;
+            updateField("sendCurrencyPerUsd", sendPerUsd);
+            const directQuote = directQuoteFromLegs(sendPerUsd, parseFloat(receivePerUsdInput) || 0);
+            setDirectQuoteInput(String(directQuote));
+            updateField("directQuote", directQuote);
+          }}
         />
         <TextField
           label="Receive Currency per USD:"
           required
-          value={String(form.receiveCurrencyPerUsd)}
-          onChange={(v) => updateField("receiveCurrencyPerUsd", Number(v) || 0)}
+          placeholder="e.g. 83.1"
+          value={receivePerUsdInput}
+          onChange={(v) => {
+            setReceivePerUsdInput(v);
+            const receivePerUsd = parseFloat(v) || 0;
+            updateField("receiveCurrencyPerUsd", receivePerUsd);
+            const directQuote = directQuoteFromLegs(parseFloat(sendPerUsdInput) || 0, receivePerUsd);
+            setDirectQuoteInput(String(directQuote));
+            updateField("directQuote", directQuote);
+          }}
         />
-        <TextField
-          label="Direct Quote:"
-          required
-          value={String(form.directQuote)}
-          onChange={(v) => updateField("directQuote", Number(v) || 0)}
-        />
+        <TextField label="Direct Quote:" disabled value={directQuoteInput} />
+        <p className="sm:col-span-3 -mt-2 text-xs text-muted">
+          Direct Quote is calculated automatically as Receive Currency per USD ÷ Send Currency per USD.
+        </p>
 
         <div className="sm:col-span-3 mt-2 border-t border-border pt-5">
           {submitError && (

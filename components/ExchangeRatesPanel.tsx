@@ -13,6 +13,7 @@ import ExchangeRateSetupModal, { type ExchangeRateSetupTarget } from "./Exchange
 import { emptyExchangeRatePayload, type ExchangeRateRecord, type ExchangeRateUpsertPayload } from "@/data/exchangeRateData";
 import { setupTypeLabels } from "@/data/setupTypeData";
 import { dedupePartnerEntriesByName } from "@/data/partnerData";
+import { payoutPartnerWiseTabKey } from "@/data/tabRegistry";
 
 // Parses the small admin CSV import format: a header row followed by rows in
 // the same column order as ExchangeRateUpsertPayload. No quoted-field
@@ -238,17 +239,31 @@ export default function ExchangeRatesPanel() {
                         </Button>
 
                         {partner.destCountries && partner.destCountries.length > 0 ? (
-                          (["PARTNER", "THIRD_PARTY_AGENT"] as const).map((option) => (
+                          <>
                             <Button
-                              key={option}
                               type="button"
                               variant="secondary"
                               size="sm"
-                              onClick={() => setSetupTarget({ partnerName: partner.partnerName, setupType: option })}
+                              onClick={() =>
+                                openTab({
+                                  key: payoutPartnerWiseTabKey(partner.partnerName, "rate"),
+                                  title: `Payout Partner Wise — ${partner.partnerName}`,
+                                })
+                              }
                             >
-                              {setupTypeLabels[option]}
+                              {setupTypeLabels.PARTNER}
                             </Button>
-                          ))
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() =>
+                                setSetupTarget({ partnerName: partner.partnerName, setupType: "THIRD_PARTY_AGENT" })
+                              }
+                            >
+                              {setupTypeLabels.THIRD_PARTY_AGENT}
+                            </Button>
+                          </>
                         ) : (
                           <span className="text-xs text-muted">
                             No destination countries enabled — add some in Manage Partner.

@@ -4,7 +4,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { loadState, saveState } from "@/lib/persist";
 import { useNotifications } from "./NotificationsContext";
 import { useDataMode } from "./DataModeContext";
-import { listRemittancePartners, type RemittancePartnerRecord } from "@/lib/partnersApi";
+import {
+  listRemittancePartners,
+  obtainRemittancePartnerCountries,
+  type RemittancePartnerRecord,
+} from "@/lib/partnersApi";
 import { partnerEntries as initialEntries, normalizedPartnerName, type PartnerEntry } from "@/data/partnerData";
 
 interface PartnersContextValue {
@@ -53,37 +57,44 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
   const [entries, setEntries] = useState<PartnerEntry[]>(() => (isLive ? [] : initialEntries));
   const [entriesLoading, setEntriesLoading] = useState(false);
   const [entriesError, setEntriesError] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
 
   // Only meaningful in demo mode — a live session gets its list from the API,
   // never from a locally persisted demo snapshot.
   useEffect(() => {
-    if (isLive) return;
-    const saved = loadState<PartnerEntry[]>(STORAGE_KEY);
-    if (saved) setEntries(saved);
+    if (!isLive) {
+      const saved = loadState<PartnerEntry[]>(STORAGE_KEY);
+      if (saved) setEntries(saved);
+    }
+    setRestored(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Skip the very first save (still holds the pre-restore default state) so it
-  // can't race the restore effect above and clobber what's in localStorage.
-  const skipNextSave = useRef(true);
+  // Gated on `restored` state (not a ref-based "skip the first run" flag) so
+  // this can't fire before the restore effect above has actually committed.
+  // A ref flip isn't enough — React 18 Strict Mode double-invokes every
+  // effect on mount in dev using the SAME pre-restore render's closure, so a
+  // ref consumed by the first invocation lets the second one straight
+  // through, overwriting a real demo-mode snapshot with the pre-restore seed
+  // data moments before the real state change re-fires this correctly.
+  // `restored` only flips via a real committed render, so both Strict Mode
+  // invocations on the initial (pre-restore) render see it as false.
   useEffect(() => {
-    if (skipNextSave.current) {
-      skipNextSave.current = false;
-      return;
-    }
+    if (!restored) return;
     saveState(STORAGE_KEY, entries);
-  }, [entries]);
+  }, [restored, entries]);
 
-  // listRemittancePartners has no way to report txnCurrencies/destCountries
-  // back (both are set via their own insert-only endpoints with no list
-  // counterpart — same gap as countryCurrencies in RatesContext) — so a
-  // refresh keeps whatever was already known locally for those fields,
-  // matched by partner name, instead of wiping them back to empty. Seeded
-  // straight from localStorage (not from `entries`, which starts at [] in
-  // live mode) so even the very first refresh right after a Live-mode page
-  // reload has something to merge from — otherwise the restore-from-storage
-  // effect above (demo-only) never gets a chance to run before refreshEntries
-  // already wiped these fields back to nothing.
+  // listRemittancePartners has no way to report txnCurrencies back (it's set
+  // via its own insert-only endpoint with no list counterpart) — so a
+  // refresh keeps whatever was already known locally for that field, matched
+  // by partner name, instead of wiping it back to empty. destCountries now
+  // has a real list endpoint (obtainRemittancePartnerCountries) fetched per
+  // partner below, but still falls back to this local value if that fetch
+  // fails. Seeded straight from localStorage (not from `entries`, which
+  // starts at [] in live mode) so even the very first refresh right after a
+  // Live-mode page reload has something to merge/fall back to — otherwise
+  // the restore-from-storage effect above (demo-only) never gets a chance to
+  // run before refreshEntries already wiped these fields back to nothing.
   const entriesRef = useRef<PartnerEntry[]>(loadState<PartnerEntry[]>(STORAGE_KEY) ?? entries);
   useEffect(() => {
     entriesRef.current = entries;
@@ -106,6 +117,7 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
     setEntriesError(null);
 
     const response = await listRemittancePartners();
+    console.log("obtainAllRemittancePartner", response);
     setEntriesLoading(false);
 
     if (!response.success) {
@@ -118,13 +130,33 @@ export function PartnersProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    setEntries(
-      (response.data ?? []).map((record) => {
-        const mapped = mapPartnerRecord(record);
-        const previous = previousByName.get(normalizedPartnerName(mapped.partnerName));
-        return previous
-          ? { ...mapped, txnCurrencies: previous.txnCurrencies, destCountries: previous.destCountries }
-          : mapped;
+    const mappedEntries = (response.data ?? []).map((record) => {
+      const mapped = mapPartnerRecord(record);
+      const previous = previousByName.get(normalizedPartnerName(mapped.partnerName));
+      return previous ? { ...mapped, txnCurrencies: previous.txnCurrencies, destCountries: previous.destCountries } : mapped;
+    });
+    setEntries(mappedEntries);
+
+    // Real list endpoint for destCountries — fetch per partner, in parallel,
+    // and only overwrite the merged-from-local value above once each call
+    // resolves. A failed call or an unexpected (non-array) shape leaves that
+    // partner's local/previous value in place rather than wiping it. Matched
+    // back by normalized name (not array index) so this still lands
+    // correctly even if the list changed (e.g. addEntry/removeEntry) while
+    // these calls were in flight.
+    const destCountriesByName = new Map<string, string[]>();
+    await Promise.all(
+      mappedEntries.map(async (entry) => {
+        const result = await obtainRemittancePartnerCountries(entry.partnerName);
+        if (result.success && Array.isArray(result.data)) {
+          destCountriesByName.set(normalizedPartnerName(entry.partnerName), result.data);
+        }
+      })
+    );
+    setEntries((current) =>
+      current.map((entry) => {
+        const destCountries = destCountriesByName.get(normalizedPartnerName(entry.partnerName));
+        return destCountries ? { ...entry, destCountries } : entry;
       })
     );
   }, [isLive]);

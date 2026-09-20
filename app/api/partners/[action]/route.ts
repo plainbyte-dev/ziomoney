@@ -12,6 +12,7 @@ const ACTIONS: Record<string, { path: string; method: "GET" | "POST" }> = {
   "update-accept-pin": { path: "/updateRemittancePartnerAcceptPin", method: "POST" },
   "insert-txn-currency": { path: "/insertRemittancePartnerTxnCurrency", method: "POST" },
   "insert-country": { path: "/insertRemittancePartnerCountry", method: "POST" },
+  countries: { path: "/obtainRemittancePartnerCountries", method: "GET" },
   "insert-agent-partner": { path: "/insertAgentPartner", method: "POST" },
   "change-password": { path: "/changeRemittancePartnerPassword", method: "POST" },
   "insert-payout-config": { path: "/insertRemittancePayoutPartnerConfiguration", method: "POST" },
@@ -21,7 +22,7 @@ const ACTIONS: Record<string, { path: string; method: "GET" | "POST" }> = {
   "payout-partner-networks": { path: "/getPayoutPartner", method: "GET" },
 };
 
-function proxy(action: string, body: string | undefined, authorization: string | null) {
+function proxy(action: string, body: string | undefined, authorization: string | null, search: string) {
   const config = ACTIONS[action];
   if (!config) {
     return NextResponse.json(
@@ -29,14 +30,17 @@ function proxy(action: string, body: string | undefined, authorization: string |
       { status: 404 }
     );
   }
-  return proxyRemittanceRequest(config.path, { method: config.method, body, authorization });
+  return proxyRemittanceRequest(`${config.path}${search}`, { method: config.method, body, authorization });
 }
 
 export async function POST(request: Request, { params }: { params: { action: string } }) {
   const body = await request.text();
-  return proxy(params.action, body, request.headers.get("authorization"));
+  return proxy(params.action, body, request.headers.get("authorization"), "");
 }
 
 export async function GET(request: Request, { params }: { params: { action: string } }) {
-  return proxy(params.action, undefined, request.headers.get("authorization"));
+  // Forwarded as-is — e.g. "countries" (obtainRemittancePartnerCountries)
+  // takes `userName` as a query param, not a body.
+  const { search } = new URL(request.url);
+  return proxy(params.action, undefined, request.headers.get("authorization"), search);
 }

@@ -1,6 +1,5 @@
 import type { ExchangeRateItem, ExchangeRateRecord, ExchangeRateUpsertPayload } from "@/data/exchangeRateData";
 import type { ServiceChargeRecord, ServiceChargeUpsertPayload } from "@/data/serviceChargeData";
-import type { CountryCurrencyRecord, CountryCurrencyUpsertPayload } from "@/data/countryCurrencyData";
 import type { CommissionLookupPayload, CommissionRecord, CommissionUpsertPayload } from "@/data/partnerCommissionData";
 import type {
   PartnerOfferRateActionPayload,
@@ -88,16 +87,6 @@ export function insertServiceCharge(payload: ServiceChargeUpsertPayload) {
     method: "POST",
     body: stripServiceChargeMockFields(payload),
   });
-}
-
-// Country / Currency — POST /UpdateCsvfileForCountries upserts ONE row per
-// call, as a structured JSON object with the normal envelope response
-// (confirmed against Swagger). "From a CSV import" in its description refers
-// to the source of the data, not the request/response shape — an earlier
-// build pass wrongly treated this as a raw-string endpoint; see
-// data/countryCurrencyData.ts.
-export function upsertCountryCurrency(payload: CountryCurrencyUpsertPayload) {
-  return callRateAction<CountryCurrencyRecord>("update-csv-file-for-countries", { method: "POST", body: payload });
 }
 
 // Partner Commission

@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { loadState, saveState } from "@/lib/persist";
 import { findUserByCredentials, type MockUser } from "@/data/authData";
 import { useDataMode } from "./DataModeContext";
@@ -107,16 +99,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isLive, user?.username, tokens?.accessToken]);
 
-  // Skip the very first save (still holds the pre-restore default state) so it
-  // can't race the restore effect above and clobber what's in localStorage.
-  const skipNextSave = useRef(true);
+  // Gated on `hydrated` state (not a ref-based "skip the first run" flag) so
+  // this can't fire before the restore effect above has actually committed.
+  // A ref flip is NOT enough: React 18 Strict Mode double-invokes every
+  // effect on mount in dev (mount -> cleanup -> mount again) using the SAME
+  // pre-restore render's closure, so a ref consumed by the first invocation
+  // lets the second one straight through — calling saveState with the
+  // still-null pre-restore user/tokens and wiping out whatever this exact
+  // effect (and the restore effect) had just written, moments before the
+  // real state change re-fires it correctly. `hydrated` only ever flips via
+  // a real committed render, so both Strict Mode invocations on the initial
+  // (pre-restore) render see it as false and skip.
   useEffect(() => {
-    if (skipNextSave.current) {
-      skipNextSave.current = false;
-      return;
-    }
+    if (!hydrated) return;
     saveState<AuthState | null>(STORAGE_KEY, user ? { user, tokens } : null);
-  }, [user, tokens]);
+  }, [hydrated, user, tokens]);
 
   const login = useCallback(
     async (username: string, password: string) => {
@@ -159,7 +156,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // race ahead of the persist effect and go out with no Authorization
       // header at all.
       saveState<AuthState>(STORAGE_KEY, { user: nextUser, tokens: nextTokens });
-      skipNextSave.current = true;
 
       setTokens(nextTokens);
       setUser(nextUser);

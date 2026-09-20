@@ -17,8 +17,8 @@ import type { ApiResponse } from "./apiClient";
 // `onLiveSuccess`. `failValue` is whatever the function already returns on
 // failure today (usually `false`, `null`, or nothing). Anything that loops
 // over N payloads with partial success (CSV-import-style) does NOT fit this
-// hook — leave it hand-written; see RatesContext.importCountryCurrencyCsv for
-// the reference shape of that pattern instead.
+// hook — leave it hand-written; see RatesContext.importExchangeRatesFromCsv
+// for the reference shape of that pattern instead.
 export interface AsyncMutationOptions<TResult> {
   isLive: boolean;
   guard?: () => string | null;

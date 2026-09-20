@@ -30,7 +30,7 @@ export default function CurrencySelect({
   label = "Currency",
   required,
   disabled,
-  emptyMessage = "No currencies uploaded — add rows on the Country/Currency tab first.",
+  emptyMessage = "No currencies available.",
   bare = false,
   placeholder = "CCY",
 }: CurrencySelectProps) {

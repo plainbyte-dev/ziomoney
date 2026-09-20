@@ -118,21 +118,29 @@ interface ResolveFeeInput {
   agentName: string;
   deliveryOption: string;
   serviceCharges: ServiceChargeRecord[];
+  // Only consulted when SERVICE_FEE_SOURCE_CONFIRMED — the same decimal
+  // rate/amount pair calculateTransfer already resolves via
+  // resolveCommissionRate for the `commission` field. See the comment on
+  // SERVICE_FEE_SOURCE_CONFIRMED in config/businessRules.ts for why the fee
+  // is deliberately the same number as the commission, not an independent
+  // lookup against obtainRemittancePartnerCommission.
+  commissionRate: number;
+  amount: number;
   serviceFeeSourceConfirmed?: boolean;
 }
 
 /**
  * Resolves the fee for a transfer. When SERVICE_FEE_SOURCE_CONFIRMED is
- * false (today), reads the mock-only feeAmountMOCKONLY field — see
+ * true (confirmed source: obtainRemittancePartnerCommission), the fee IS
+ * the resolved commission amount — see the config flag's comment. When
+ * false, falls back to reading the mock-only feeAmountMOCKONLY field — see
  * data/serviceChargeData.ts for why that field exists at all.
  */
 export function resolveFee(input: ResolveFeeInput): number {
   const confirmed = input.serviceFeeSourceConfirmed ?? SERVICE_FEE_SOURCE_CONFIRMED;
 
   if (confirmed) {
-    // TODO(backend): wire to the real fee-amount field/endpoint once
-    // confirmed. Intentionally returns 0 rather than fabricating a number.
-    return 0;
+    return input.commissionRate * input.amount;
   }
 
   if (!feeStubWarned) {
@@ -312,6 +320,8 @@ export function calculateTransfer(input: CalculateTransferInput): CalculateTrans
     agentName: input.agentName,
     deliveryOption: input.deliveryOption,
     serviceCharges: input.serviceCharges,
+    commissionRate: input.commissionRate,
+    amount: input.amount,
     serviceFeeSourceConfirmed: input.serviceFeeSourceConfirmed,
   });
 

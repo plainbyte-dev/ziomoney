@@ -19,6 +19,7 @@ import {
   partnerCountrySelectOptions,
   remitterTypeOptions,
   settlementCurrencyOptions,
+  exampleAddressForCountry,
   type PartnerEntry,
 } from "@/data/partnerData";
 import { emptyPayoutPartnerConfigPayload, type PayoutPartnerConfigPayload } from "@/data/payoutConfigData";
@@ -254,7 +255,13 @@ export default function CreatePartnerForm() {
               value={partnerCountry}
               onChange={setPartnerCountry}
             />
-            <TextField label="Partner Address:" required value={partnerAddress} onChange={setPartnerAddress} />
+            <TextField
+              label="Partner Address:"
+              required
+              placeholder={exampleAddressForCountry(partnerCountry)}
+              value={partnerAddress}
+              onChange={setPartnerAddress}
+            />
             <SelectField
               label="Remitter Type:"
               options={remitterTypeOptions}
@@ -289,9 +296,9 @@ export default function CreatePartnerForm() {
         <form onSubmit={handleStep2Submit} className="bg-panel p-6 sm:p-8">
           <p className="mb-4 text-sm text-heading/70">
             Enable the currencies <span className="font-medium text-heading">{createdEntry.partnerName}</span> can
-            transact in.
+            transact in. {selectedCurrencies.length} selected.
           </p>
-          <div className="flex flex-wrap gap-x-6 gap-y-3">
+          <div className="grid max-h-80 grid-cols-2 gap-x-6 gap-y-3 overflow-y-auto rounded-xl border border-border p-4 sm:grid-cols-3 md:grid-cols-4">
             {settlementCurrencyOptions.map((currency) => (
               <Checkbox
                 key={currency}
